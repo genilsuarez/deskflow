@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LearnDesk</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23D4764E'/%3E%3Cpath d='M8 7h16v2H8zm0 5h16v2H8zm0 5h12v2H8zm0 5h8v2H8z' fill='white' opacity='.9'/%3E%3C/svg%3E" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="desk">
+    <header class="desk__header">
+      <div class="desk__brand">
+        <h1 class="desk__title">Learn<em>Desk</em></h1>
+        <span class="desk__edition">portal</span>
+      </div>
+      <div class="desk__actions">
+        <button class="desk__theme-btn" id="themeToggle" aria-label="Toggle theme">
+          <span class="desk__theme-icon">🌙</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="desk__welcome">
+      <p class="desk__greeting" id="greeting">Good morning</p>
+      <p class="desk__subtitle">Your learning workspace</p>
+    </section>
+
+    <main class="desk__grid">
+      <!-- FluentFlow -->
+      <a class="app-card" href="https://genilsuarez.github.io/fluentflow/" target="_blank" rel="noopener">
+        <div class="app-card__icon">
+          <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="6" fill="#8b5cf6"/>
+            <path d="M10 8L10 24M10 8L22 8M10 15L18 15" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="app-card__body">
+          <h2 class="app-card__name">FluentFlow</h2>
+          <p class="app-card__desc">English CEFR platform — A1 to C2. Flashcards, quizzes, reading, sorting.</p>
+        </div>
+        <div class="app-card__meta">
+          <span class="app-card__badge">160+ modules</span>
+          <span class="app-card__arrow">→</span>
+        </div>
+      </a>
+
+      <!-- LearnHub -->
+      <a class="app-card app-card--amber" href="https://genilsuarez.github.io/learnhub/" target="_blank" rel="noopener">
+        <div class="app-card__icon">
+          <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="6" fill="#B8860B"/>
+            <path d="M9 8h14v16H9z" stroke="white" stroke-width="2" fill="none"/>
+            <path d="M12 12h8M12 16h6" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="app-card__body">
+          <h2 class="app-card__name">LearnHub</h2>
+          <p class="app-card__desc">Spelling rules (-ing, -ed), noun adjuncts, vocabulary, opposites.</p>
+        </div>
+        <div class="app-card__meta">
+          <span class="app-card__badge">5 modules</span>
+          <span class="app-card__arrow">→</span>
+        </div>
+      </a>
+
+      <!-- LyricFlow -->
+      <a class="app-card app-card--teal" href="https://genilsuarez.github.io/lyricflow/" target="_blank" rel="noopener">
+        <div class="app-card__icon">
+          <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="6" fill="#111827"/>
+            <circle cx="16" cy="16" r="8" stroke="#38bdf8" stroke-width="1.5" fill="none"/>
+            <circle cx="16" cy="16" r="3" fill="#38bdf8"/>
+          </svg>
+        </div>
+        <div class="app-card__body">
+          <h2 class="app-card__name">LyricFlow</h2>
+          <p class="app-card__desc">Learn through music — synced lyrics, vocabulary, fill-in-the-blanks.</p>
+        </div>
+        <div class="app-card__meta">
+          <span class="app-card__badge">2 songs</span>
+          <span class="app-card__arrow">→</span>
+        </div>
+      </a>
+    </main>
+
+    <footer class="desk__footer">
+      <span class="desk__sig">Genil Suárez</span>
+      <span class="desk__version">LearnDesk · 2025</span>
+    </footer>
+  </div>
+
+  <script>
+    // Theme toggle
+    (function() {
+      const saved = localStorage.getItem('ld-theme');
+      if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+
+      const btn = document.getElementById('themeToggle');
+      const icon = btn.querySelector('.desk__theme-icon');
+
+      function update() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        icon.textContent = isDark ? '☀️' : '🌙';
+      }
+      update();
+
+      btn.addEventListener('click', () => {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+        localStorage.setItem('ld-theme', isDark ? '' : 'dark');
+        update();
+      });
+
+      // Greeting based on time
+      const h = new Date().getHours();
+      const greeting = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+      document.getElementById('greeting').textContent = greeting;
+    })();
+  </script>
+</body>
+</html>
