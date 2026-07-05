@@ -33,7 +33,7 @@
 
     <main class="desk__grid">
       <!-- FluentFlow -->
-      <a class="app-card" href="https://genilsuarez.github.io/fluentflow/" target="_blank" rel="noopener">
+      <a class="app-card" href="https://genilsuarez.github.io/fluentflow/" rel="noopener">
         <div class="app-card__icon">
           <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
             <rect width="32" height="32" rx="6" fill="#8b5cf6"/>
@@ -51,7 +51,7 @@
       </a>
 
       <!-- HubFlow -->
-      <a class="app-card app-card--amber" href="https://genilsuarez.github.io/hubflow/" target="_blank" rel="noopener">
+      <a class="app-card app-card--amber" href="https://genilsuarez.github.io/hubflow/" rel="noopener">
         <div class="app-card__icon">
           <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
             <rect width="32" height="32" rx="6" fill="#B8860B"/>
@@ -70,7 +70,7 @@
       </a>
 
       <!-- LyricFlow -->
-      <a class="app-card app-card--teal" href="https://genilsuarez.github.io/lyricflow/" target="_blank" rel="noopener">
+      <a class="app-card app-card--teal" href="https://genilsuarez.github.io/lyricflow/" rel="noopener">
         <div class="app-card__icon">
           <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
             <rect width="32" height="32" rx="6" fill="#111827"/>
@@ -94,6 +94,28 @@
       <span class="desk__version">DeskFlow · 2026</span>
     </footer>
   </div>
+
+  <script>
+    // Local dev: rewrite links to local ports when running on localhost
+    (function() {
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        const localMap = {
+          'genilsuarez.github.io/fluentflow/': 'localhost:3001/',
+          'genilsuarez.github.io/hubflow/': 'localhost:3002/',
+          'genilsuarez.github.io/lyricflow/': 'localhost:3003/'
+        };
+        document.querySelectorAll('a[href*="genilsuarez.github.io"]').forEach(a => {
+        for (const [remote, local] of Object.entries(localMap)) {
+          if (a.href.includes(remote)) {
+            a.href = `http://${local}`;
+            a.removeAttribute('target');
+            a.removeAttribute('rel');
+            break;
+          }
+        }
+      });
+    })();
+  </script>
 
   <script>
     // Theme toggle
