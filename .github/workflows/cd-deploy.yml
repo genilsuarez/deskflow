@@ -9,10 +9,11 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
-  group: deploy-production
-  cancel-in-progress: false
+  group: pages-deploy
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -23,6 +24,31 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Wait for CI Validate
+        run: |
+          COMMIT_SHA="${{ github.sha }}"
+          echo "⏳ Waiting for CI Validate ($COMMIT_SHA)..."
+          TIMEOUT=180
+          ELAPSED=0
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            CONCLUSION=$(gh api repos/${{ github.repository }}/actions/runs \
+              --jq "[.workflow_runs[] | select(.head_sha == \"$COMMIT_SHA\" and .name == \"CI Validate\")] | .[0].conclusion" \
+              2>/dev/null | tr -d '"')
+            if [ "$CONCLUSION" = "success" ]; then
+              echo "✅ CI Validate passed"
+              break
+            elif [ "$CONCLUSION" = "failure" ] || [ "$CONCLUSION" = "cancelled" ]; then
+              echo "❌ CI Validate failed — aborting deploy"
+              exit 1
+            fi
+            sleep 8
+            ELAPSED=$((ELAPSED + 8))
+            echo "  [${ELAPSED}s] CI: ${CONCLUSION:-running}"
+          done
+          [ $ELAPSED -lt $TIMEOUT ] || { echo "❌ Timeout waiting for CI"; exit 1; }
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Verify index.html exists
         run: |
