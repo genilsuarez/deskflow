@@ -105,15 +105,16 @@
           'genilsuarez.github.io/lyricflow/': 'localhost:3003/'
         };
         document.querySelectorAll('a[href*="genilsuarez.github.io"]').forEach(a => {
-        for (const [remote, local] of Object.entries(localMap)) {
-          if (a.href.includes(remote)) {
-            a.href = `http://${local}`;
-            a.removeAttribute('target');
-            a.removeAttribute('rel');
-            break;
+          for (const [remote, local] of Object.entries(localMap)) {
+            if (a.href.includes(remote)) {
+              a.href = `http://${local}`;
+              a.removeAttribute('target');
+              a.removeAttribute('rel');
+              break;
+            }
           }
-        }
-      });
+        });
+      }
     })();
   </script>
 
