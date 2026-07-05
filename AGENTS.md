@@ -1,4 +1,4 @@
-# LearnDesk — Agent Guide
+# DeskFlow — Agent Guide
 
 ## What is it
 
@@ -10,13 +10,15 @@ Static site — HTML + CSS + vanilla JS. No build step.
 - HTML5 + CSS3 + Vanilla JS (ES modules)
 - No build step — serve directly (works from file:// or any HTTP server)
 - Google Fonts: Newsreader (display) + Manrope (UI) + JetBrains Mono (code)
-- Design tokens: `--lp-*` prefix (Learn Platform) — shared with FluentFlow, LearnHub, LyricFlow
+- Design tokens: `--lp-*` prefix (Learn Platform) — shared with FluentFlow, HubFlow, LyricFlow
 
 ## Structure
 
 ```
 index.html      — Entry point / portal dashboard
 styles.css      — All styles (design tokens + components)
+scripts/        — Scripts (QA, audits, utilities)
+scripts/tmp/    — Temporary scripts (gitignored)
 AGENTS.md       — This file
 ```
 
@@ -27,6 +29,14 @@ npx serve . -p 3000
 # or
 python3 -m http.server 3000
 ```
+
+## Script execution rules
+
+- **ALL scripts** must live in `scripts/` (or `scripts/tmp/` for one-offs)
+- NEVER execute inline JS/Python in the terminal
+- `scripts/tmp/` is gitignored — use for audits, QA, temporary analysis
+- Execute with: `node scripts/<name>.js` or `node scripts/tmp/<name>.js`
+- Allowed direct commands: `npx serve`, `python3 -m http.server`, `git`, simple shell utils
 
 ## Design conventions
 
@@ -42,5 +52,5 @@ python3 -m http.server 3000
 | App | Repo | URL |
 |-----|------|-----|
 | FluentFlow | genilsuarez/fluentflow | https://genilsuarez.github.io/fluentflow/ |
-| LearnHub | genilsuarez/learnhub | https://genilsuarez.github.io/learnhub/ |
+| HubFlow | genilsuarez/hubflow | https://genilsuarez.github.io/hubflow/ |
 | LyricFlow | genilsuarez/lyricflow | https://genilsuarez.github.io/lyricflow/ |
