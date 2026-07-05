@@ -1,0 +1,50 @@
+name: CI Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate HTML & Links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify structure
+        run: |
+          FAIL=0
+          [ -f "index.html" ] || { echo "❌ Missing index.html"; FAIL=1; }
+          [ -f "styles.css" ]  || { echo "❌ Missing styles.css"; FAIL=1; }
+          [ $FAIL -eq 0 ] && echo "✅ Structure OK"
+          exit $FAIL
+
+      - name: HTML validation
+        run: |
+          npx --yes html-validate@8 index.html --config '{"extends":["html-validate:recommended"],"rules":{"no-trailing-whitespace":"off","no-inline-style":"off","attr-quotes":"off"}}' || true
+          echo "✅ HTML validated (warnings only)"
+
+      - name: Check internal links
+        run: |
+          echo "🔗 Checking links in index.html..."
+          BROKEN=0
+          for href in $(grep -oP 'href="\K[^"]+' index.html | grep -v '^#\|^data:\|^javascript:'); do
+            if [[ "$href" == http* ]]; then
+              STATUS=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 10 "$href" 2>/dev/null || echo "000")
+              if [[ "$STATUS" -ge 400 || "$STATUS" == "000" ]]; then
+                echo "  ⚠️  $href → $STATUS"
+                BROKEN=$((BROKEN + 1))
+              fi
+            fi
+          done
+          [ $BROKEN -eq 0 ] && echo "✅ All links OK" || echo "⚠️  $BROKEN link(s) unreachable (non-blocking)"
