@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <meta name="description" content="DeskFlow — A minimal, customizable browser startpage with quick links, notes, and tasks.">
+  <script>var p=new URLSearchParams(location.search).get('theme'),t=p||localStorage.getItem('lp-theme');if(p)localStorage.setItem('lp-theme',p);if(t==='dark')document.documentElement.setAttribute('data-theme','dark')</script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -114,6 +116,16 @@
             }
           }
         });
+        // Propagate theme via query param on cross-origin local links
+        document.addEventListener('click', (e) => {
+          const a = e.target.closest('a[href*="localhost:"]');
+          if (a) {
+            const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            const url = new URL(a.href);
+            url.searchParams.set('theme', theme);
+            a.href = url.toString();
+          }
+        });
       }
     })();
   </script>
@@ -121,7 +133,7 @@
   <script>
     // Theme toggle
     (function() {
-      const saved = localStorage.getItem('ld-theme');
+      const saved = localStorage.getItem('lp-theme');
       if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
 
       const btn = document.getElementById('themeToggle');
@@ -134,10 +146,16 @@
       update();
 
       btn.addEventListener('click', () => {
+        document.documentElement.classList.add('theme-transitioning');
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
-        localStorage.setItem('ld-theme', isDark ? '' : 'dark');
+        const newTheme = isDark ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme === 'dark' ? 'dark' : '');
+        localStorage.setItem('lp-theme', newTheme);
+        if (location.search.includes('theme=')) {
+          const u = new URL(location.href); u.searchParams.set('theme', newTheme); history.replaceState(null, '', u);
+        }
         update();
+        setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 350);
       });
 
       // Greeting based on time
