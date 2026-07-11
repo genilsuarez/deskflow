@@ -153,7 +153,9 @@ html { scroll-behavior: smooth; height: 100%; }
 
 body {
   font-family: var(--lp-font-body);
-  background: var(--lp-bg);
+  background:
+    radial-gradient(640px 380px at 50% -8%, color-mix(in srgb, var(--lp-accent) 9%, transparent) 0%, transparent 60%),
+    var(--lp-bg);
   color: var(--lp-ink);
   min-height: 100vh;
   min-height: 100dvh;
@@ -163,6 +165,11 @@ body {
   padding: 24px;
   -webkit-font-smoothing: antialiased;
   transition: background 0.3s, color 0.3s;
+}
+[data-theme="dark"] body {
+  background:
+    radial-gradient(680px 420px at 50% -10%, color-mix(in srgb, var(--lp-accent) 15%, transparent) 0%, transparent 62%),
+    var(--lp-bg);
 }
 
 /* ─── PAPER GRAIN ─── */
@@ -225,7 +232,7 @@ body {
   color: var(--lp-muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  border: 1.5px solid var(--lp-border);
+  border: 1px solid var(--lp-border);
   padding: 2px 7px;
   border-radius: 3px;
 }
@@ -261,11 +268,12 @@ body {
 
 .desk__greeting {
   font-family: var(--lp-font-display);
-  font-size: 1.5rem;
+  font-size: 2.1rem;
   font-weight: 500;
   font-style: italic;
   color: var(--lp-ink);
   letter-spacing: -0.01em;
+  line-height: 1.15;
 }
 
 .desk__subtitle {
@@ -318,8 +326,8 @@ body {
 }
 
 .app-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--lp-shadow-hover);
+  transform: translateY(-3px);
+  box-shadow: var(--lp-shadow-hover), 0 14px 32px -10px color-mix(in srgb, var(--lp-cat-purple) 35%, transparent);
   border-color: color-mix(in srgb, var(--lp-cat-purple) 30%, var(--lp-border));
 }
 
@@ -328,20 +336,35 @@ body {
 
 /* Color variants */
 .app-card--amber::before { background: var(--lp-cat-amber); }
-.app-card--amber:hover { border-color: color-mix(in srgb, var(--lp-cat-amber) 30%, var(--lp-border)); }
+.app-card--amber:hover {
+  border-color: color-mix(in srgb, var(--lp-cat-amber) 30%, var(--lp-border));
+  box-shadow: var(--lp-shadow-hover), 0 14px 32px -10px color-mix(in srgb, var(--lp-cat-amber) 35%, transparent);
+}
 
 .app-card--teal::before { background: var(--lp-cat-teal); }
-.app-card--teal:hover { border-color: color-mix(in srgb, var(--lp-cat-teal) 30%, var(--lp-border)); }
+.app-card--teal:hover {
+  border-color: color-mix(in srgb, var(--lp-cat-teal) 30%, var(--lp-border));
+  box-shadow: var(--lp-shadow-hover), 0 14px 32px -10px color-mix(in srgb, var(--lp-cat-teal) 35%, transparent);
+}
 
 .app-card__icon {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--lp-radius-md);
-  background: var(--lp-surface-sunken);
-  border: 1px solid var(--lp-border-subtle);
+  background: color-mix(in srgb, var(--lp-cat-purple) 12%, var(--lp-surface-sunken));
+  border: 1px solid color-mix(in srgb, var(--lp-cat-purple) 22%, var(--lp-border-subtle));
+  transition: background 0.3s, border-color 0.3s;
+}
+.app-card--amber .app-card__icon {
+  background: color-mix(in srgb, var(--lp-cat-amber) 12%, var(--lp-surface-sunken));
+  border-color: color-mix(in srgb, var(--lp-cat-amber) 22%, var(--lp-border-subtle));
+}
+.app-card--teal .app-card__icon {
+  background: color-mix(in srgb, var(--lp-cat-teal) 12%, var(--lp-surface-sunken));
+  border-color: color-mix(in srgb, var(--lp-cat-teal) 22%, var(--lp-border-subtle));
 }
 
 .app-card__body {
@@ -385,14 +408,13 @@ body {
 .app-card__arrow {
   font-size: 1rem;
   color: var(--lp-muted);
-  opacity: 0;
-  transform: translateX(-4px);
-  transition: opacity 0.2s, transform 0.2s var(--lp-ease);
+  opacity: 0.4;
+  transition: opacity 0.2s, transform 0.2s var(--lp-ease), color 0.2s;
 }
 
 .app-card:hover .app-card__arrow {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateX(2px);
   color: var(--lp-accent);
 }
 
@@ -451,10 +473,16 @@ body {
 @media (max-width: 480px) {
   body { padding: 16px; }
   .desk { gap: 18px; }
-  .desk__title { font-size: 1.5rem; }
+  .desk__title { font-size: 1.6rem; }
+  .desk__greeting { font-size: 1.6rem; }
   .app-card { padding: 14px 14px; gap: 10px; }
-  .app-card__desc { display: none; }
-  .app-card__icon { width: 38px; height: 38px; }
+  .app-card__desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .app-card__icon { width: 40px; height: 40px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
