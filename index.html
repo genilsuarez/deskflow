@@ -162,7 +162,7 @@
 
       // Greeting based on time
       const h = new Date().getHours();
-      const greeting = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+      const greeting = h < 6 ? 'Good evening' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
       document.getElementById('greeting').textContent = greeting;
     })();
   </script>
