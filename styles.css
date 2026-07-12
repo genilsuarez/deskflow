@@ -471,8 +471,8 @@ body {
 
 /* ─── RESPONSIVE ─── */
 @media (max-width: 480px) {
-  body { padding: 16px; }
-  .desk { gap: 18px; }
+  body { padding: 16px; align-items: flex-start; }
+  .desk { gap: 18px; min-height: auto; }
   .desk__title { font-size: 1.6rem; }
   .desk__greeting { font-size: 1.6rem; }
   .app-card { padding: 14px 14px; gap: 10px; }
