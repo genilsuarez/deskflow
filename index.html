@@ -98,13 +98,15 @@
   </div>
 
   <script>
-    // Local dev: rewrite links to local ports when running on localhost
+    // Local dev: rewrite links to local ports when running on localhost or private IP
     (function() {
-      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      const h = location.hostname;
+      const isLocal = h === 'localhost' || h === '127.0.0.1' || h.startsWith('192.168.');
+      if (isLocal) {
         const localMap = {
-          'genilsuarez.github.io/fluentflow/': 'localhost:3001/',
-          'genilsuarez.github.io/hubflow/': 'localhost:3002/',
-          'genilsuarez.github.io/lyricflow/': 'localhost:3003/'
+          'genilsuarez.github.io/fluentflow/': h + ':3001/',
+          'genilsuarez.github.io/hubflow/': h + ':3002/',
+          'genilsuarez.github.io/lyricflow/': h + ':3003/'
         };
         document.querySelectorAll('a[href*="genilsuarez.github.io"]').forEach(a => {
           for (const [remote, local] of Object.entries(localMap)) {
@@ -118,7 +120,7 @@
         });
         // Propagate theme via query param on cross-origin local links
         document.addEventListener('click', (e) => {
-          const a = e.target.closest('a[href*="localhost:"]');
+          const a = e.target.closest('a[href*="' + h + ':"]');
           if (a) {
             const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
             const url = new URL(a.href);
