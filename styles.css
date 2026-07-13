@@ -149,7 +149,7 @@
 
 /* ─── RESET ─── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; height: 100%; }
+html { scroll-behavior: smooth; height: 100%; overscroll-behavior: none; }
 
 body {
   font-family: var(--lp-font-body);
@@ -165,6 +165,7 @@ body {
   padding: 24px;
   -webkit-font-smoothing: antialiased;
   transition: background 0.3s, color 0.3s;
+  overscroll-behavior: none;
 }
 [data-theme="dark"] body {
   background:
@@ -472,7 +473,7 @@ body {
 /* ─── RESPONSIVE ─── */
 @media (max-width: 480px) {
   body { padding: 16px; align-items: flex-start; }
-  .desk { gap: 18px; min-height: auto; }
+  .desk { gap: 18px; min-height: calc(100vh - 32px); min-height: calc(100dvh - 32px); }
   .desk__title { font-size: 1.6rem; }
   .desk__greeting { font-size: 1.6rem; }
   .app-card { padding: 14px 14px; gap: 10px; }
