@@ -238,24 +238,8 @@ body {
   border-radius: 3px;
 }
 
-.desk__theme-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1.5px solid var(--lp-border);
-  background: var(--lp-surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: border-color 0.2s, transform 0.2s;
-}
-
-.desk__theme-btn:hover {
-  border-color: var(--lp-accent);
-  transform: scale(1.06);
-}
-
+/* El botón de tema usa el primitivo compartido .lp-icon-btn (misma pieza que
+   HubFlow/LyricFlow) en vez de reimplementar el círculo a mano. */
 .desk__theme-icon {
   font-size: 0.85rem;
   line-height: 1;
