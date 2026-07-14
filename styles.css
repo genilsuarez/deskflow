@@ -226,18 +226,6 @@ body {
   color: var(--lp-muted);
 }
 
-.desk__edition {
-  font-family: var(--lp-font-mono);
-  font-size: 0.55rem;
-  font-weight: 700;
-  color: var(--lp-muted);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border: 1px solid var(--lp-border);
-  padding: 2px 7px;
-  border-radius: 3px;
-}
-
 /* El botón de tema usa el primitivo compartido .lp-icon-btn (misma pieza que
    HubFlow/LyricFlow) en vez de reimplementar el círculo a mano. */
 .desk__theme-icon {
