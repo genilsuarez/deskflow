@@ -449,6 +449,16 @@ function closeSidebar() {
 function setNavigationMode(mode, persist = false) {
   const resolvedMode = NAVIGATION_MODES.has(mode) ? mode : 'sidebar';
   document.documentElement.dataset.navigationMode = resolvedMode;
+  const toggle = document.getElementById('navigationModeToggle');
+  if (toggle) {
+    const isFloating = resolvedMode === 'floating';
+    toggle.setAttribute('aria-pressed', String(isFloating));
+    toggle.setAttribute('aria-label', isFloating ? 'Usar barra lateral fija' : 'Usar navegación flotante');
+    const icon = toggle.querySelector('.nav-icon');
+    const label = toggle.querySelector('.nav-label');
+    if (icon) icon.textContent = isFloating ? '▣' : '◫';
+    if (label) label.textContent = isFloating ? 'Usar barra lateral' : 'Usar menú flotante';
+  }
   if (persist) localStorage.setItem(NAVIGATION_MODE_KEY, resolvedMode);
   closeSidebar();
 }
@@ -456,6 +466,10 @@ function setNavigationMode(mode, persist = false) {
 function setupNavigationMode() {
   const savedMode = localStorage.getItem(NAVIGATION_MODE_KEY);
   setNavigationMode(NAVIGATION_MODES.has(savedMode) ? savedMode : 'sidebar');
+  document.getElementById('navigationModeToggle').addEventListener('click', () => {
+    const nextMode = document.documentElement.dataset.navigationMode === 'floating' ? 'sidebar' : 'floating';
+    setNavigationMode(nextMode, true);
+  });
 }
 
 function showView(viewName, updateHash = true) {

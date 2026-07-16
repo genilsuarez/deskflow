@@ -39,18 +39,18 @@
       </div>
 
       <nav class="sidebar__nav">
-
-        <button class="nav-item is-active" type="button" data-view="resumen" aria-current="page"><span aria-hidden="true">⌂</span> Inicio</button>
-        <button class="nav-item" type="button" data-view="fluentflow"><span class="nav-dot nav-dot--purple" aria-hidden="true"></span> FluentFlow</button>
-        <button class="nav-item" type="button" data-view="hubflow"><span class="nav-dot nav-dot--amber" aria-hidden="true"></span> HubFlow</button>
-        <button class="nav-item" type="button" data-view="lyricflow"><span class="nav-dot nav-dot--teal" aria-hidden="true"></span> LyricFlow</button>
-        <button class="nav-item" type="button" data-view="actividad"><span aria-hidden="true">◷</span> Actividad</button>
+        <button class="nav-item nav-mode-toggle" id="navigationModeToggle" type="button" aria-label="Usar navegación flotante" aria-pressed="false"><span class="nav-icon" aria-hidden="true">◫</span><span class="nav-label">Usar menú flotante</span></button>
+        <button class="nav-item is-active" type="button" data-view="resumen" aria-current="page"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Inicio</span></button>
+        <button class="nav-item" type="button" data-view="fluentflow"><span class="nav-dot nav-dot--purple" aria-hidden="true"></span><span class="nav-label">FluentFlow</span></button>
+        <button class="nav-item" type="button" data-view="hubflow"><span class="nav-dot nav-dot--amber" aria-hidden="true"></span><span class="nav-label">HubFlow</span></button>
+        <button class="nav-item" type="button" data-view="lyricflow"><span class="nav-dot nav-dot--teal" aria-hidden="true"></span><span class="nav-label">LyricFlow</span></button>
+        <button class="nav-item" type="button" data-view="actividad"><span class="nav-icon" aria-hidden="true">◷</span><span class="nav-label">Actividad</span></button>
       </nav>
 
       <div class="sidebar__footer">
-        <button class="nav-item" type="button" id="aboutTrigger"><span aria-hidden="true">ⓘ</span> About LearnFlow</button>
-        <a class="nav-item nav-item--disabled" href="#" aria-disabled="true" tabindex="-1"><span aria-hidden="true">⌂</span> Portal</a>
-        <button class="nav-item theme-toggle" type="button" aria-label="Cambiar a tema oscuro"><span aria-hidden="true">🌙</span><span class="theme-toggle__label">Modo oscuro</span></button>
+        <button class="nav-item" type="button" id="aboutTrigger"><span class="nav-icon" aria-hidden="true">ⓘ</span><span class="nav-label">About LearnFlow</span></button>
+        <a class="nav-item nav-item--disabled" href="#" aria-disabled="true" tabindex="-1"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Portal</span></a>
+        <button class="nav-item theme-toggle" type="button" aria-label="Cambiar a tema oscuro"><span class="nav-icon" aria-hidden="true">🌙</span><span class="nav-label theme-toggle__label">Modo oscuro</span></button>
       </div>
     </aside>
 
