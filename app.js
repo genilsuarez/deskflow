@@ -449,12 +449,6 @@ function closeSidebar() {
 function setNavigationMode(mode, persist = false) {
   const resolvedMode = NAVIGATION_MODES.has(mode) ? mode : 'sidebar';
   document.documentElement.dataset.navigationMode = resolvedMode;
-  const toggle = document.getElementById('navigationModeToggle');
-  const isFloating = resolvedMode === 'floating';
-  toggle.setAttribute('aria-pressed', String(isFloating));
-  toggle.setAttribute('aria-label', isFloating ? 'Usar barra lateral fija' : 'Usar navegación flotante');
-  toggle.querySelector('.navigation-mode-toggle__label').textContent = isFloating ? 'Usar barra lateral' : 'Usar menú flotante';
-  toggle.querySelector('[aria-hidden="true"]').textContent = isFloating ? '▣' : '◫';
   if (persist) localStorage.setItem(NAVIGATION_MODE_KEY, resolvedMode);
   closeSidebar();
 }
@@ -462,10 +456,6 @@ function setNavigationMode(mode, persist = false) {
 function setupNavigationMode() {
   const savedMode = localStorage.getItem(NAVIGATION_MODE_KEY);
   setNavigationMode(NAVIGATION_MODES.has(savedMode) ? savedMode : 'sidebar');
-  document.getElementById('navigationModeToggle').addEventListener('click', () => {
-    const nextMode = document.documentElement.dataset.navigationMode === 'floating' ? 'sidebar' : 'floating';
-    setNavigationMode(nextMode, true);
-  });
 }
 
 function showView(viewName, updateHash = true) {
