@@ -363,23 +363,22 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px clamp(16px, 3vw, 34px);
+  padding: 22px clamp(16px, 3vw, 34px);
   border-bottom: 1.5px solid var(--lp-border);
   flex-shrink: 0;
 }
 .topbar-title {
   font-family: var(--lp-font-display);
   font-size: 1.3rem;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1;
 }
 .topbar-sub {
-  margin-top: 2px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: var(--lp-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  margin-top: 3px;
+  font-size: 0.76rem;
+  font-weight: 400;
+  color: var(--lp-ink-soft);
+  letter-spacing: 0;
 }
 .topbar-date {
   font-family: var(--lp-font-mono);
