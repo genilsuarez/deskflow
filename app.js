@@ -378,16 +378,12 @@ function renderPrimaryContinue() {
     .filter((result) => hasValidProgress(result) && result.progress.data.summary.lastContent)
     .sort((a, b) => new Date(b.progress.data.summary.lastContent.occurredAt || 0) - new Date(a.progress.data.summary.lastContent.occurredAt || 0));
   const selectedApp = candidates[0]?.app || 'fluentflow';
-  const selected = getAppResult(selectedApp);
   const config = APP_CONFIG[selectedApp];
   const link = document.getElementById('primaryContinueLink');
   link.href = config.url;
   link.dataset.appLink = selectedApp;
-  link.firstChild.textContent = candidates.length ? `Continuar en ${config.name} ` : `Abrir ${config.name} `;
-  const last = selected?.progress.data?.summary.lastContent;
-  document.getElementById('continueDescription').textContent = last
-    ? `Tu último contenido válido fue “${last.title}” en ${config.name}.`
-    : 'No hay un último contenido válido. Puedes comenzar por cualquiera de los tres módulos.';
+  const label = candidates.length ? `Continuar en ${config.name}` : `Abrir ${config.name}`;
+  document.getElementById('continueDescription').textContent = label;
 }
 
 function isLocalEnvironment() {
@@ -655,6 +651,10 @@ setupNavigationMode();
 setupNavigation();
 setupActivityFilters();
 renderAll();
+
+if (new URLSearchParams(location.search).has('debug')) {
+  document.getElementById('dataHealth').hidden = false;
+}
 document.getElementById('refreshData').addEventListener('click', renderAll);
 window.addEventListener('storage', (event) => {
   if (event.key === NAVIGATION_MODE_KEY) {

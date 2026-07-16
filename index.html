@@ -65,7 +65,7 @@
     <main class="main" id="mainContent" tabindex="-1">
       <section class="view is-active" id="view-resumen" data-view-panel="resumen" aria-labelledby="summaryTitle">
 
-        <section class="continue-banner" aria-labelledby="continueTitle">
+        <section class="continue-banner" aria-labelledby="continueTitle" hidden>
           <div class="continue-banner__copy">
             <span class="section-kicker">Siguiente paso</span>
             <h2 id="continueTitle">Elige dónde continuar</h2>
@@ -84,6 +84,7 @@
               <h2 id="globalTitle">Progreso en LearnFlow</h2>
               <p id="globalDescription">Se calcula con el mismo peso para FluentFlow, HubFlow y LyricFlow.</p>
               <span class="status-pill status-pill--warning" id="globalStatus">Resumen incompleto</span>
+              <a class="text-action text-action--sm" id="primaryContinueLink" href="https://genilsuarez.github.io/fluentflow/" rel="noopener"><span id="continueDescription">Continuar</span> <span aria-hidden="true">→</span></a>
             </div>
           </section>
 
@@ -106,7 +107,7 @@
           <div class="module-grid" id="summaryModules"></div>
         </section>
 
-        <section class="data-health" id="dataHealth" aria-labelledby="dataHealthTitle">
+        <section class="data-health" id="dataHealth" aria-labelledby="dataHealthTitle" hidden>
           <div><span aria-hidden="true">◇</span><div><h2 id="dataHealthTitle">Estado de los datos</h2><p id="dataHealthDescription">Comprobando las proyecciones locales…</p></div></div>
           <button class="text-action" type="button" id="refreshData">Volver a leer</button>
         </section>
