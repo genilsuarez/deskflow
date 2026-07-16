@@ -108,6 +108,14 @@
   --lp-space-lg: 20px;
   --lp-space-xl: 28px;
   --lp-space-2xl: 40px;
+
+  /* Header bars — homologado entre DeskFlow/HubFlow/FluentFlow/LyricFlow */
+  --lp-header-height: 85px;
+  --lp-header-height-compact: 64px;
+
+  /* Progress/score bars — homologado entre DeskFlow/HubFlow/FluentFlow/LyricFlow */
+  --lp-progress-height: 4px;
+  --lp-progress-height-compact: 3px;
 }
 
 /* ─── DARK MODE ─── */
@@ -407,11 +415,18 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  height: var(--lp-header-height);
+  min-height: var(--lp-header-height);
   padding: 22px clamp(16px, 3vw, 34px);
   border-bottom: 1.5px solid var(--lp-border);
   flex-shrink: 0;
+  box-sizing: border-box;
 }
-.topbar.topbar--compact { padding: 16px clamp(16px, 3vw, 34px); }
+.topbar.topbar--compact {
+  height: var(--lp-header-height);
+  min-height: var(--lp-header-height);
+  padding: 10px clamp(16px, 3vw, 34px);
+}
 .topbar-eyebrow {
   margin: 0 0 1px;
   font-size: 0.58rem;
@@ -641,15 +656,15 @@ body {
 
 /* ─── PROGRESS TRACK ─── */
 .progress-track {
-  height: 4px;
-  border-radius: 2px;
+  height: var(--lp-progress-height);
+  border-radius: var(--lp-radius-full);
   background: var(--lp-surface-sunken);
   overflow: hidden;
 }
 .progress-track__fill {
   display: block;
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--lp-radius-full);
   background: var(--lp-accent);
   transition: width 0.4s var(--lp-ease);
 }
