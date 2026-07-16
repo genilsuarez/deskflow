@@ -176,22 +176,32 @@ function renderGlobalProgress() {
     const average = validResults.reduce((total, result) => total + result.progress.data.summary.progressPct, 0) / APPS.length;
     const displayValue = rounded(average);
     value.textContent = `${displayValue}%`;
-    unit.textContent = 'promedio igual';
+    unit.textContent = 'prom.';
     ring.style.setProperty('--progress', String(displayValue));
     ring.setAttribute('aria-label', `Progreso global ${displayValue} por ciento`);
     status.className = 'status-pill status-pill--success';
-    status.textContent = 'Resumen completo';
-    description.textContent = 'Promedio con el mismo peso para las tres fuentes válidas. No representa un nivel de idioma.';
+    status.textContent = 'Completo';
+    description.textContent = 'Promedio equilibrado de las tres fuentes.';
     return;
   }
 
-  value.textContent = '—';
-  unit.textContent = `${validResults.length} de 3 fuentes`;
-  ring.style.setProperty('--progress', '0');
-  ring.setAttribute('aria-label', 'Progreso global incompleto');
+  const partial = validResults.length > 0;
+  if (partial) {
+    const average = validResults.reduce((total, result) => total + result.progress.data.summary.progressPct, 0) / validResults.length;
+    const displayValue = rounded(average);
+    value.textContent = `${displayValue}%`;
+    unit.textContent = `${validResults.length}/3`;
+    ring.style.setProperty('--progress', String(displayValue));
+    ring.setAttribute('aria-label', `Progreso parcial ${displayValue} por ciento`);
+  } else {
+    value.textContent = '—';
+    unit.textContent = '0/3';
+    ring.style.setProperty('--progress', '0');
+    ring.setAttribute('aria-label', 'Progreso global pendiente');
+  }
   status.className = 'status-pill status-pill--warning';
-  status.textContent = 'Resumen incompleto';
-  description.textContent = 'Falta al menos una proyección válida. LearnFlow no calcula un porcentaje definitivo con datos parciales.';
+  status.textContent = 'Parcial';
+  description.textContent = `${validResults.length} de 3 fuentes válidas.`;
 }
 
 function renderCefr() {
@@ -270,7 +280,7 @@ function renderActivityList(container, events, limit) {
 
 function renderActivity() {
   const events = allValidEvents();
-  renderActivityList(document.getElementById('recentActivity'), events, 4);
+  renderActivityList(document.getElementById('recentActivity'), events, 3);
   const filtered = activityFilter === 'all' ? events : events.filter((event) => event.app === activityFilter);
   renderActivityList(document.getElementById('allActivity'), filtered);
 }
@@ -311,11 +321,13 @@ function renderModuleDetail(app) {
   container.replaceChildren();
 
   const header = element('header', `module-detail__hero module-detail__hero--${config.color}`);
+  const heroCopy = element('div', 'module-detail__hero-copy');
   const eyebrow = element('p', 'eyebrow', config.eyebrow);
   const title = element('h1', '', config.name);
   title.id = `${app}Title`;
   const desc = element('p', '', config.description);
-  header.append(eyebrow, title, desc, createAppLink(app, `Abrir ${config.name}`, true));
+  heroCopy.append(eyebrow, title, desc);
+  header.append(heroCopy, createAppLink(app, `Abrir ${config.name}`, true));
 
   const stats = element('div', 'detail-stats');
   const progressStat = element('article', 'detail-stat');
@@ -382,8 +394,28 @@ function renderPrimaryContinue() {
   const link = document.getElementById('primaryContinueLink');
   link.href = config.url;
   link.dataset.appLink = selectedApp;
-  const label = candidates.length ? `Continuar en ${config.name}` : `Abrir ${config.name}`;
-  document.getElementById('continueDescription').textContent = label;
+
+  const bannerTitle = document.getElementById('continueTitle');
+  const bannerDesc = document.getElementById('continueDescription');
+
+  if (candidates.length && candidates[0].progress.data.summary.lastContent) {
+    const last = candidates[0].progress.data.summary.lastContent;
+    bannerTitle.textContent = last.title || `Continuar en ${config.name}`;
+    bannerDesc.textContent = `${config.name} · ${readableActivity(last.activity || '')}`;
+    link.textContent = '';
+    link.append(document.createTextNode(`Continuar `));
+    const arrow = element('span', '', '→');
+    arrow.setAttribute('aria-hidden', 'true');
+    link.append(arrow);
+  } else {
+    bannerTitle.textContent = 'Empieza a aprender';
+    bannerDesc.textContent = 'Elige un módulo y comienza tu primera sesión.';
+    link.textContent = '';
+    link.append(document.createTextNode(`Abrir ${config.name} `));
+    const arrow = element('span', '', '→');
+    arrow.setAttribute('aria-hidden', 'true');
+    link.append(arrow);
+  }
 }
 
 function isLocalEnvironment() {
@@ -450,10 +482,9 @@ function setNavigationMode(mode, persist = false) {
     const isFloating = resolvedMode === 'floating';
     toggle.setAttribute('aria-pressed', String(isFloating));
     toggle.setAttribute('aria-label', isFloating ? 'Usar barra lateral fija' : 'Usar navegación flotante');
-    const icon = toggle.querySelector('.nav-icon');
-    const label = toggle.querySelector('.nav-label');
+    toggle.title = isFloating ? 'Muestra la barra lateral fija' : 'Oculta la barra lateral y usa un menú flotante';
+    const icon = toggle.querySelector('span');
     if (icon) icon.textContent = isFloating ? '▣' : '◫';
-    if (label) label.textContent = isFloating ? 'Usar barra lateral' : 'Usar menú flotante';
   }
   if (persist) localStorage.setItem(NAVIGATION_MODE_KEY, resolvedMode);
   closeSidebar();
@@ -602,10 +633,7 @@ function setupNavigation() {
 
     const localLink = event.target.closest('a[data-app-link]');
     if (localLink && isLocalEnvironment()) {
-      const url = new URL(localLink.href);
-      const theme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
-      url.searchParams.set('theme', theme);
-      localLink.href = url.toString();
+      // Links handled by isLocalEnvironment() URL resolution only
     }
   });
 
@@ -650,11 +678,6 @@ function setupTheme() {
     if (newTheme === 'dark') document.documentElement.dataset.theme = 'dark';
     else document.documentElement.removeAttribute('data-theme');
     localStorage.setItem('lp-theme', newTheme);
-    if (new URL(location.href).searchParams.has('theme')) {
-      const url = new URL(location.href);
-      url.searchParams.set('theme', newTheme);
-      history.replaceState(null, '', url);
-    }
     update();
     window.setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 350);
   }));

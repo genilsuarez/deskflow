@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <script>var p=new URLSearchParams(location.search).get('theme'),t=p||localStorage.getItem('lp-theme'),n=localStorage.getItem('lp-navigation-mode');if(p==='dark'||p==='light')localStorage.setItem('lp-theme',p);if(t==='dark')document.documentElement.setAttribute('data-theme','dark');document.documentElement.dataset.navigationMode=n==='floating'?'floating':'sidebar'</script>
+  <script>var t=localStorage.getItem('lp-theme'),n=localStorage.getItem('lp-navigation-mode');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');document.documentElement.dataset.navigationMode=n==='floating'?'floating':'sidebar'</script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -36,10 +36,10 @@
           <span class="sidebar__mark" aria-hidden="true">L</span>
           <span class="sidebar__text"><span class="sidebar__wordmark">LearnFlow</span><span class="sidebar__sub">Portal</span></span>
         </a>
+        <button class="lp-icon-btn lp-icon-btn--sm nav-mode-toggle" id="navigationModeToggle" type="button" aria-label="Usar navegación flotante" aria-pressed="false" title="Oculta la barra lateral y usa un menú flotante"><span aria-hidden="true">◫</span></button>
       </div>
 
       <nav class="sidebar__nav">
-        <button class="nav-item nav-mode-toggle" id="navigationModeToggle" type="button" aria-label="Usar navegación flotante" aria-pressed="false"><span class="nav-icon" aria-hidden="true">◫</span><span class="nav-label">Usar menú flotante</span></button>
         <button class="nav-item is-active" type="button" data-view="resumen" aria-current="page"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Inicio</span></button>
         <button class="nav-item" type="button" data-view="fluentflow"><span class="nav-dot nav-dot--purple" aria-hidden="true"></span><span class="nav-label">FluentFlow</span></button>
         <button class="nav-item" type="button" data-view="hubflow"><span class="nav-dot nav-dot--amber" aria-hidden="true"></span><span class="nav-label">HubFlow</span></button>
@@ -66,46 +66,47 @@
     <main class="main" id="mainContent" tabindex="-1">
       <section class="view is-active" id="view-resumen" data-view-panel="resumen" aria-labelledby="summaryTitle">
 
-        <section class="continue-banner" aria-labelledby="continueTitle" hidden>
+        <section class="continue-banner" aria-labelledby="continueTitle">
           <div class="continue-banner__copy">
             <span class="section-kicker">Siguiente paso</span>
-            <h2 id="continueTitle">Elige dónde continuar</h2>
-            <p id="continueDescription">Tus módulos conservarán aquí su propio progreso cuando publiquen una proyección válida.</p>
+            <h2 id="continueTitle">Retoma donde lo dejaste</h2>
+            <p id="continueDescription">Continuar aprendiendo</p>
           </div>
-          <a class="lp-btn lp-btn--primary" id="primaryContinueLink" href="https://genilsuarez.github.io/fluentflow/" rel="noopener">Abrir FluentFlow <span aria-hidden="true">→</span></a>
+          <a class="lp-btn lp-btn--primary" id="primaryContinueLink" href="https://genilsuarez.github.io/fluentflow/" rel="noopener">Continuar <span aria-hidden="true">→</span></a>
         </section>
 
-        <div class="summary-grid">
-          <section class="global-card" aria-labelledby="globalTitle">
-            <div class="global-card__visual" id="globalRing" style="--progress: 0" role="img" aria-label="Progreso global pendiente">
-              <div><strong id="globalValue">—</strong><span id="globalUnit">pendiente</span></div>
+        <section class="section-block" aria-labelledby="modulesTitle">
+          <div class="section-heading"><h2 id="modulesTitle"><span class="section-kicker">Tus tres caminos</span> Módulos</h2></div>
+          <div class="module-grid" id="summaryModules"></div>
+        </section>
+
+        <div class="context-row">
+          <section class="context-card context-card--progress" aria-labelledby="globalTitle">
+            <div class="context-card__visual" id="globalRing" style="--progress: 0" role="img" aria-label="Progreso global pendiente">
+              <div><strong id="globalValue">—</strong><span id="globalUnit">prom.</span></div>
             </div>
-            <div class="global-card__copy">
-              <span class="section-kicker">Vista equilibrada</span>
-              <h2 id="globalTitle">Progreso en LearnFlow</h2>
-              <p id="globalDescription">Se calcula con el mismo peso para FluentFlow, HubFlow y LyricFlow.</p>
-              <span class="status-pill status-pill--warning" id="globalStatus">Resumen incompleto</span>
-              <a class="text-action text-action--sm" id="primaryContinueLink" href="https://genilsuarez.github.io/fluentflow/" rel="noopener"><span id="continueDescription">Continuar</span> <span aria-hidden="true">→</span></a>
+            <div class="context-card__copy">
+              <h2 id="globalTitle">Progreso global</h2>
+              <p id="globalDescription">Promedio equilibrado de las tres fuentes.</p>
+              <span class="status-pill status-pill--warning" id="globalStatus">Incompleto</span>
             </div>
           </section>
 
-          <section class="cefr-card" aria-labelledby="cefrTitle">
-            <div class="cefr-card__heading"><span class="section-kicker">Señal de FluentFlow</span><span class="cefr-card__level" id="cefrLevel">—</span></div>
-            <h2 id="cefrTitle">Ruta CEFR</h2>
-            <p id="cefrDescription">Disponible cuando FluentFlow publique información válida de su ruta.</p>
-            <button class="text-action" type="button" data-view="fluentflow">Ver detalle <span aria-hidden="true">→</span></button>
-          </section>
-
-          <section class="recent-card" aria-labelledby="recentTitle">
-            <div class="recent-card__heading"><span class="section-kicker">Últimos movimientos</span><button class="text-action" type="button" data-view="actividad">Ver todo <span aria-hidden="true">→</span></button></div>
-            <h2 id="recentTitle">Actividad reciente</h2>
-            <div class="activity-list" id="recentActivity"></div>
+          <section class="context-card context-card--cefr" aria-labelledby="cefrTitle">
+            <div class="context-card__copy">
+              <h2 id="cefrTitle">Ruta CEFR</h2>
+              <p id="cefrDescription">Disponible cuando FluentFlow publique información válida.</p>
+            </div>
+            <span class="context-card__level" id="cefrLevel">—</span>
           </section>
         </div>
 
-        <section class="section-block" aria-labelledby="modulesTitle">
-          <div class="section-heading"><div><span class="section-kicker">Tus tres caminos</span><h2 id="modulesTitle">Módulos de aprendizaje</h2></div></div>
-          <div class="module-grid" id="summaryModules"></div>
+        <section class="section-block" aria-labelledby="recentTitle">
+          <div class="section-heading">
+            <h2 id="recentTitle"><span class="section-kicker">Últimos movimientos</span> Actividad</h2>
+            <button class="text-action" type="button" data-view="actividad">Ver todo <span aria-hidden="true">→</span></button>
+          </div>
+          <div class="activity-list" id="recentActivity"></div>
         </section>
 
         <section class="data-health" id="dataHealth" aria-labelledby="dataHealthTitle" hidden>
