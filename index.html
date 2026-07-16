@@ -3,167 +3,149 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DeskFlow</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23D4764E'/%3E%3Cpath d='M8 7h16v2H8zm0 5h16v2H8zm0 5h12v2H8zm0 5h8v2H8z' fill='white' opacity='.9'/%3E%3C/svg%3E" type="image/svg+xml">
+  <title>LearnFlow · Tu espacio de aprendizaje</title>
+  <meta name="description" content="LearnFlow reúne tu progreso en FluentFlow, HubFlow y LyricFlow en un solo espacio de aprendizaje.">
+  <meta name="theme-color" content="#faf7f2">
+  <meta property="og:title" content="LearnFlow">
+  <meta property="og:description" content="Una plataforma, tres formas de aprender idiomas.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23D4764E'/%3E%3Cpath d='M9 8v16h14v-3H13V8H9Z' fill='white'/%3E%3C/svg%3E" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <meta name="description" content="DeskFlow — A minimal, customizable browser startpage with quick links, notes, and tasks.">
-  <script>var p=new URLSearchParams(location.search).get('theme'),t=p||localStorage.getItem('lp-theme');if(p)localStorage.setItem('lp-theme',p);if(t==='dark')document.documentElement.setAttribute('data-theme','dark')</script>
+  <script>var p=new URLSearchParams(location.search).get('theme'),t=p||localStorage.getItem('lp-theme'),n=localStorage.getItem('lp-navigation-mode');if(p==='dark'||p==='light')localStorage.setItem('lp-theme',p);if(t==='dark')document.documentElement.setAttribute('data-theme','dark');document.documentElement.dataset.navigationMode=n==='floating'?'floating':'sidebar'</script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="grain" aria-hidden="true"></div>
+  <a class="skip-link" href="#mainContent">Saltar al contenido</a>
 
-  <div class="desk">
-    <header class="desk__header">
-      <div class="desk__brand">
-        <h1 class="desk__title">Desk<em>Flow</em></h1>
-      </div>
-      <div class="desk__actions">
-        <button class="lp-icon-btn" id="themeToggle" aria-label="Toggle theme">
-          <span class="desk__theme-icon">🌙</span>
-        </button>
-      </div>
+  <div class="app-shell">
+    <header class="mobile-header">
+      <button class="lp-icon-btn" id="menuToggle" type="button" aria-label="Abrir navegación" aria-controls="sidebar" aria-expanded="false">☰</button>
+      <a class="mobile-header__brand" href="#resumen" data-view-link="resumen" aria-label="Ir al resumen de LearnFlow">LearnFlow</a>
+      <button class="lp-icon-btn theme-toggle" type="button" aria-label="Cambiar a tema oscuro"><span aria-hidden="true">🌙</span></button>
     </header>
 
-    <section class="desk__welcome">
-      <p class="desk__greeting" id="greeting">Good morning</p>
-      <p class="desk__subtitle">Your learning workspace</p>
-    </section>
+    <button class="lp-icon-btn navigation-launcher" id="navigationLauncher" type="button" aria-label="Abrir navegación flotante" aria-controls="sidebar" aria-expanded="false">☰</button>
 
-    <main class="desk__grid">
-      <!-- FluentFlow -->
-      <a class="app-card" href="https://genilsuarez.github.io/fluentflow/" rel="noopener">
-        <div class="app-card__icon">
-          <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="6" fill="#8b5cf6"/>
-            <path d="M10 8L10 24M10 8L22 8M10 15L18 15" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="app-card__body">
-          <h2 class="app-card__name">FluentFlow</h2>
-          <p class="app-card__desc">English CEFR platform — A1 to C2. Flashcards, quizzes, reading, sorting.</p>
-        </div>
-        <div class="app-card__meta">
-          <span class="app-card__badge">300+ modules</span>
-          <span class="app-card__arrow">→</span>
-        </div>
-      </a>
+    <div class="sidebar-scrim" id="sidebarScrim" hidden></div>
+    <aside class="sidebar" id="sidebar" aria-label="Navegación principal">
+      <div class="sidebar__brand">
+        <a href="#resumen" data-view-link="resumen" aria-label="LearnFlow, ir al resumen">
+          <span class="sidebar__mark" aria-hidden="true">L</span>
+          <span class="sidebar__text"><span class="sidebar__wordmark">LearnFlow</span><span class="sidebar__sub">Portal</span></span>
+        </a>
+      </div>
 
-      <!-- HubFlow -->
-      <a class="app-card app-card--amber" href="https://genilsuarez.github.io/hubflow/" rel="noopener">
-        <div class="app-card__icon">
-          <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="6" fill="#B8860B"/>
-            <path d="M9 8h14v16H9z" stroke="white" stroke-width="2" fill="none"/>
-            <path d="M12 12h8M12 16h6" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="app-card__body">
-          <h2 class="app-card__name">HubFlow</h2>
-          <p class="app-card__desc">Vocabulary, pronunciation, grammar & production — quizzes, battles, timed challenges.</p>
-        </div>
-        <div class="app-card__meta">
-          <span class="app-card__badge">50+ modules</span>
-          <span class="app-card__arrow">→</span>
-        </div>
-      </a>
+      <nav class="sidebar__nav">
+        <button class="nav-item navigation-mode-toggle" id="navigationModeToggle" type="button" aria-label="Usar navegación flotante" aria-pressed="false"><span aria-hidden="true">◫</span><span class="navigation-mode-toggle__label">Usar menú flotante</span></button>
+        <button class="nav-item is-active" type="button" data-view="resumen" aria-current="page"><span aria-hidden="true">⌂</span> Inicio</button>
+        <button class="nav-item" type="button" data-view="continuar"><span aria-hidden="true">↗</span> Continuar</button>
+        <button class="nav-item" type="button" data-view="fluentflow"><span class="nav-dot nav-dot--purple" aria-hidden="true"></span> FluentFlow</button>
+        <button class="nav-item" type="button" data-view="hubflow"><span class="nav-dot nav-dot--amber" aria-hidden="true"></span> HubFlow</button>
+        <button class="nav-item" type="button" data-view="lyricflow"><span class="nav-dot nav-dot--teal" aria-hidden="true"></span> LyricFlow</button>
+        <button class="nav-item" type="button" data-view="actividad"><span aria-hidden="true">◷</span> Actividad</button>
+      </nav>
 
-      <!-- LyricFlow -->
-      <a class="app-card app-card--teal" href="https://genilsuarez.github.io/lyricflow/" rel="noopener">
-        <div class="app-card__icon">
-          <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="6" fill="#111827"/>
-            <circle cx="16" cy="16" r="8" stroke="#38bdf8" stroke-width="1.5" fill="none"/>
-            <circle cx="16" cy="16" r="3" fill="#38bdf8"/>
-          </svg>
+      <div class="sidebar__footer">
+        <button class="nav-item" type="button" id="aboutTrigger"><span aria-hidden="true">ⓘ</span> About LearnFlow</button>
+        <a class="nav-item nav-item--disabled" href="#" aria-disabled="true" tabindex="-1"><span aria-hidden="true">⌂</span> Portal</a>
+        <button class="nav-item theme-toggle" type="button" aria-label="Cambiar a tema oscuro"><span aria-hidden="true">🌙</span><span class="theme-toggle__label">Modo oscuro</span></button>
+      </div>
+    </aside>
+
+    <div class="topbar" id="deskTopbar">
+      <div class="topbar-greeting">
+        <h1 class="topbar-title" id="summaryTitle">Tu aprendizaje, en contexto.</h1>
+        <p class="topbar-sub">Retoma el hilo sin perder de vista cómo se complementa cada módulo.</p>
+      </div>
+      <div class="topbar-date" id="currentDate" aria-label="Fecha actual"></div>
+    </div>
+
+    <main class="main" id="mainContent" tabindex="-1">
+      <section class="view is-active" id="view-resumen" data-view-panel="resumen" aria-labelledby="summaryTitle">
+
+        <section class="continue-banner" aria-labelledby="continueTitle">
+          <div class="continue-banner__copy">
+            <span class="section-kicker">Siguiente paso</span>
+            <h2 id="continueTitle">Elige dónde continuar</h2>
+            <p id="continueDescription">Tus módulos conservarán aquí su propio progreso cuando publiquen una proyección válida.</p>
+          </div>
+          <a class="lp-btn lp-btn--primary" id="primaryContinueLink" href="https://genilsuarez.github.io/fluentflow/" rel="noopener">Abrir FluentFlow <span aria-hidden="true">→</span></a>
+        </section>
+
+        <div class="summary-grid">
+          <section class="global-card" aria-labelledby="globalTitle">
+            <div class="global-card__visual" id="globalRing" style="--progress: 0" role="img" aria-label="Progreso global pendiente">
+              <div><strong id="globalValue">—</strong><span id="globalUnit">pendiente</span></div>
+            </div>
+            <div class="global-card__copy">
+              <span class="section-kicker">Vista equilibrada</span>
+              <h2 id="globalTitle">Progreso en LearnFlow</h2>
+              <p id="globalDescription">Se calcula con el mismo peso para FluentFlow, HubFlow y LyricFlow.</p>
+              <span class="status-pill status-pill--warning" id="globalStatus">Resumen incompleto</span>
+            </div>
+          </section>
+
+          <section class="cefr-card" aria-labelledby="cefrTitle">
+            <div class="cefr-card__heading"><span class="section-kicker">Señal de FluentFlow</span><span class="cefr-card__level" id="cefrLevel">—</span></div>
+            <h2 id="cefrTitle">Ruta CEFR</h2>
+            <p id="cefrDescription">Disponible cuando FluentFlow publique información válida de su ruta.</p>
+            <button class="text-action" type="button" data-view="fluentflow">Ver detalle <span aria-hidden="true">→</span></button>
+          </section>
+
+          <section class="recent-card" aria-labelledby="recentTitle">
+            <div class="recent-card__heading"><span class="section-kicker">Últimos movimientos</span><button class="text-action" type="button" data-view="actividad">Ver todo <span aria-hidden="true">→</span></button></div>
+            <h2 id="recentTitle">Actividad reciente</h2>
+            <div class="activity-list" id="recentActivity"></div>
+          </section>
         </div>
-        <div class="app-card__body">
-          <h2 class="app-card__name">LyricFlow</h2>
-          <p class="app-card__desc">Learn through music — synced lyrics, listening challenges, fill-in-the-blanks.</p>
+
+        <section class="section-block" aria-labelledby="modulesTitle">
+          <div class="section-heading"><div><span class="section-kicker">Tus tres caminos</span><h2 id="modulesTitle">Módulos de aprendizaje</h2></div></div>
+          <div class="module-grid" id="summaryModules"></div>
+        </section>
+
+        <section class="data-health" id="dataHealth" aria-labelledby="dataHealthTitle">
+          <div><span aria-hidden="true">◇</span><div><h2 id="dataHealthTitle">Estado de los datos</h2><p id="dataHealthDescription">Comprobando las proyecciones locales…</p></div></div>
+          <button class="text-action" type="button" id="refreshData">Volver a leer</button>
+        </section>
+      </section>
+
+      <section class="view" id="view-continuar" data-view-panel="continuar" aria-labelledby="continueViewTitle" hidden>
+        <header class="page-header page-header--compact"><div><p class="eyebrow">Retoma el hilo</p><h1 id="continueViewTitle">Continuar aprendiendo</h1><p>Accesos directos basados únicamente en el último dato válido de cada módulo.</p></div></header>
+        <div class="continue-grid" id="continueGrid"></div>
+      </section>
+
+      <section class="view" id="view-fluentflow" data-view-panel="fluentflow" aria-labelledby="fluentflowTitle" hidden>
+        <div class="module-detail" data-app-detail="fluentflow"></div>
+      </section>
+
+      <section class="view" id="view-hubflow" data-view-panel="hubflow" aria-labelledby="hubflowTitle" hidden>
+        <div class="module-detail" data-app-detail="hubflow"></div>
+      </section>
+
+      <section class="view" id="view-lyricflow" data-view-panel="lyricflow" aria-labelledby="lyricflowTitle" hidden>
+        <div class="module-detail" data-app-detail="lyricflow"></div>
+      </section>
+
+      <section class="view" id="view-actividad" data-view-panel="actividad" aria-labelledby="activityTitle" hidden>
+        <header class="page-header page-header--compact"><div><p class="eyebrow">Historial local</p><h1 id="activityTitle">Actividad</h1><p>Eventos recientes publicados por los módulos, ordenados solo cuando tienen fechas ISO válidas.</p></div></header>
+        <div class="filter-row" role="group" aria-label="Filtrar actividad">
+          <button class="lp-pill active" type="button" data-activity-filter="all" aria-pressed="true">Todo</button>
+          <button class="lp-pill" type="button" data-activity-filter="fluentflow" aria-pressed="false">FluentFlow</button>
+          <button class="lp-pill" type="button" data-activity-filter="hubflow" aria-pressed="false">HubFlow</button>
+          <button class="lp-pill" type="button" data-activity-filter="lyricflow" aria-pressed="false">LyricFlow</button>
         </div>
-        <div class="app-card__meta">
-          <span class="app-card__badge">9 songs</span>
-          <span class="app-card__arrow">→</span>
-        </div>
-      </a>
+        <div class="activity-list activity-list--full" id="allActivity"></div>
+      </section>
+
+      <footer class="main-footer"><span class="foot-sig">Genil Suárez</span><span class="foot-meta">LearnFlow · Portal</span></footer>
     </main>
-
-    <footer class="desk__footer">
-      <span class="desk__sig">Genil Suárez</span>
-      <span class="desk__version">DeskFlow · 2026</span>
-    </footer>
   </div>
 
-  <script>
-    // Local dev: rewrite links to local ports when running on localhost or private IP
-    (function() {
-      const h = location.hostname;
-      const isLocal = h === 'localhost' || h === '127.0.0.1' || h.startsWith('192.168.');
-      if (isLocal) {
-        const localMap = {
-          'genilsuarez.github.io/fluentflow/': h + ':3001/',
-          'genilsuarez.github.io/hubflow/': h + ':3002/',
-          'genilsuarez.github.io/lyricflow/': h + ':3003/'
-        };
-        document.querySelectorAll('a[href*="genilsuarez.github.io"]').forEach(a => {
-          for (const [remote, local] of Object.entries(localMap)) {
-            if (a.href.includes(remote)) {
-              a.href = `http://${local}`;
-              a.removeAttribute('target');
-              a.removeAttribute('rel');
-              break;
-            }
-          }
-        });
-        // Propagate theme via query param on cross-origin local links
-        document.addEventListener('click', (e) => {
-          const a = e.target.closest('a[href*="' + h + ':"]');
-          if (a) {
-            const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-            const url = new URL(a.href);
-            url.searchParams.set('theme', theme);
-            a.href = url.toString();
-          }
-        });
-      }
-    })();
-  </script>
-
-  <script>
-    // Theme toggle
-    (function() {
-      const saved = localStorage.getItem('lp-theme');
-      if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-
-      const btn = document.getElementById('themeToggle');
-      const icon = btn.querySelector('.desk__theme-icon');
-
-      function update() {
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        icon.textContent = isDark ? '☀️' : '🌙';
-      }
-      update();
-
-      btn.addEventListener('click', () => {
-        document.documentElement.classList.add('theme-transitioning');
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const newTheme = isDark ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', newTheme === 'dark' ? 'dark' : '');
-        localStorage.setItem('lp-theme', newTheme);
-        if (location.search.includes('theme=')) {
-          const u = new URL(location.href); u.searchParams.set('theme', newTheme); history.replaceState(null, '', u);
-        }
-        update();
-        setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 350);
-      });
-
-      // Greeting based on time
-      const h = new Date().getHours();
-      const greeting = h < 6 ? 'Good evening' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
-      document.getElementById('greeting').textContent = greeting;
-    })();
-  </script>
+  <noscript><div class="noscript">LearnFlow necesita JavaScript para leer las proyecciones locales y cambiar entre vistas. Los módulos siguen disponibles desde sus URLs directas.</div></noscript>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
