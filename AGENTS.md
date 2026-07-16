@@ -47,6 +47,20 @@ python3 -m http.server 3000
 - Mobile-first responsive
 - BEM naming for CSS classes
 
+## Topbar — Dynamic Content System
+
+The topbar updates its content dynamically based on the active view via `updateTopbar(viewName)` in `app.js`.
+
+### Behavior
+
+- Views with `eyebrow` (actividad, continuar) apply `.topbar--compact` (16px padding) to fit 3 lines without growing taller than the default.
+- Views without eyebrow (resumen, module details) keep the default 22px padding with 2 lines (title + sub).
+- Content map lives in `TOPBAR_CONTENT` object in `app.js`.
+
+### Key rule
+
+Do NOT add `page-header` elements inside `view-actividad` or `view-continuar` — their header content is rendered in the shared topbar.
+
 ## Connected apps
 
 | App | Repo | URL |

@@ -3,3 +3,5 @@
 .kiro/
 node_modules/
 scripts/tmp/
+
+vite.config.js

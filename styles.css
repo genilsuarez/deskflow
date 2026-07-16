@@ -407,15 +407,21 @@ body {
   border-bottom: 1.5px solid var(--lp-border);
   flex-shrink: 0;
 }
+.topbar.topbar--compact { padding: 16px clamp(16px, 3vw, 34px); }
+.topbar-eyebrow {
+  margin: 0 0 1px;
+  font-size: 0.58rem;
+  line-height: 1;
+}
 .topbar-title {
   font-family: var(--lp-font-display);
   font-size: 1.3rem;
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.1;
 }
 .topbar-sub {
-  margin-top: 3px;
-  font-size: 0.76rem;
+  margin-top: 2px;
+  font-size: 0.72rem;
   font-weight: 400;
   color: var(--lp-ink-soft);
   letter-spacing: 0;
@@ -684,8 +690,8 @@ body {
   display: grid;
   grid-template-columns: 22px 1fr auto;
   gap: 8px;
-  align-items: center;
-  padding: 6px 10px;
+  align-items: start;
+  padding: 8px 10px;
   border: 1px solid var(--lp-border);
   border-radius: var(--lp-radius-md);
   background: var(--lp-surface);
@@ -693,6 +699,7 @@ body {
 .activity-item__marker {
   width: 22px;
   height: 22px;
+  margin-top: 2px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -706,7 +713,7 @@ body {
 .activity-item__body h3 { font-size: 0.82rem; font-weight: 700; margin-bottom: 1px; }
 .activity-item__body p { font-size: 0.7rem; color: var(--lp-ink-soft); }
 .activity-item__app { display: block; font-size: 0.6rem; font-weight: 700; color: var(--lp-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1px; }
-.activity-item__time { font-family: var(--lp-font-mono); font-size: 0.6rem; color: var(--lp-muted); white-space: nowrap; }
+.activity-item__time { font-family: var(--lp-font-mono); font-size: 0.6rem; color: var(--lp-muted); white-space: nowrap; margin-top: 3px; }
 
 /* ─── EMPTY STATE ─── */
 .empty-state {

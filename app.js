@@ -468,6 +468,40 @@ function setupNavigationMode() {
   });
 }
 
+const TOPBAR_CONTENT = {
+  resumen: { eyebrow: '', title: 'Tu aprendizaje, en contexto.', sub: 'Retoma el hilo sin perder de vista cómo se complementa cada módulo.' },
+  continuar: { eyebrow: 'Retoma el hilo', title: 'Continuar aprendiendo', sub: 'Accesos directos basados en el último dato válido de cada módulo.' },
+  actividad: { eyebrow: 'Historial local', title: 'Actividad', sub: 'Eventos recientes publicados por los módulos.' },
+  fluentflow: { eyebrow: 'Ruta estructurada', title: 'FluentFlow', sub: 'Avanza de A1 a C2 mediante módulos secuenciales y práctica guiada.' },
+  hubflow: { eyebrow: 'Práctica flexible', title: 'HubFlow', sub: 'Refuerza gramática, vocabulario y producción por temas.' },
+  lyricflow: { eyebrow: 'Aprendizaje con música', title: 'LyricFlow', sub: 'Entrena escucha y comprensión con canciones y actividades.' },
+};
+
+function updateTopbar(viewName) {
+  const topbar = document.getElementById('deskTopbar');
+  const eyebrowEl = document.getElementById('topbarEyebrow');
+  const titleEl = document.getElementById('summaryTitle');
+  const subEl = document.getElementById('topbarSub');
+  const content = TOPBAR_CONTENT[viewName];
+  if (!content) {
+    topbar.classList.remove('topbar--compact');
+    eyebrowEl.hidden = true;
+    titleEl.textContent = 'Tu aprendizaje, en contexto.';
+    subEl.textContent = 'Retoma el hilo sin perder de vista cómo se complementa cada módulo.';
+    return;
+  }
+  if (content.eyebrow) {
+    topbar.classList.add('topbar--compact');
+    eyebrowEl.textContent = content.eyebrow;
+    eyebrowEl.hidden = false;
+  } else {
+    topbar.classList.remove('topbar--compact');
+    eyebrowEl.hidden = true;
+  }
+  titleEl.textContent = content.title;
+  subEl.textContent = content.sub;
+}
+
 function showView(viewName, updateHash = true) {
   const target = document.querySelector(`[data-view-panel="${viewName}"]`);
   if (!target) return;
@@ -484,6 +518,7 @@ function showView(viewName, updateHash = true) {
     else item.removeAttribute('aria-current');
   });
 
+  updateTopbar(viewName);
   if (updateHash) history.replaceState(null, '', `${location.pathname}${location.search}#${viewName}`);
   closeSidebar();
   document.getElementById('mainContent').focus({ preventScroll: true });

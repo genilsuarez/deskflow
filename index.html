@@ -56,8 +56,9 @@
 
     <div class="topbar" id="deskTopbar">
       <div class="topbar-greeting">
+        <p class="eyebrow topbar-eyebrow" id="topbarEyebrow" hidden></p>
         <h1 class="topbar-title" id="summaryTitle">Tu aprendizaje, en contexto.</h1>
-        <p class="topbar-sub">Retoma el hilo sin perder de vista cómo se complementa cada módulo.</p>
+        <p class="topbar-sub" id="topbarSub">Retoma el hilo sin perder de vista cómo se complementa cada módulo.</p>
       </div>
       <div class="topbar-date" id="currentDate" aria-label="Fecha actual"></div>
     </div>
@@ -114,7 +115,6 @@
       </section>
 
       <section class="view" id="view-continuar" data-view-panel="continuar" aria-labelledby="continueViewTitle" hidden>
-        <header class="page-header page-header--compact"><div><p class="eyebrow">Retoma el hilo</p><h1 id="continueViewTitle">Continuar aprendiendo</h1><p>Accesos directos basados únicamente en el último dato válido de cada módulo.</p></div></header>
         <div class="continue-grid" id="continueGrid"></div>
       </section>
 
@@ -131,7 +131,6 @@
       </section>
 
       <section class="view" id="view-actividad" data-view-panel="actividad" aria-labelledby="activityTitle" hidden>
-        <header class="page-header page-header--compact"><div><p class="eyebrow">Historial local</p><h1 id="activityTitle">Actividad</h1><p>Eventos recientes publicados por los módulos, ordenados solo cuando tienen fechas ISO válidas.</p></div></header>
         <div class="filter-row" role="group" aria-label="Filtrar actividad">
           <button class="lp-pill active" type="button" data-activity-filter="all" aria-pressed="true">Todo</button>
           <button class="lp-pill" type="button" data-activity-filter="fluentflow" aria-pressed="false">FluentFlow</button>
