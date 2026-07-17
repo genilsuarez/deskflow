@@ -619,7 +619,7 @@ body {
   --card-soft: var(--lp-accent-soft);
   display: flex;
   flex-direction: column;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border: 1px solid var(--lp-border);
   border-left: 3px solid var(--card-color);
   border-radius: var(--lp-radius-lg);
@@ -635,8 +635,8 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin-bottom: 4px;
-  min-height: 38px;
+  margin-bottom: 3px;
+  min-height: 34px;
 }
 .module-card__mark {
   width: 24px;
@@ -656,12 +656,12 @@ body {
 .module-card__value {
   display: block;
   font-family: var(--lp-font-display);
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   line-height: 1;
   margin-bottom: 1px;
 }
-.module-card__metric { font-size: 0.55rem; color: var(--lp-ink-soft); margin-bottom: 4px; }
+.module-card__metric { font-size: 0.55rem; color: var(--lp-ink-soft); margin-bottom: 3px; }
 
 .module-card__footer {
   display: flex;
@@ -669,7 +669,7 @@ body {
   justify-content: space-between;
   gap: 8px;
   margin-top: auto;
-  padding-top: 4px;
+  padding-top: 3px;
   border-top: 1px solid var(--lp-border);
 }
 
@@ -772,7 +772,7 @@ body {
 .continue-card__label { margin: 0 0 3px; color: var(--lp-muted); font-family: var(--lp-font-mono); font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.06em; }
 .continue-card h3 { margin: 0; font-size: 0.78rem; }
 .continue-card__description { margin: 3px 0 8px; color: var(--lp-ink-soft); font-size: 0.68rem; line-height: 1.4; }
-.continue-card .lp-btn { min-height: 36px; padding: 6px 14px; font-size: 0.72rem; }
+.continue-card .lp-btn { min-height: 36px; padding: 6px 14px; font-size: 0.72rem; min-width: 100%; }
 
 /* Continue view — desktop layout */
 @media (min-width: 920px) {

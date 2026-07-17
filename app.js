@@ -4,7 +4,7 @@ const APP_CONFIG = Object.freeze({
   fluentflow: {
     name: 'FluentFlow',
     eyebrow: 'Ruta estructurada',
-    description: 'Avanza de A1 a C2 mediante módulos secuenciales y práctica guiada.',
+    description: 'Ruta A1–C2 con módulos secuenciales y práctica guiada.',
     unit: 'módulos',
     color: 'purple',
     url: 'https://genilsuarez.github.io/fluentflow/'
@@ -205,9 +205,9 @@ function renderGlobalProgress() {
 }
 
 function renderCefr() {
-  const fluentflow = getAppResult('fluentflow');
   const level = document.getElementById('cefrLevel');
   const description = document.getElementById('cefrDescription');
+  if (!level || !description) return;
   const cefr = hasValidProgress(fluentflow) ? fluentflow.progress.data.cefr : null;
 
   if (!cefr) {
@@ -304,9 +304,11 @@ function renderContinue() {
       if (last.activity) details.push(readableActivity(last.activity));
       if (last.progressPct !== null) details.push(`${rounded(last.progressPct)}% completado`);
       if (last.scorePct !== null) details.push(`score ${rounded(last.scorePct)}%`);
-      card.append(element('p', 'continue-card__description', details.join(' · ') || config.description));
+      const descText = Array.isArray(config.description) ? config.description.join(' ') : config.description;
+      card.append(element('p', 'continue-card__description', details.join(' · ') || descText));
     } else {
-      card.append(element('p', 'continue-card__label', 'Sin último contenido disponible'), element('h3', '', STATUS_COPY[result.progress.status]), element('p', 'continue-card__description', config.description));
+      const descText = Array.isArray(config.description) ? config.description.join(' ') : config.description;
+      card.append(element('p', 'continue-card__label', 'Sin último contenido disponible'), element('h3', '', STATUS_COPY[result.progress.status]), element('p', 'continue-card__description', descText));
     }
 
     card.append(createAppLink(app, hasValidProgress(result) ? `Continuar en ${config.name}` : `Explorar ${config.name}`, true));
@@ -325,9 +327,18 @@ function renderModuleDetail(app) {
   const eyebrow = element('p', 'eyebrow', config.eyebrow);
   const title = element('h1', '', config.name);
   title.id = `${app}Title`;
-  const desc = element('p', '', config.description);
+  const desc = Array.isArray(config.description)
+    ? (() => { const d = document.createDocumentFragment(); config.description.forEach(line => d.append(element('p', '', line))); return d; })()
+    : element('p', '', config.description);
   heroCopy.append(eyebrow, title, desc);
   header.append(heroCopy, createAppLink(app, `Abrir ${config.name}`, true));
+
+  const statsSection = element('section', 'section-block');
+  const statsHeading = element('div', 'section-heading');
+  const statsTitle = element('h2', '');
+  statsTitle.append(element('span', 'section-kicker', 'En números'), document.createTextNode(' Métricas'));
+  statsHeading.append(statsTitle);
+  statsSection.append(statsHeading);
 
   const stats = element('div', 'detail-stats');
   const progressStat = element('article', 'detail-stat');
@@ -337,6 +348,7 @@ function renderModuleDetail(app) {
   const attemptedStat = element('article', 'detail-stat');
   attemptedStat.append(element('span', '', 'Iniciado'), element('strong', '', hasValidProgress(result) ? String(result.progress.data.summary.attemptedContent) : '—'), element('p', '', `de ${hasValidProgress(result) ? result.progress.data.summary.totalContent : '—'} ${config.unit}`));
   stats.append(progressStat, contentStat, attemptedStat);
+  statsSection.append(stats);
 
   const insight = element('section', 'detail-insight');
   insight.append(element('p', 'section-kicker', app === 'fluentflow' ? 'Lectura CEFR' : app === 'hubflow' ? 'Práctica temática' : 'Progreso por canción'));
@@ -366,7 +378,7 @@ function renderModuleDetail(app) {
 
   const heroRow = element('div', 'detail-hero-row');
   heroRow.append(header, insight);
-  container.append(heroRow, stats, activity);
+  container.append(heroRow, statsSection, activity);
 }
 
 function renderDataHealth() {
@@ -505,7 +517,7 @@ const TOPBAR_CONTENT = {
   resumen: { eyebrow: 'Tu plataforma de aprendizaje', title: 'LearnFlow', sub: '' },
   continuar: { eyebrow: 'Retoma el hilo', title: 'Continuar aprendiendo', sub: 'Accesos directos basados en el último dato válido de cada módulo.' },
   actividad: { eyebrow: 'Historial local', title: 'Actividad', sub: 'Eventos recientes publicados por los módulos.' },
-  fluentflow: { eyebrow: 'Ruta estructurada', title: 'FluentFlow', sub: 'Avanza de A1 a C2 mediante módulos secuenciales y práctica guiada.' },
+  fluentflow: { eyebrow: 'Ruta estructurada', title: 'FluentFlow', sub: 'Ruta A1–C2 con módulos secuenciales y práctica guiada.' },
   hubflow: { eyebrow: 'Práctica temática', title: 'HubFlow', sub: '55 módulos · 5 modos incluyendo Battle 2P.' },
   lyricflow: { eyebrow: 'Aprendizaje con música', title: 'LyricFlow', sub: 'Entrena escucha y comprensión con canciones y actividades.' },
 };
