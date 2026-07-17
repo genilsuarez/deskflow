@@ -500,13 +500,19 @@ function setupNavigationMode() {
 }
 
 const TOPBAR_CONTENT = {
-  resumen: { eyebrow: '', title: 'Tu aprendizaje, en contexto.', sub: 'Retoma el hilo sin perder de vista cómo se complementa cada módulo.' },
+  resumen: { eyebrow: 'Tu plataforma de aprendizaje', title: 'LearnFlow', sub: '' },
   continuar: { eyebrow: 'Retoma el hilo', title: 'Continuar aprendiendo', sub: 'Accesos directos basados en el último dato válido de cada módulo.' },
   actividad: { eyebrow: 'Historial local', title: 'Actividad', sub: 'Eventos recientes publicados por los módulos.' },
   fluentflow: { eyebrow: 'Ruta estructurada', title: 'FluentFlow', sub: 'Avanza de A1 a C2 mediante módulos secuenciales y práctica guiada.' },
   hubflow: { eyebrow: 'Práctica temática', title: 'HubFlow', sub: '55 módulos · 1,400+ items · 5 modos incluyendo Battle 2P.' },
   lyricflow: { eyebrow: 'Aprendizaje con música', title: 'LyricFlow', sub: 'Entrena escucha y comprensión con canciones y actividades.' },
 };
+
+const RESUMEN_HINTS = [
+  'Tres módulos, un hilo: estructura, práctica y música conectados.',
+  'Tu progreso vive aquí, en tu navegador. Sin cuentas, sin excusas.',
+  'Cada sesión cuenta. Vuelve cuando quieras, todo sigue donde lo dejaste.'
+];
 
 function updateTopbar(viewName) {
   const topbar = document.getElementById('deskTopbar');
@@ -515,22 +521,18 @@ function updateTopbar(viewName) {
   const subEl = document.getElementById('topbarSub');
   const content = TOPBAR_CONTENT[viewName];
   if (!content) {
-    topbar.classList.remove('topbar--compact');
-    eyebrowEl.hidden = true;
-    titleEl.textContent = 'Tu aprendizaje, en contexto.';
-    subEl.textContent = 'Retoma el hilo sin perder de vista cómo se complementa cada módulo.';
+    topbar.classList.add('topbar--compact');
+    eyebrowEl.textContent = 'Tu plataforma de aprendizaje';
+    eyebrowEl.hidden = false;
+    titleEl.textContent = 'LearnFlow';
+    subEl.textContent = RESUMEN_HINTS[0];
     return;
   }
-  if (content.eyebrow) {
-    topbar.classList.add('topbar--compact');
-    eyebrowEl.textContent = content.eyebrow;
-    eyebrowEl.hidden = false;
-  } else {
-    topbar.classList.remove('topbar--compact');
-    eyebrowEl.hidden = true;
-  }
+  topbar.classList.add('topbar--compact');
+  eyebrowEl.textContent = content.eyebrow;
+  eyebrowEl.hidden = false;
   titleEl.textContent = content.title;
-  subEl.textContent = content.sub;
+  subEl.textContent = viewName === 'resumen' ? RESUMEN_HINTS[0] : content.sub;
 }
 
 function showView(viewName, updateHash = true) {
@@ -719,5 +721,22 @@ window.addEventListener('storage', (event) => {
     setNavigationMode(NAVIGATION_MODES.has(event.newValue) ? event.newValue : 'sidebar');
     return;
   }
-  if (/^learnflow:(progress|activity):(fluentflow|hubflow|lyricflow):v1$/.test(event.key || '')) renderAll();
+  if (/^learnflow:(progress|activity):(fluentflow|hubflow|lyricflow):v[12]$/.test(event.key || '')) renderAll();
 });
+
+(function rotateHints() {
+  const hints = RESUMEN_HINTS;
+  if (hints.length < 2) return;
+  let current = 0;
+  const subEl = document.getElementById('topbarSub');
+  setInterval(() => {
+    const activeView = document.querySelector('[data-view-panel].is-active');
+    if (!activeView || activeView.id !== 'view-resumen') return;
+    current = (current + 1) % hints.length;
+    subEl.style.opacity = '0';
+    setTimeout(() => {
+      subEl.textContent = hints[current];
+      subEl.style.opacity = '1';
+    }, 300);
+  }, 5000);
+})();
