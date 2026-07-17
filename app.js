@@ -11,8 +11,8 @@ const APP_CONFIG = Object.freeze({
   },
   hubflow: {
     name: 'HubFlow',
-    eyebrow: 'Práctica flexible',
-    description: 'Refuerza gramática, vocabulario y producción por temas.',
+    eyebrow: 'Práctica temática · 55 módulos · 1,400+ items',
+    description: '5 modos por ejercicio incluyendo Battle 2P. Gramática, vocabulario, pronunciación y producción.',
     unit: 'contenidos',
     color: 'amber',
     url: 'https://genilsuarez.github.io/hubflow/'
@@ -504,7 +504,7 @@ const TOPBAR_CONTENT = {
   continuar: { eyebrow: 'Retoma el hilo', title: 'Continuar aprendiendo', sub: 'Accesos directos basados en el último dato válido de cada módulo.' },
   actividad: { eyebrow: 'Historial local', title: 'Actividad', sub: 'Eventos recientes publicados por los módulos.' },
   fluentflow: { eyebrow: 'Ruta estructurada', title: 'FluentFlow', sub: 'Avanza de A1 a C2 mediante módulos secuenciales y práctica guiada.' },
-  hubflow: { eyebrow: 'Práctica flexible', title: 'HubFlow', sub: 'Refuerza gramática, vocabulario y producción por temas.' },
+  hubflow: { eyebrow: 'Práctica temática', title: 'HubFlow', sub: '55 módulos · 1,400+ items · 5 modos incluyendo Battle 2P.' },
   lyricflow: { eyebrow: 'Aprendizaje con música', title: 'LyricFlow', sub: 'Entrena escucha y comprensión con canciones y actividades.' },
 };
 
@@ -585,7 +585,7 @@ function showAboutLearnFlow(event) {
       <p id="aboutLearnFlowDescription" class="about-description">Una plataforma para aprender idiomas con estructura, práctica y música.</p>
       <nav class="about-modules" aria-label="Aplicaciones de LearnFlow">
         <a href="${getAppHref('/fluentflow/', 3001)}" data-app-link="fluentflow"><strong>FluentFlow</strong><span>Ruta de inglés por niveles CEFR</span></a>
-        <a href="${getAppHref('/hubflow/', 3002)}" data-app-link="hubflow"><strong>HubFlow</strong><span>Práctica flexible de gramática</span></a>
+        <a href="${getAppHref('/hubflow/', 3002)}" data-app-link="hubflow"><strong>HubFlow</strong><span>55 módulos · 5 modos · Battle 2P</span></a>
         <a href="${getAppHref('/lyricflow/', 3003)}" data-app-link="lyricflow"><strong>LyricFlow</strong><span>Aprender con música</span></a>
       </nav>
       <footer class="about-footer">
