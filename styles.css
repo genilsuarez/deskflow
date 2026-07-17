@@ -518,6 +518,12 @@ body {
 .text-action--sm { font-size: 0.6rem; margin-top: 6px; display: inline-block; }
 
 /* ─── CONTINUE BANNER (Inicio) ─── */
+.hero-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
 .continue-banner {
   position: relative;
   overflow: hidden;
@@ -525,7 +531,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   padding: 12px 16px;
   border: 1px solid color-mix(in srgb, var(--lp-accent) 30%, var(--lp-border));
   border-radius: var(--lp-radius-lg);
@@ -787,6 +793,12 @@ body {
 }
 
 /* ─── MODULE DETAIL (view FluentFlow/HubFlow/LyricFlow) ─── */
+.detail-hero-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
 .module-detail__hero { --detail-color: var(--lp-accent); --detail-soft: var(--lp-accent-soft); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--detail-color) 22%, var(--lp-border)); border-radius: var(--lp-radius-lg); background: linear-gradient(135deg, var(--detail-soft), var(--lp-surface) 70%); }
 .module-detail__hero::after { content: attr(data-letter); position: absolute; right: 4%; top: -20%; color: color-mix(in srgb, var(--detail-color) 7%, transparent); font-family: var(--lp-font-display); font-size: 6rem; pointer-events: none; }
 .module-detail__hero--purple { --detail-color: var(--lp-cat-purple); --detail-soft: var(--lp-cat-purple-soft); }
@@ -820,7 +832,6 @@ body {
   border: 1px solid var(--lp-border);
   border-radius: var(--lp-radius-lg);
   background: var(--lp-surface);
-  margin-bottom: 10px;
 }
 .detail-insight h2 { font-family: var(--lp-font-display); font-size: 0.82rem; font-weight: 500; margin: 3px 0 3px; }
 .detail-insight p { font-size: 0.68rem; color: var(--lp-ink-soft); line-height: 1.4; }
@@ -1076,6 +1087,7 @@ a:focus-visible,
   .navigation-launcher { display: none !important; }
 
   .context-row { grid-template-columns: 1fr; }
+  .hero-row { grid-template-columns: 1fr; }
 
   .continue-banner h2 { font-size: 1.1rem; }
   .module-grid { grid-template-columns: 1fr; }
@@ -1086,6 +1098,7 @@ a:focus-visible,
   .activity-item { grid-template-columns: 28px 1fr; }
   .activity-item__time { grid-column: 2; font-size: 0.5rem; }
   .detail-stats { grid-template-columns: 1fr; }
+  .detail-hero-row { grid-template-columns: 1fr; }
   .module-detail__hero { padding: 16px 14px; }
   .module-detail__hero h1 { font-size: 1.4rem; }
 

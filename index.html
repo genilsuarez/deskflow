@@ -66,6 +66,7 @@
     <main class="main" id="mainContent" tabindex="-1">
       <section class="view is-active" id="view-resumen" data-view-panel="resumen" aria-labelledby="summaryTitle">
 
+        <div class="hero-row">
         <section class="continue-banner" aria-labelledby="continueTitle">
           <div class="continue-banner__copy">
             <span class="section-kicker">Siguiente paso</span>
@@ -75,13 +76,7 @@
           <a class="lp-btn lp-btn--primary" id="primaryContinueLink" href="https://genilsuarez.github.io/fluentflow/" rel="noopener">Continuar <span aria-hidden="true">→</span></a>
         </section>
 
-        <section class="section-block" aria-labelledby="modulesTitle">
-          <div class="section-heading"><h2 id="modulesTitle"><span class="section-kicker">Tus tres caminos</span> Módulos</h2></div>
-          <div class="module-grid" id="summaryModules"></div>
-        </section>
-
-        <div class="context-row">
-          <section class="context-card context-card--progress" aria-labelledby="globalTitle">
+        <section class="context-card context-card--progress" aria-labelledby="globalTitle">
             <div class="context-card__visual" id="globalRing" style="--progress: 0" role="img" aria-label="Progreso global pendiente">
               <div><strong id="globalValue">—</strong><span id="globalUnit">prom.</span></div>
             </div>
@@ -91,7 +86,14 @@
               <span class="status-pill status-pill--warning" id="globalStatus">Incompleto</span>
             </div>
           </section>
+        </div>
 
+        <section class="section-block" aria-labelledby="modulesTitle">
+          <div class="section-heading"><h2 id="modulesTitle"><span class="section-kicker">Tus tres caminos</span> Módulos</h2></div>
+          <div class="module-grid" id="summaryModules"></div>
+        </section>
+
+        <div class="context-row">
           <section class="context-card context-card--cefr" aria-labelledby="cefrTitle">
             <div class="context-card__copy">
               <h2 id="cefrTitle">Ruta CEFR</h2>

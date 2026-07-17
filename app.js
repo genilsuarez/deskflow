@@ -11,8 +11,8 @@ const APP_CONFIG = Object.freeze({
   },
   hubflow: {
     name: 'HubFlow',
-    eyebrow: 'Práctica temática · 55 módulos · 1,400+ items',
-    description: '5 modos por ejercicio incluyendo Battle 2P. Gramática, vocabulario, pronunciación y producción.',
+    eyebrow: 'Práctica temática · 55 módulos',
+    description: '5 modos por ejercicio incluyendo Battle 2P.',
     unit: 'contenidos',
     color: 'amber',
     url: 'https://genilsuarez.github.io/hubflow/'
@@ -364,7 +364,9 @@ function renderModuleDetail(app) {
   renderActivityList(list, events, 3);
   activity.append(list);
 
-  container.append(header, stats, insight, activity);
+  const heroRow = element('div', 'detail-hero-row');
+  heroRow.append(header, insight);
+  container.append(heroRow, stats, activity);
 }
 
 function renderDataHealth() {
@@ -504,7 +506,7 @@ const TOPBAR_CONTENT = {
   continuar: { eyebrow: 'Retoma el hilo', title: 'Continuar aprendiendo', sub: 'Accesos directos basados en el último dato válido de cada módulo.' },
   actividad: { eyebrow: 'Historial local', title: 'Actividad', sub: 'Eventos recientes publicados por los módulos.' },
   fluentflow: { eyebrow: 'Ruta estructurada', title: 'FluentFlow', sub: 'Avanza de A1 a C2 mediante módulos secuenciales y práctica guiada.' },
-  hubflow: { eyebrow: 'Práctica temática', title: 'HubFlow', sub: '55 módulos · 1,400+ items · 5 modos incluyendo Battle 2P.' },
+  hubflow: { eyebrow: 'Práctica temática', title: 'HubFlow', sub: '55 módulos · 5 modos incluyendo Battle 2P.' },
   lyricflow: { eyebrow: 'Aprendizaje con música', title: 'LyricFlow', sub: 'Entrena escucha y comprensión con canciones y actividades.' },
 };
 
