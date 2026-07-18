@@ -596,15 +596,16 @@ function showAboutLearnFlow(event) {
       <header class="about-header">
         <div class="about-identity" aria-hidden="true">L</div>
         <div>
-          <p class="about-eyebrow">LearnFlow · Portal</p>
+          <p class="about-eyebrow">LearnFlow · Plataforma</p>
           <h2 id="aboutLearnFlowTitle">About LearnFlow</h2>
         </div>
         <button class="about-close" id="aboutCloseBtn" type="button" aria-label="Cerrar About LearnFlow">✕</button>
       </header>
       <p id="aboutLearnFlowDescription" class="about-description">Una plataforma para aprender idiomas con estructura, práctica y música.</p>
       <nav class="about-modules" aria-label="Aplicaciones de LearnFlow">
+        <a href="${getAppHref('/deskflow/', 3000)}" data-app-link="deskflow"><strong>LearnFlow</strong><span>Portal</span></a>
         <a href="${getAppHref('/fluentflow/', 3001)}" data-app-link="fluentflow"><strong>FluentFlow</strong><span>Ruta de inglés por niveles CEFR</span></a>
-        <a href="${getAppHref('/hubflow/', 3002)}" data-app-link="hubflow"><strong>HubFlow</strong><span>55 módulos · 5 modos · Battle 2P</span></a>
+        <a href="${getAppHref('/hubflow/', 3002)}" data-app-link="hubflow"><strong>HubFlow</strong><span>Práctica flexible de gramática</span></a>
         <a href="${getAppHref('/lyricflow/', 3003)}" data-app-link="lyricflow"><strong>LyricFlow</strong><span>Aprender con música</span></a>
       </nav>
       <footer class="about-footer">
@@ -755,5 +756,5 @@ window.addEventListener('storage', (event) => {
       subEl.textContent = hints[current];
       subEl.style.opacity = '1';
     }, 300);
-  }, 5000);
+  }, 120000);
 })();
