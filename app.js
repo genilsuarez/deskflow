@@ -11,7 +11,7 @@ const APP_CONFIG = Object.freeze({
   },
   hubflow: {
     name: 'HubFlow',
-    eyebrow: 'Práctica temática · 55 módulos',
+    eyebrow: 'Práctica temática',
     description: '5 modos por ejercicio incluyendo Battle 2P.',
     unit: 'contenidos',
     color: 'amber',
@@ -230,7 +230,7 @@ function renderCefr() {
 }
 
 function allValidEvents() {
-  return appData.flatMap((result) => result.activity.status === STATUS.READY ? result.activity.data.events : [])
+  return appData.flatMap((result) => result.activity.status === STATUS.READY ? result.activity.data.events.slice(0, 3) : [])
     .sort((first, second) => new Date(second.occurredAt) - new Date(first.occurredAt));
 }
 

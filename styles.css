@@ -135,14 +135,18 @@
   --lp-muted: #998E84;
   --lp-ink-inverse: #1A1714;
 
-  --lp-accent-soft: #2E2018;
+  --lp-accent-soft: #3A2820;
 
-  --lp-cat-blue-soft: #1A2A3D;
-  --lp-cat-amber-soft: #2D2510;
+  --lp-cat-blue: #6FA8DC;
+  --lp-cat-blue-soft: #1E3350;
+  --lp-cat-amber: #E6A832;
+  --lp-cat-amber-soft: #3D3018;
   --lp-cat-green: #6DBF8B;
-  --lp-cat-green-soft: #1A2D20;
-  --lp-cat-purple-soft: #221A30;
-  --lp-cat-teal-soft: #1A2D2D;
+  --lp-cat-green-soft: #1F3D28;
+  --lp-cat-purple: #A98ED4;
+  --lp-cat-purple-soft: #2E2240;
+  --lp-cat-teal: #6BC4C4;
+  --lp-cat-teal-soft: #1F3838;
 
   --lp-error-soft: #3D1A1A;
   --lp-error-dark: #F28B7D;
@@ -347,6 +351,11 @@ body {
 .nav-item:hover { background: var(--lp-surface); color: var(--lp-ink); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .nav-item:active { transform: scale(0.98); }
 .nav-item.is-active { background: var(--lp-accent-soft); color: var(--lp-accent-dark); font-weight: 700; }
+[data-theme="dark"] .nav-item.is-active {
+  background: color-mix(in srgb, var(--lp-accent) 15%, var(--lp-surface));
+  border: 1px solid color-mix(in srgb, var(--lp-accent) 30%, transparent);
+  color: var(--lp-accent);
+}
 .nav-item--disabled { opacity: 0.4; pointer-events: none; }
 
 .nav-icon {
@@ -616,6 +625,10 @@ body {
 .status-pill--warning { background: var(--lp-warning-soft); color: var(--lp-warning); }
 .status-pill--neutral { background: var(--lp-surface-sunken); color: var(--lp-muted); }
 
+[data-theme="dark"] .status-pill--success { background: #1F3D28; color: #7DD4A0; }
+[data-theme="dark"] .status-pill--warning { background: #3D3018; color: #E6A832; }
+[data-theme="dark"] .status-pill--neutral { background: #2E2A22; color: #998E84; }
+
 /* ─── MODULE CARDS (Inicio) ─── */
 .module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 
@@ -653,6 +666,7 @@ body {
   color: var(--card-color);
   font-weight: 800;
   font-size: 0.65rem;
+  border: 1.5px solid color-mix(in srgb, var(--card-color) 40%, transparent);
 }
 .module-card__heading h3 { font-family: var(--lp-font-display); font-size: 0.78rem; font-weight: 500; }
 .module-card__heading > div { min-width: 0; overflow: hidden; }
