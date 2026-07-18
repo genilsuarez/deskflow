@@ -91,14 +91,18 @@ function rounded(value) {
 }
 
 function appMetric(result, config) {
-  if (!hasValidProgress(result)) return STATUS_COPY[result.progress.status];
-  const summary = result.progress.data.summary;
-  return `${summary.completedContent} de ${summary.totalContent} ${config.unit}`;
+  if (hasValidProgress(result)) {
+    const summary = result.progress.data.summary;
+    return `${summary.completedContent} de ${summary.totalContent} ${config.unit}`;
+  }
+  if (result.progress.status === STATUS.UNAVAILABLE) return `0 ${config.unit} completados`;
+  return STATUS_COPY[result.progress.status];
 }
 
 function progressLabel(result) {
-  if (!hasValidProgress(result)) return '—';
-  return `${rounded(result.progress.data.summary.progressPct)}%`;
+  if (hasValidProgress(result)) return `${rounded(result.progress.data.summary.progressPct)}%`;
+  if (result.progress.status === STATUS.UNAVAILABLE) return '0%';
+  return '—';
 }
 
 function createStatusPill(status) {
@@ -147,9 +151,8 @@ function renderModuleCards() {
 
     const value = element('strong', 'module-card__value', progressLabel(result));
     const metric = element('p', 'module-card__metric', appMetric(result, config));
-    const progress = hasValidProgress(result)
-      ? createProgressBar(rounded(result.progress.data.summary.progressPct), `Progreso de ${config.name}`)
-      : element('div', 'progress-track progress-track--unavailable');
+    const progressValue = hasValidProgress(result) ? rounded(result.progress.data.summary.progressPct) : 0;
+    const progress = createProgressBar(progressValue, `Progreso de ${config.name}`);
 
     const footer = element('div', 'module-card__footer');
     footer.append(createStatusPill(result.progress.status));
