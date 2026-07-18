@@ -139,13 +139,18 @@
 
   --lp-cat-blue-soft: #1A2A3D;
   --lp-cat-amber-soft: #2D2510;
+  --lp-cat-green: #6DBF8B;
   --lp-cat-green-soft: #1A2D20;
   --lp-cat-purple-soft: #221A30;
   --lp-cat-teal-soft: #1A2D2D;
 
   --lp-error-soft: #3D1A1A;
+  --lp-error-dark: #F28B7D;
+  --lp-success: #5EBD85;
   --lp-success-soft: #1A2D20;
+  --lp-success-dark: #7DD4A0;
   --lp-info-soft: #1A2A3D;
+  --lp-warning: #E6A832;
   --lp-warning-soft: #2D2510;
 
   --lp-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.15);
