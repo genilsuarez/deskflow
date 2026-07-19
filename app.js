@@ -609,8 +609,13 @@ function showAboutLearnFlow(event) {
         <a href="${getAppHref('/lyricflow/', 3003)}" data-app-link="lyricflow"><strong>LyricFlow</strong><span>Aprender con música</span></a>
       </nav>
       <footer class="about-footer">
-        <p><strong>Progreso local</strong><span>Guardado únicamente en este navegador.</span></p>
-        <p><strong>Autor</strong><span>Genil Suárez</span></p>
+        <div class="about-author">
+          <div class="about-author__avatar" aria-hidden="true">GS</div>
+          <div class="about-author__info">
+            <strong>Genil Suárez</strong>
+            <span>Diseñado y desarrollado como proyecto personal</span>
+          </div>
+        </div>
       </footer>
     </section>
   `;
