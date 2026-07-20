@@ -550,6 +550,7 @@ function updateTopbar(viewName) {
   const eyebrowEl = document.getElementById('topbarEyebrow');
   const titleEl = document.getElementById('summaryTitle');
   const subEl = document.getElementById('topbarSub');
+  topbar.dataset.view = viewName || 'resumen';
   const content = TOPBAR_CONTENT[viewName];
   if (!content) {
     topbar.classList.add('topbar--compact');

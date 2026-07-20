@@ -323,7 +323,13 @@ body {
 [data-navigation-mode="floating"] .app-shell { grid-template-columns: 1fr; }
 [data-navigation-mode="floating"] .main { grid-column: 1; }
 [data-navigation-mode="floating"] .main-footer { grid-column: 1; }
-[data-navigation-mode="sidebar"] .sidebar-scrim { display: none !important; }
+/* En mobile el sidebar siempre es off-canvas (ver @media max-width:768px más
+   abajo) sin importar el modo "sidebar"/"floating" de desktop, así que
+   necesita su scrim para cerrar al tocar afuera — por eso esta regla se
+   limita a desktop, donde "sidebar" significa panel fijo sin overlay. */
+@media (min-width: 769px) {
+  [data-navigation-mode="sidebar"] .sidebar-scrim { display: none !important; }
+}
 [data-navigation-mode="sidebar"] .navigation-launcher { display: none !important; }
 
 /* ─── SIDEBAR ─── */
@@ -642,7 +648,6 @@ body {
   background: linear-gradient(125deg, var(--lp-accent-soft), var(--lp-surface) 72%);
   box-shadow: var(--lp-shadow-sm);
 }
-.continue-banner::after { content: '↗'; position: absolute; right: 14px; top: -30px; color: color-mix(in srgb, var(--lp-accent) 10%, transparent); font-family: var(--lp-font-display); font-size: 7rem; transform: rotate(8deg); pointer-events: none; }
 .continue-banner__copy { position: relative; z-index: 1; display: flex; flex-direction: column; }
 .continue-banner h2 { margin: 1px 0 2px; font-family: var(--lp-font-display); font-size: 1.05rem; font-weight: 500; line-height: 1; }
 .continue-banner p { max-width: 580px; margin: 0; color: var(--lp-ink-soft); font-size: 0.62rem; line-height: 1.35; }
@@ -1184,12 +1189,18 @@ a:focus-visible,
   .mobile-header { display: flex; }
   .topbar,
   .topbar.topbar--compact { grid-column: 1; height: auto; min-height: 0; padding: 14px 16px; align-items: center; }
-  /* El mobile-header sticky ya da la marca; el eyebrow y el copy largo del
-     saludo son ruido secundario que en mobile desbordaba el topbar hasta
-     ocupar ~25% de pantalla. Se deja solo el título (identifica la sección
-     actual) + la fecha. */
+  /* El mobile-header sticky ya da la marca; el eyebrow, el copy largo del
+     saludo y la fecha son ruido secundario que en mobile desbordaba el
+     topbar hasta ocupar ~25% de pantalla. Se deja solo el título (identifica
+     la sección actual). */
   .topbar-eyebrow { display: none; }
   .topbar-sub { display: none; }
+  .topbar-date { display: none; }
+  /* En "resumen" el título es literalmente "LearnFlow" — el mismo texto que
+     ya muestra el mobile-header arriba. Sin fecha ni título no queda nada
+     que mostrar, así que se oculta el topbar completo para no dejar una
+     barra vacía entre dos líneas divisorias. */
+  .topbar[data-view="resumen"] { display: none; }
   .main { grid-column: 1; padding: 0 16px 20px; }
   .main-footer { display: none; }
 
