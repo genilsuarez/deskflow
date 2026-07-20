@@ -52,6 +52,15 @@ function appendArrow(node) {
   node.append(' ', arrow);
 }
 
+/** "Abrir X" → span.lp-btn__verb oculto en mobile (CSS) + resto del label */
+function appendLinkLabel(link, label) {
+  if (label.startsWith('Abrir ')) {
+    link.append(element('span', 'lp-btn__verb', 'Abrir '), document.createTextNode(label.slice(6)));
+    return;
+  }
+  link.append(document.createTextNode(label));
+}
+
 function getAppResult(app) {
   const found = appData.find((result) => result.app === app);
   if (!found || found.progress.data?.summary.lastContent || found.activity.status !== STATUS.READY) return found;
@@ -125,10 +134,11 @@ function createProgressBar(value, label) {
 
 function createAppLink(app, label = 'Abrir módulo', primary = false) {
   const config = APP_CONFIG[app];
-  const link = element('a', primary ? 'lp-btn lp-btn--primary app-link' : 'text-action app-link', label);
+  const link = element('a', primary ? 'lp-btn lp-btn--primary app-link' : 'text-action app-link');
   link.href = config.url;
   link.dataset.appLink = app;
   link.rel = 'noopener';
+  appendLinkLabel(link, label);
   appendArrow(link);
   return link;
 }
@@ -434,7 +444,7 @@ function renderPrimaryContinue() {
     bannerTitle.textContent = 'Empieza a aprender';
     bannerDesc.textContent = 'Elige un módulo y comienza tu primera sesión.';
     link.textContent = '';
-    link.append(document.createTextNode(`Abrir ${config.name} `));
+    link.append(element('span', 'lp-btn__verb', 'Abrir '), document.createTextNode(`${config.name} `));
     const arrow = element('span', '', '→');
     arrow.setAttribute('aria-hidden', 'true');
     link.append(arrow);
@@ -529,8 +539,20 @@ const TOPBAR_CONTENT = {
   actividad: { eyebrow: 'Historial local', title: 'Actividad', sub: 'Eventos recientes publicados por los módulos.' },
   fluentflow: { eyebrow: 'Ruta estructurada', title: 'FluentFlow', sub: 'Ruta A1–C2 con módulos secuenciales y práctica guiada.' },
   hubflow: { eyebrow: 'Práctica temática', title: 'HubFlow', sub: '55 módulos · 5 modos incluyendo Battle 2P.' },
-  lyricflow: { eyebrow: 'Aprendizaje con música', title: 'LyricFlow', sub: 'Entrena escucha y comprensión con canciones y actividades.' },
+  lyricflow: {
+    eyebrow: 'Aprendizaje con música',
+    title: 'LyricFlow',
+    sub: 'Entrena escucha y comprensión con canciones y actividades.',
+    subMobile: 'Escucha y comprensión con canciones.',
+  },
 };
+
+function resolveTopbarSub(content, viewName) {
+  if (viewName === 'resumen') return RESUMEN_HINTS[0];
+  const useMobileCopy = window.matchMedia('(max-width: 768px)').matches;
+  if (useMobileCopy && content.subMobile) return content.subMobile;
+  return content.sub;
+}
 
 const RESUMEN_HINTS = [
   'Tres módulos, un hilo: estructura, práctica y música conectados.',
@@ -572,7 +594,7 @@ function updateTopbar(viewName) {
   eyebrowEl.textContent = content.eyebrow;
   eyebrowEl.hidden = false;
   setTopbarTitle(titleEl, content.title);
-  subEl.textContent = resolvedView === 'resumen' ? RESUMEN_HINTS[0] : content.sub;
+  subEl.textContent = resolveTopbarSub(content, resolvedView);
 }
 
 function showView(viewName, updateHash = true) {
@@ -709,6 +731,12 @@ function setupNavigation() {
   } else {
     showView(document.querySelector(`[data-view-panel="${initialView}"]`) ? initialView : 'resumen', false);
   }
+
+  window.addEventListener('resize', () => {
+    const activePanel = document.querySelector('[data-view-panel].is-active');
+    if (!activePanel) return;
+    updateTopbar(activePanel.id.replace('view-', ''));
+  });
 }
 
 function setupTheme() {
