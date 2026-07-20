@@ -338,16 +338,11 @@ function renderModuleDetail(app) {
   const container = document.querySelector(`[data-app-detail="${app}"]`);
   container.replaceChildren();
 
-  const header = element('header', `module-detail__hero module-detail__hero--${config.color}`);
-  const heroCopy = element('div', 'module-detail__hero-copy');
-  const eyebrow = element('p', 'eyebrow', config.eyebrow);
-  const title = element('h1', '', config.name);
-  title.id = `${app}Title`;
+  const actionBar = element('div', `module-detail__action module-detail__action--${config.color}`);
   const desc = Array.isArray(config.description)
     ? (() => { const d = document.createDocumentFragment(); config.description.forEach(line => d.append(element('p', '', line))); return d; })()
     : element('p', '', config.description);
-  heroCopy.append(eyebrow, title, desc);
-  header.append(heroCopy, createAppLink(app, `Abrir ${config.name}`, true));
+  actionBar.append(desc, createAppLink(app, `Abrir ${config.name}`, true));
 
   const statsSection = element('section', 'section-block');
   const statsHeading = element('div', 'section-heading');
@@ -392,9 +387,7 @@ function renderModuleDetail(app) {
   renderActivityList(list, events, 3);
   activity.append(list);
 
-  const heroRow = element('div', 'detail-hero-row');
-  heroRow.append(header, insight);
-  container.append(heroRow, statsSection, activity);
+  container.append(actionBar, insight, statsSection, activity);
 }
 
 function renderDataHealth() {
@@ -492,7 +485,7 @@ const NAVIGATION_MODES = new Set(['sidebar', 'floating']);
 function setSidebarOpen(open) {
   const sidebar = document.getElementById('sidebar');
   const scrim = document.getElementById('sidebarScrim');
-  const toggles = [document.getElementById('menuToggle'), document.getElementById('navigationLauncher')].filter(Boolean);
+  const toggles = [document.getElementById('menuToggle'), document.getElementById('topbarMenuToggle'), document.getElementById('navigationLauncher')].filter(Boolean);
   sidebar.classList.toggle('is-open', open);
   scrim.hidden = !open;
   toggles.forEach((toggle) => {
@@ -545,26 +538,41 @@ const RESUMEN_HINTS = [
   'Cada sesión cuenta. Vuelve cuando quieras, todo sigue donde lo dejaste.'
 ];
 
+const MODULE_VIEWS = new Set(['fluentflow', 'hubflow', 'lyricflow']);
+
+function setTopbarTitle(titleEl, title) {
+  titleEl.replaceChildren();
+  if (title.endsWith('Flow')) {
+    titleEl.append(title.slice(0, -4), Object.assign(document.createElement('em'), { textContent: 'Flow' }));
+    return;
+  }
+  titleEl.textContent = title;
+}
+
 function updateTopbar(viewName) {
   const topbar = document.getElementById('deskTopbar');
   const eyebrowEl = document.getElementById('topbarEyebrow');
   const titleEl = document.getElementById('summaryTitle');
   const subEl = document.getElementById('topbarSub');
-  topbar.dataset.view = viewName || 'resumen';
-  const content = TOPBAR_CONTENT[viewName];
+  const resolvedView = viewName || 'resumen';
+  const isModuleView = MODULE_VIEWS.has(resolvedView);
+  topbar.dataset.view = resolvedView;
+  topbar.classList.toggle('topbar--module', isModuleView);
+  topbar.classList.remove('topbar--compact');
+  const content = TOPBAR_CONTENT[resolvedView];
   if (!content) {
     topbar.classList.add('topbar--compact');
     eyebrowEl.textContent = 'Tu plataforma de aprendizaje';
     eyebrowEl.hidden = false;
-    titleEl.textContent = 'LearnFlow';
+    setTopbarTitle(titleEl, 'LearnFlow');
     subEl.textContent = RESUMEN_HINTS[0];
     return;
   }
-  topbar.classList.add('topbar--compact');
+  if (resolvedView !== 'resumen') topbar.classList.add('topbar--compact');
   eyebrowEl.textContent = content.eyebrow;
   eyebrowEl.hidden = false;
-  titleEl.textContent = content.title;
-  subEl.textContent = viewName === 'resumen' ? RESUMEN_HINTS[0] : content.sub;
+  setTopbarTitle(titleEl, content.title);
+  subEl.textContent = resolvedView === 'resumen' ? RESUMEN_HINTS[0] : content.sub;
 }
 
 function showView(viewName, updateHash = true) {
@@ -584,6 +592,8 @@ function showView(viewName, updateHash = true) {
   });
 
   updateTopbar(viewName);
+  const shell = document.querySelector('.app-shell');
+  if (shell) shell.dataset.view = viewName;
   if (updateHash) history.replaceState(null, '', `${location.pathname}${location.search}#${viewName}`);
   closeSidebar();
   document.getElementById('mainContent').focus({ preventScroll: true });
@@ -662,7 +672,7 @@ function showAboutLearnFlow(event) {
 
 function setupNavigation() {
   document.addEventListener('click', (event) => {
-    const viewControl = event.target.closest('[data-view]');
+    const viewControl = event.target.closest('button[data-view]');
     if (viewControl) showView(viewControl.dataset.view);
 
     const viewLink = event.target.closest('[data-view-link]');
@@ -679,7 +689,7 @@ function setupNavigation() {
 
   const sidebar = document.getElementById('sidebar');
   const scrim = document.getElementById('sidebarScrim');
-  const menuToggles = [document.getElementById('menuToggle'), document.getElementById('navigationLauncher')].filter(Boolean);
+  const menuToggles = [document.getElementById('menuToggle'), document.getElementById('topbarMenuToggle'), document.getElementById('navigationLauncher')].filter(Boolean);
   menuToggles.forEach((toggle) => toggle.addEventListener('click', () => {
     setSidebarOpen(!sidebar.classList.contains('is-open'));
   }));

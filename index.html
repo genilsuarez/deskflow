@@ -23,7 +23,7 @@
   <div class="app-shell">
     <header class="mobile-header">
       <button class="lp-icon-btn" id="menuToggle" type="button" aria-label="Abrir navegación" aria-controls="sidebar" aria-expanded="false">☰</button>
-      <a class="mobile-header__brand" href="#resumen" data-view-link="resumen" aria-label="Ir al resumen de LearnFlow">LearnFlow</a>
+      <a class="mobile-header__brand" href="#resumen" data-view-link="resumen" aria-label="Ir al resumen de LearnFlow">Learn<em>Flow</em></a>
     </header>
 
     <button class="lp-icon-btn navigation-launcher" id="navigationLauncher" type="button" aria-label="Abrir navegación flotante" aria-controls="sidebar" aria-expanded="false">☰</button>
@@ -55,6 +55,7 @@
     </aside>
 
     <div class="topbar" id="deskTopbar">
+      <button class="lp-icon-btn topbar-menu" id="topbarMenuToggle" type="button" aria-label="Abrir navegación" aria-controls="sidebar" aria-expanded="false">☰</button>
       <div class="topbar-greeting">
         <p class="eyebrow topbar-eyebrow" id="topbarEyebrow" hidden></p>
         <h1 class="topbar-title" id="summaryTitle">Tu aprendizaje, en contexto.</h1>
@@ -125,15 +126,15 @@
         <div class="continue-grid" id="continueGrid"></div>
       </section>
 
-      <section class="view" id="view-fluentflow" data-view-panel="fluentflow" aria-labelledby="fluentflowTitle" hidden>
+      <section class="view" id="view-fluentflow" data-view-panel="fluentflow" aria-labelledby="summaryTitle" hidden>
         <div class="module-detail" data-app-detail="fluentflow"></div>
       </section>
 
-      <section class="view" id="view-hubflow" data-view-panel="hubflow" aria-labelledby="hubflowTitle" hidden>
+      <section class="view" id="view-hubflow" data-view-panel="hubflow" aria-labelledby="summaryTitle" hidden>
         <div class="module-detail" data-app-detail="hubflow"></div>
       </section>
 
-      <section class="view" id="view-lyricflow" data-view-panel="lyricflow" aria-labelledby="lyricflowTitle" hidden>
+      <section class="view" id="view-lyricflow" data-view-panel="lyricflow" aria-labelledby="summaryTitle" hidden>
         <div class="module-detail" data-app-detail="lyricflow"></div>
       </section>
 
