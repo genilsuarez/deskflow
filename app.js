@@ -207,6 +207,19 @@ function renderGlobalProgress() {
   description.textContent = `${validResults.length} de 3 fuentes válidas.`;
 }
 
+function renderHeaderStats() {
+  const completedEl = document.getElementById('headerStatsCompleted');
+  const pctEl = document.getElementById('headerStatsPct');
+  if (!completedEl || !pctEl) return;
+  const validResults = appData.filter(hasValidProgress);
+  const totalCompleted = validResults.reduce((total, result) => total + result.progress.data.summary.completedContent, 0);
+  const average = validResults.length > 0
+    ? validResults.reduce((total, result) => total + result.progress.data.summary.progressPct, 0) / validResults.length
+    : 0;
+  completedEl.textContent = String(totalCompleted);
+  pctEl.textContent = `${rounded(average)}%`;
+}
+
 function renderCefr() {
   const level = document.getElementById('cefrLevel');
   const description = document.getElementById('cefrDescription');
@@ -462,6 +475,7 @@ function prepareAppLinks() {
 function renderAll() {
   appData = reader.readAll();
   renderGlobalProgress();
+  renderHeaderStats();
   renderCefr();
   renderModuleCards();
   renderContinue();
@@ -670,6 +684,9 @@ function setupNavigation() {
   }));
   scrim.addEventListener('click', closeSidebar);
   document.getElementById('aboutTrigger').addEventListener('click', showAboutLearnFlow);
+  document.getElementById('loginTrigger').addEventListener('click', () => { closeSidebar(); lpLogin.open(); });
+  lpLogin.onUpdate(updateLoginButton);
+  updateLoginButton(lpLogin.getUser());
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeSidebar();
   });
@@ -721,6 +738,22 @@ function setupActivityFilters() {
       renderActivity();
     });
   });
+}
+
+function updateLoginButton(user) {
+  const btn = document.getElementById('loginTrigger');
+  if (!btn) return;
+  const label = btn.querySelector('.nav-label');
+  const icon = btn.querySelector('.nav-icon');
+  if (user) {
+    if (icon) icon.textContent = '👤';
+    if (label) label.textContent = user.name;
+    btn.setAttribute('aria-label', user.name + ' — perfil');
+  } else {
+    if (icon) icon.textContent = '👤';
+    if (label) label.textContent = 'Iniciar Sesión';
+    btn.setAttribute('aria-label', 'Iniciar sesión');
+  }
 }
 
 function setupPageContext() {

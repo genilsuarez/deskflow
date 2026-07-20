@@ -116,6 +116,31 @@
   /* Progress/score bars — homologado entre DeskFlow/HubFlow/FluentFlow/LyricFlow */
   --lp-progress-height: 4px;
   --lp-progress-height-compact: 3px;
+
+  /* Score/stats pill (header) — homologado entre DeskFlow/HubFlow/FluentFlow/LyricFlow.
+     Tokens dedicados, no reutilizan --lp-border/--lp-ink/etc. directamente para que
+     el pill nunca se desvíe si esos tokens generales cambian en una sola app. */
+  --lp-score-height: 44px;
+  --lp-score-radius: 9999px;
+  --lp-score-border-width: 1.5px;
+  --lp-score-padding-x: 20px;
+  --lp-score-icon-size: 16px;
+  --lp-score-group-gap: 6px;
+  --lp-score-divider-width: 1.5px;
+  --lp-score-divider-gap: 14px;
+  --lp-score-font-family: 'Manrope', system-ui, sans-serif;
+  --lp-score-font-size: 0.8125rem;
+  --lp-score-font-weight: 600;
+  --lp-score-value-size: 1.125rem;
+  --lp-score-value-weight: 700;
+  --lp-score-bg: #F0EDE7;
+  --lp-score-border: #E8E0D4;
+  --lp-score-shadow: 0 1px 3px rgba(44, 36, 24, 0.04), 0 4px 10px rgba(44, 36, 24, 0.04);
+  --lp-score-value-color: #2C2418;
+  --lp-score-label-color: #9C8E7C;
+  --lp-score-icon-color: #C87D0A;
+  --lp-score-success-color: #27865A;
+  --lp-score-error-color: #C0392B;
 }
 
 /* ─── DARK MODE ─── */
@@ -162,6 +187,16 @@
   --lp-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.15);
   --lp-shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.12);
   --lp-shadow-hover: 0 8px 28px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.15);
+
+  /* Score/stats pill (header, dark) — homologado entre las 4 apps */
+  --lp-score-bg: #151210;
+  --lp-score-border: #3D362C;
+  --lp-score-shadow: 0 2px 4px rgba(0, 0, 0, 0.22), 0 4px 12px rgba(0, 0, 0, 0.18);
+  --lp-score-value-color: #EDE8E0;
+  --lp-score-label-color: #998E84;
+  --lp-score-icon-color: #E6A832;
+  --lp-score-success-color: #4FB07A;
+  --lp-score-error-color: #C0392B;
 }
 
 /* ─── RESET ─── */
@@ -435,6 +470,7 @@ body {
   border-bottom: 1.5px solid var(--lp-border);
   flex-shrink: 0;
   box-sizing: border-box;
+  position: relative;
 }
 .topbar.topbar--compact {
   height: var(--lp-header-height);
@@ -474,6 +510,39 @@ body {
   letter-spacing: 0.01em;
   align-self: flex-end;
   padding-bottom: 1px;
+}
+
+/* ─── HEADER STATS (pill homologado con FluentFlow/HubFlow/LyricFlow) ─── */
+.lp-header-stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: var(--lp-score-height);
+  min-width: 180px;
+  padding: 0 var(--lp-score-padding-x);
+  border: var(--lp-score-border-width) solid var(--lp-score-border);
+  border-radius: var(--lp-score-radius);
+  background: var(--lp-score-bg);
+  color: var(--lp-score-label-color);
+  font-family: var(--lp-score-font-family);
+  font-size: var(--lp-score-font-size);
+  font-weight: var(--lp-score-font-weight);
+  flex-shrink: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: var(--lp-score-shadow);
+}
+.lp-header-stats__group { display: flex; align-items: center; gap: var(--lp-score-group-gap); }
+.lp-header-stats__divider { align-self: stretch; width: var(--lp-score-divider-width); margin: 0 var(--lp-score-divider-gap); background: var(--lp-score-border); }
+.lp-header-stats__value { color: var(--lp-score-value-color); font-size: var(--lp-score-value-size); font-weight: var(--lp-score-value-weight); }
+.lp-header-stats__label { color: var(--lp-score-label-color); }
+.lp-header-stats__icon { width: var(--lp-score-icon-size); height: var(--lp-score-icon-size); flex-shrink: 0; }
+.lp-header-stats__icon--trophy, .lp-header-stats__icon--target { color: var(--lp-score-icon-color); }
+
+@media (max-width: 860px) {
+  .lp-header-stats { display: none; }
 }
 
 /* ─── MAIN CONTENT ─── */

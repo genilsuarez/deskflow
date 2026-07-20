@@ -61,6 +61,18 @@
         <h1 class="topbar-title" id="summaryTitle">Tu aprendizaje, en contexto.</h1>
         <p class="topbar-sub" id="topbarSub">Retoma el hilo sin perder de vista cómo se complementa cada módulo.</p>
       </div>
+      <div class="lp-header-stats" role="status" aria-label="Progreso combinado de las tres apps">
+        <span class="lp-header-stats__group">
+          <svg class="lp-header-stats__icon lp-header-stats__icon--trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"/><path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"/><path d="M18 9h1.5a1 1 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6 9H4.5a1 1 0 0 1 0-5H6"/></svg>
+          <strong class="lp-header-stats__value" id="headerStatsCompleted">0</strong>
+          <span class="lp-header-stats__label">completados</span>
+        </span>
+        <span class="lp-header-stats__divider" aria-hidden="true"></span>
+        <span class="lp-header-stats__group">
+          <strong class="lp-header-stats__value" id="headerStatsPct">0%</strong>
+          <svg class="lp-header-stats__icon lp-header-stats__icon--target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        </span>
+      </div>
       <div class="topbar-date" id="currentDate" aria-label="Fecha actual"></div>
     </div>
 
@@ -141,6 +153,7 @@
   </div>
 
   <noscript><div class="noscript">LearnFlow necesita JavaScript para leer las proyecciones locales y cambiar entre vistas. Los módulos siguen disponibles desde sus URLs directas.</div></noscript>
+  <script src="lp-login.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
