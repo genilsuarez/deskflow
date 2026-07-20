@@ -26,11 +26,11 @@
   --lp-muted: #9C8E7C;
   --lp-ink-inverse: #FFFFFF;
 
-  /* Accent — warm terracotta */
-  --lp-accent: #D4764E;
-  --lp-accent-soft: #FDF0EA;
-  --lp-accent-dark: #A8543A;
-  --lp-accent-hover: #C0663F;
+  /* Accent — vivid blue (homologado entre las 4 apps) */
+  --lp-accent: #2563EB;
+  --lp-accent-soft: #E8F0FE;
+  --lp-accent-dark: #1E40AF;
+  --lp-accent-hover: #1D4ED8;
 
   /* Category colors */
   --lp-cat-blue: #3D6B9F;
@@ -174,7 +174,7 @@
   --lp-muted: #998E84;
   --lp-ink-inverse: #1A1714;
 
-  --lp-accent-soft: #3A2820;
+  --lp-accent-soft: #16233D;
 
   --lp-cat-blue: #6FA8DC;
   --lp-cat-blue-soft: #1E3350;
