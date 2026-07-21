@@ -788,14 +788,10 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.status-pill--success { background: var(--lp-success-soft); color: var(--lp-success-dark); }
-.status-pill--warning { background: var(--lp-warning-soft); color: var(--lp-warning); }
-.status-pill--neutral { background: var(--lp-surface-sunken); color: var(--lp-muted); }
-
-/* Dark: pills discretos — sin bandera verde/ámbar en el portal */
-[data-theme="dark"] .status-pill--success,
-[data-theme="dark"] .status-pill--warning,
-[data-theme="dark"] .status-pill--neutral {
+/* Pills discretos — sin bandera verde/ámbar en el portal (light + dark) */
+.status-pill--success,
+.status-pill--warning,
+.status-pill--neutral {
   background: color-mix(in srgb, var(--lp-ink) 5%, var(--lp-surface));
   color: var(--lp-muted);
   border: 1px solid var(--lp-border-subtle);
@@ -1079,14 +1075,43 @@ body {
 .detail-stat p { font-size: 0.62rem; color: var(--lp-ink-soft); }
 
 .detail-insight {
-  padding: 10px 14px;
+  padding: 6px 12px;
   border: 1px solid var(--lp-border);
   border-radius: var(--lp-radius-lg);
   background: var(--lp-surface);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  row-gap: 2px;
+  align-items: baseline;
 }
-.detail-insight h2 { font-family: var(--lp-font-display); font-size: 0.82rem; font-weight: 500; margin: 3px 0 3px; }
-.detail-insight p { font-size: 0.68rem; color: var(--lp-ink-soft); line-height: 1.4; }
-.module-detail .detail-insight + .section-block { margin-top: 14px; }
+.detail-insight .section-kicker {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 0.48rem;
+  line-height: 1.15;
+  margin: 0;
+  white-space: nowrap;
+}
+.detail-insight h2 {
+  grid-column: 2;
+  grid-row: 1;
+  font-family: var(--lp-font-display);
+  font-size: 0.76rem;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.15;
+  min-width: 0;
+}
+.detail-insight p {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  font-size: 0.62rem;
+  color: var(--lp-ink-soft);
+  line-height: 1.3;
+  margin: 0;
+}
+.module-detail .detail-insight + .section-block { margin-top: 10px; }
 .module-detail .section-block + .section-block { margin-top: 12px; }
 
 .detail-activity__card {
@@ -1628,25 +1653,16 @@ a:focus-visible,
     display: none;
   }
 
-  /* Insight CEFR / temática — card compacta */
+  /* Insight CEFR / temática — ya compacto en base; micro-ajuste mobile */
   .detail-insight {
-    padding: 7px 10px;
-  }
-  .detail-insight .section-kicker {
-    font-size: 0.48rem;
-    line-height: 1.15;
+    padding: 6px 10px;
   }
   .detail-insight h2 {
-    font-size: 0.74rem;
-    margin: 1px 0 2px;
-    line-height: 1.15;
+    font-size: 0.72rem;
   }
   .detail-insight p {
-    font-size: 0.62rem;
-    line-height: 1.3;
-    margin: 0;
+    font-size: 0.58rem;
   }
-  .module-detail .detail-insight + .section-block { margin-top: 10px; }
 
   /* Métricas de módulo — una sola card con barra + 3 columnas */
   .detail-metrics__card {
