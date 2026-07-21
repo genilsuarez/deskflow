@@ -375,6 +375,7 @@ body {
   overflow-y: auto;
   z-index: 300;
   transition: transform 0.3s var(--lp-ease);
+  isolation: isolate;
 }
 
 .sidebar__brand {
@@ -534,6 +535,7 @@ body {
   inset: 0;
   z-index: 39;
   background: color-mix(in srgb, var(--lp-ink) 45%, transparent);
+  pointer-events: auto;
 }
 
 /* ─── TOPBAR ─── */
@@ -1430,15 +1432,35 @@ a:focus-visible,
     top: 0;
     left: 0;
     bottom: 0;
-    width: 232px;
+    width: min(232px, 86vw);
     transform: translateX(-100%);
-    z-index: 9999;
+    z-index: 10001;
     box-shadow: var(--lp-shadow-lg);
+    pointer-events: auto;
+    touch-action: manipulation;
   }
   .sidebar.is-open { transform: translateX(0); }
 
   .sidebar-scrim {
-    z-index: 9998;
+    z-index: 10000;
+  }
+
+  /* Exclude drawer from scrim — visual dim AND pointer capture (iOS Safari) */
+  body.sidebar-open .sidebar-scrim {
+    clip-path: inset(0 0 0 min(232px, 86vw));
+    -webkit-clip-path: inset(0 0 0 min(232px, 86vw));
+  }
+
+  body.sidebar-open .app-shell .main,
+  body.sidebar-open .app-shell .topbar,
+  body.sidebar-open .app-shell .main-footer {
+    pointer-events: none;
+  }
+
+  body.sidebar-open .sidebar,
+  body.sidebar-open .sidebar-scrim,
+  body.sidebar-open .app-shell .mobile-header {
+    pointer-events: auto;
   }
 
   /* iOS Chrome/Safari: header sticky + backdrop-filter paints above fixed
