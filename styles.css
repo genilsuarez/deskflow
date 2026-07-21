@@ -347,11 +347,12 @@ body {
   inset: 0 auto 0 0;
   z-index: 40;
   width: 232px;
-  transform: translateX(-102%);
-  transition: transform 240ms var(--lp-ease);
+  transform: translate3d(-100%, 0, 0);
+  transition: transform 320ms cubic-bezier(0.22, 0.9, 0.36, 1);
   box-shadow: var(--lp-shadow-md);
+  backface-visibility: hidden;
 }
-[data-navigation-mode="floating"] .sidebar.is-open { transform: translateX(0); }
+[data-navigation-mode="floating"] .sidebar.is-open { transform: translate3d(0, 0, 0); }
 [data-navigation-mode="floating"] .app-shell { grid-template-columns: 1fr; }
 [data-navigation-mode="floating"] .main { grid-column: 1; }
 [data-navigation-mode="floating"] .main-footer { grid-column: 1; }
@@ -374,7 +375,9 @@ body {
   border-right: 1.5px solid var(--lp-border);
   overflow-y: auto;
   z-index: 300;
-  transition: transform 0.3s var(--lp-ease);
+  transform: translate3d(0, 0, 0);
+  transition: transform 320ms cubic-bezier(0.22, 0.9, 0.36, 1);
+  backface-visibility: hidden;
   isolation: isolate;
 }
 
@@ -535,6 +538,14 @@ body {
   inset: 0;
   z-index: 39;
   background: color-mix(in srgb, var(--lp-ink) 45%, transparent);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 320ms cubic-bezier(0.22, 0.9, 0.36, 1), visibility 320ms;
+}
+.sidebar-scrim.is-visible {
+  opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 
@@ -1362,6 +1373,11 @@ a:focus-visible,
 .about-author__info span { font-size: 0.68rem; color: var(--lp-muted); }
 @keyframes aboutFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-scrim { transition: none !important; }
+}
+
 /* ─── ANIMATIONS ─── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -1433,13 +1449,14 @@ a:focus-visible,
     left: 0;
     bottom: 0;
     width: min(232px, 86vw);
-    transform: translateX(-100%);
+    transform: translate3d(-100%, 0, 0);
     z-index: 10001;
     box-shadow: var(--lp-shadow-lg);
     pointer-events: auto;
     touch-action: manipulation;
+    backface-visibility: hidden;
   }
-  .sidebar.is-open { transform: translateX(0); }
+  .sidebar.is-open { transform: translate3d(0, 0, 0); }
 
   .sidebar-scrim {
     z-index: 10000;

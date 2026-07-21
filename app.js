@@ -547,14 +547,11 @@ function setSidebarOpen(open) {
   const toggles = [document.getElementById('menuToggle'), document.getElementById('topbarMenuToggle'), document.getElementById('navigationLauncher')].filter(Boolean);
   const mobile = MOBILE_SIDEBAR_MQ.matches;
 
-  if (open && mobile) {
-    syncSidebarMount();
-    document.body.appendChild(scrim);
-    document.body.appendChild(sidebar);
-  }
+  if (mobile) syncSidebarMount();
 
   sidebar.classList.toggle('is-open', open);
-  scrim.hidden = !open;
+  scrim.classList.toggle('is-visible', open);
+  scrim.setAttribute('aria-hidden', String(!open));
   document.body.classList.toggle('sidebar-open', open);
 
   toggles.forEach((toggle) => {
