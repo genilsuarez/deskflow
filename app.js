@@ -1,4 +1,5 @@
 import { APPS, ProgressReader, STATUS } from './progress-reader.js';
+import { buildContentTitleIndex, resolveContentTitle } from './content-title.js';
 
 const APP_CONFIG = Object.freeze({
   fluentflow: {
@@ -37,6 +38,7 @@ const STATUS_COPY = Object.freeze({
 
 const reader = new ProgressReader();
 let appData = [];
+let contentTitleIndex = new Map();
 let activityFilter = 'all';
 
 function element(tag, className, text) {
@@ -257,7 +259,10 @@ function allValidEvents() {
     .sort((first, second) => new Date(second.occurredAt) - new Date(first.occurredAt));
 }
 
-function formatDate(isoDate) {
+function formatDate(isoDate, { compact = false } = {}) {
+  if (compact) {
+    return new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(isoDate));
+  }
   return new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(isoDate));
 }
 
@@ -265,24 +270,31 @@ function readableActivity(activity) {
   return activity.replaceAll('_', ' ').replaceAll('-', ' ');
 }
 
-function createActivityItem(event) {
+function createActivityItem(event, { compact = false } = {}) {
   const config = APP_CONFIG[event.app];
-  const item = element('article', 'activity-item');
-  const marker = element('span', `activity-item__marker activity-item__marker--${config.color}`);
-  marker.textContent = config.name.charAt(0);
-  marker.setAttribute('aria-hidden', 'true');
+  const item = element('article', compact ? 'activity-item activity-item--compact' : 'activity-item');
 
   const body = element('div', 'activity-item__body');
-  const appName = element('span', 'activity-item__app', config.name);
-  const title = element('h3', '', event.title);
+  const title = element('h3', '', resolveContentTitle(event, contentTitleIndex));
   const detailParts = [readableActivity(event.activity)];
   if (event.scorePct !== null) detailParts.push(`${rounded(event.scorePct)}%`);
   if (event.passed !== null) detailParts.push(event.passed ? 'superado' : 'por repetir');
-  body.append(appName, title, element('p', '', detailParts.join(' · ')));
+  const meta = element('p', '', detailParts.join(' · '));
 
-  const time = element('time', 'activity-item__time', formatDate(event.occurredAt));
+  if (compact) {
+    body.append(title, meta);
+  } else {
+    const marker = element('span', `activity-item__marker activity-item__marker--${config.color}`);
+    marker.textContent = config.name.charAt(0);
+    marker.setAttribute('aria-hidden', 'true');
+    const appName = element('span', 'activity-item__app', config.name);
+    body.append(appName, title, meta);
+    item.append(marker);
+  }
+
+  const time = element('time', 'activity-item__time', formatDate(event.occurredAt, { compact }));
   time.dateTime = event.occurredAt;
-  item.append(marker, body, time);
+  item.append(body, time);
   return item;
 }
 
@@ -294,14 +306,14 @@ function createEmptyState(title, description) {
   return state;
 }
 
-function renderActivityList(container, events, limit) {
+function renderActivityList(container, events, limit, { compact = false } = {}) {
   container.replaceChildren();
   const visible = typeof limit === 'number' ? events.slice(0, limit) : events;
   if (visible.length === 0) {
     container.append(createEmptyState('Todavía no hay actividad reciente', 'LearnFlow no inventa ejemplos: aparecerán aquí los eventos válidos publicados por tus módulos.'));
     return;
   }
-  visible.forEach((event) => container.append(createActivityItem(event)));
+  visible.forEach((event) => container.append(createActivityItem(event, { compact })));
 }
 
 function renderActivity() {
@@ -325,7 +337,7 @@ function renderContinue() {
 
     if (hasValidProgress(result) && result.progress.data.summary.lastContent) {
       const last = result.progress.data.summary.lastContent;
-      card.append(element('p', 'continue-card__label', 'Último contenido válido'), element('h3', '', last.title));
+      card.append(element('p', 'continue-card__label', 'Último contenido válido'), element('h3', '', resolveContentTitle(last, contentTitleIndex)));
       const details = [];
       if (last.activity) details.push(readableActivity(last.activity));
       if (last.progressPct !== null) details.push(`${rounded(last.progressPct)}% completado`);
@@ -354,12 +366,16 @@ function renderModuleDetail(app) {
     : element('p', '', config.description);
   actionBar.append(desc, createAppLink(app, `Abrir ${config.name}`, true));
 
-  const statsSection = element('section', 'section-block');
-  const statsHeading = element('div', 'section-heading');
-  const statsTitle = element('h2', '');
+  const statsSection = element('section', 'section-block detail-metrics');
+  const statsCard = element('div', `detail-metrics__card detail-metrics__card--${config.color}`);
+  const statsHeader = element('header', 'detail-metrics__header');
+  const statsTitle = element('h2', 'detail-metrics__title');
   statsTitle.append(element('span', 'section-kicker', 'En números'), document.createTextNode(' Métricas'));
-  statsHeading.append(statsTitle);
-  statsSection.append(statsHeading);
+  statsHeader.append(statsTitle);
+  statsCard.append(statsHeader);
+
+  const progressValue = hasValidProgress(result) ? rounded(result.progress.data.summary.progressPct) : 0;
+  statsCard.append(createProgressBar(progressValue, `Progreso de ${config.name}`));
 
   const stats = element('div', 'detail-stats');
   const progressStat = element('article', 'detail-stat');
@@ -367,9 +383,10 @@ function renderModuleDetail(app) {
   const contentStat = element('article', 'detail-stat');
   contentStat.append(element('span', '', 'Completado'), element('strong', '', hasValidProgress(result) ? `${result.progress.data.summary.completedContent} / ${result.progress.data.summary.totalContent}` : '—'), element('p', '', config.unit));
   const attemptedStat = element('article', 'detail-stat');
-  attemptedStat.append(element('span', '', 'Iniciado'), element('strong', '', hasValidProgress(result) ? String(result.progress.data.summary.attemptedContent) : '—'), element('p', '', `de ${hasValidProgress(result) ? result.progress.data.summary.totalContent : '—'} ${config.unit}`));
+  attemptedStat.append(element('span', '', 'Iniciado'), element('strong', '', hasValidProgress(result) ? String(result.progress.data.summary.attemptedContent) : '—'), element('p', '', hasValidProgress(result) ? `de ${result.progress.data.summary.totalContent}` : '—'));
   stats.append(progressStat, contentStat, attemptedStat);
-  statsSection.append(stats);
+  statsCard.append(stats);
+  statsSection.append(statsCard);
 
   const insight = element('section', 'detail-insight');
   insight.append(element('p', 'section-kicker', app === 'fluentflow' ? 'Lectura CEFR' : app === 'hubflow' ? 'Práctica temática' : 'Progreso por canción'));
@@ -386,16 +403,16 @@ function renderModuleDetail(app) {
     insight.append(element('h2', '', 'Canciones como unidad'), element('p', '', activityText));
   }
 
-  const activity = element('section', 'section-block');
-  activity.append(element('div', 'section-heading'));
-  const heading = activity.firstElementChild;
-  const headingText = element('div');
-  headingText.append(element('span', 'section-kicker', 'Desde este módulo'), element('h2', '', 'Actividad reciente'));
-  heading.append(headingText);
-  const list = element('div', 'activity-list');
+  const activity = element('section', 'section-block detail-activity');
+  const activityCard = element('div', `detail-activity__card detail-activity__card--${config.color}`);
+  const activityHeader = element('header', 'detail-activity__header');
+  const activityTitle = element('h2', 'detail-activity__title', 'Actividad reciente');
+  activityHeader.append(activityTitle);
+  const list = element('div', 'activity-list activity-list--compact');
   const events = result.activity.status === STATUS.READY ? [...result.activity.data.events].sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt)) : [];
-  renderActivityList(list, events, 3);
-  activity.append(list);
+  renderActivityList(list, events, 3, { compact: true });
+  activityCard.append(activityHeader, list);
+  activity.append(activityCard);
 
   container.append(actionBar, insight, statsSection, activity);
 }
@@ -433,7 +450,7 @@ function renderPrimaryContinue() {
 
   if (candidates.length && candidates[0].progress.data.summary.lastContent) {
     const last = candidates[0].progress.data.summary.lastContent;
-    bannerTitle.textContent = last.title || `Continuar en ${config.name}`;
+    bannerTitle.textContent = resolveContentTitle(last, contentTitleIndex) || `Continuar en ${config.name}`;
     bannerDesc.textContent = `${config.name} · ${readableActivity(last.activity || '')}`;
     link.textContent = '';
     link.append(document.createTextNode(`Continuar `));
@@ -477,6 +494,7 @@ function prepareAppLinks() {
 
 function renderAll() {
   appData = reader.readAll();
+  contentTitleIndex = buildContentTitleIndex(appData);
   renderGlobalProgress();
   renderHeaderStats();
   renderCefr();

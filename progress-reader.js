@@ -152,6 +152,15 @@ function validateProgress(document, app) {
     return result(STATUS.INVALID, null, 'content no coincide con el resumen o contiene campos inválidos.');
   }
 
+  const normalizedContent = Object.freeze(Object.fromEntries(
+    contentEntries.map(([contentId, item]) => [
+      contentId,
+      Object.freeze({
+        title: isNonEmptyString(item.title) ? item.title : null,
+      }),
+    ]),
+  ));
+
   const data = Object.freeze({
     app,
     updatedAt: document.updatedAt,
@@ -165,6 +174,7 @@ function validateProgress(document, app) {
       totalActivities: isInteger(summary.totalActivities) ? summary.totalActivities : null,
       lastContent: normalizeLastContent(summary)
     }),
+    content: normalizedContent,
     cefr: normalizeCefr(document, app)
   });
 
