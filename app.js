@@ -486,7 +486,9 @@ function prepareAppLinks() {
   document.querySelectorAll('[data-app-link]').forEach((link) => {
     const app = link.dataset.appLink;
     if (!APP_CONFIG[app]) return;
-    link.href = isUnifiedLocal ? `/${app}/` : isLocal ? `http://${host}:${localPorts[app]}/` : APP_CONFIG[app].url;
+    let href = isUnifiedLocal ? `/${app}/` : isLocal ? `http://${host}:${localPorts[app]}/` : APP_CONFIG[app].url;
+    if (window.LPTheme) href = window.LPTheme.appendThemeToHref(href);
+    link.href = href;
     if (isLocal) link.removeAttribute('rel');
     else link.rel = 'noopener';
   });
@@ -768,17 +770,20 @@ function setupTheme() {
       if (label) label.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
       toggle.setAttribute('aria-label', isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro');
     });
-    document.querySelector('meta[name="theme-color"]').content = isDark ? '#1a1714' : '#faf7f2';
   };
 
   toggles.forEach((toggle) => toggle.addEventListener('click', () => {
-    document.documentElement.classList.add('theme-transitioning');
-    const newTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    if (newTheme === 'dark') document.documentElement.dataset.theme = 'dark';
-    else document.documentElement.removeAttribute('data-theme');
-    localStorage.setItem('lp-theme', newTheme);
+    if (window.LPTheme) {
+      window.LPTheme.toggleTheme();
+    } else {
+      document.documentElement.classList.add('theme-transitioning');
+      const newTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      if (newTheme === 'dark') document.documentElement.dataset.theme = 'dark';
+      else document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('lp-theme', newTheme);
+      setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 350);
+    }
     update();
-    window.setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 350);
   }));
   update();
 }
