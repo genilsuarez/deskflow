@@ -15,6 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <script src="lp-theme.js"></script>
+  <script src="lp-nav-icons.js"></script>
   <script>var n=localStorage.getItem('lp-navigation-mode');document.documentElement.dataset.navigationMode=n==='floating'?'floating':'sidebar'</script>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -24,11 +25,11 @@
 
   <div class="app-shell">
     <header class="mobile-header">
-      <button class="lp-icon-btn" id="menuToggle" type="button" aria-label="Abrir navegación" aria-controls="sidebar" aria-expanded="false">☰</button>
+      <button class="lp-icon-btn" id="menuToggle" type="button" aria-label="Abrir navegación" aria-controls="sidebar" aria-expanded="false"><span data-lp-icon="menu" aria-hidden="true"></span></button>
       <a class="mobile-header__brand" href="#resumen" data-view-link="resumen" aria-label="Ir al resumen de LearnFlow">Learn<em>Flow</em></a>
     </header>
 
-    <button class="lp-icon-btn navigation-launcher" id="navigationLauncher" type="button" aria-label="Abrir navegación flotante" aria-controls="sidebar" aria-expanded="false">☰</button>
+    <button class="lp-icon-btn navigation-launcher" id="navigationLauncher" type="button" aria-label="Abrir navegación flotante" aria-controls="sidebar" aria-expanded="false"><span data-lp-icon="menu" aria-hidden="true"></span></button>
 
     <div class="sidebar-scrim" id="sidebarScrim" hidden></div>
     <aside class="sidebar" id="sidebar" aria-label="Navegación principal">
@@ -41,23 +42,23 @@
       </div>
 
       <nav class="sidebar__nav">
-        <button class="nav-item is-active" type="button" data-view="resumen" aria-current="page"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Inicio</span></button>
+        <button class="nav-item is-active" type="button" data-view="resumen" aria-current="page"><span class="nav-icon" data-lp-icon="home" aria-hidden="true"></span><span class="nav-label">Inicio</span></button>
         <button class="nav-item" type="button" data-view="fluentflow"><span class="nav-dot nav-dot--purple" aria-hidden="true"></span><span class="nav-label">FluentFlow</span></button>
         <button class="nav-item" type="button" data-view="hubflow"><span class="nav-dot nav-dot--amber" aria-hidden="true"></span><span class="nav-label">HubFlow</span></button>
         <button class="nav-item" type="button" data-view="lyricflow"><span class="nav-dot nav-dot--teal" aria-hidden="true"></span><span class="nav-label">LyricFlow</span></button>
-        <button class="nav-item" type="button" data-view="actividad"><span class="nav-icon" aria-hidden="true">◷</span><span class="nav-label">Actividad</span></button>
+        <button class="nav-item" type="button" data-view="actividad"><span class="nav-icon" data-lp-icon="activity" aria-hidden="true"></span><span class="nav-label">Actividad</span></button>
       </nav>
 
       <div class="sidebar__footer">
-        <button class="nav-item" type="button" id="aboutTrigger"><span class="nav-icon" aria-hidden="true">ⓘ</span><span class="nav-label">About LearnFlow</span></button>
-        <button class="nav-item theme-toggle" type="button" aria-label="Cambiar a tema oscuro"><span class="nav-icon" aria-hidden="true">🌙</span><span class="nav-label theme-toggle__label">Modo oscuro</span></button>
-        <button class="nav-item nav-item--login" type="button" id="loginTrigger" aria-label="Iniciar sesión"><span class="nav-icon" aria-hidden="true">👤</span><span class="nav-label">Iniciar Sesión</span></button>
-        <a class="nav-item nav-item--disabled" href="#" aria-disabled="true" tabindex="-1"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Portal</span></a>
+        <button class="nav-item" type="button" id="aboutTrigger"><span class="nav-icon" data-lp-icon="info" aria-hidden="true"></span><span class="nav-label">About LearnFlow</span></button>
+        <button class="nav-item theme-toggle" type="button" aria-label="Cambiar a tema oscuro"><span class="nav-icon" data-lp-icon="moon" aria-hidden="true"></span><span class="nav-label theme-toggle__label">Modo oscuro</span></button>
+        <button class="nav-item nav-item--login" type="button" id="loginTrigger" aria-label="Iniciar sesión"><span class="nav-icon" data-lp-icon="user" aria-hidden="true"></span><span class="nav-label">Iniciar Sesión</span></button>
+        <a class="nav-item nav-item--disabled" href="#" aria-disabled="true" tabindex="-1"><span class="nav-icon" data-lp-icon="home" aria-hidden="true"></span><span class="nav-label">Portal</span></a>
       </div>
     </aside>
 
     <div class="topbar" id="deskTopbar">
-      <button class="lp-icon-btn topbar-menu" id="topbarMenuToggle" type="button" aria-label="Abrir navegación" aria-controls="sidebar" aria-expanded="false">☰</button>
+      <button class="lp-icon-btn topbar-menu" id="topbarMenuToggle" type="button" aria-label="Abrir navegación" aria-controls="sidebar" aria-expanded="false"><span data-lp-icon="menu" aria-hidden="true"></span></button>
       <div class="topbar-greeting">
         <p class="eyebrow topbar-eyebrow" id="topbarEyebrow" hidden></p>
         <h1 class="topbar-title" id="summaryTitle">Tu aprendizaje, en contexto.</h1>

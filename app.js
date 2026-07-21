@@ -764,9 +764,9 @@ function setupTheme() {
   const update = () => {
     const isDark = document.documentElement.dataset.theme === 'dark';
     toggles.forEach((toggle) => {
-      const icon = toggle.querySelector('span[aria-hidden]');
+      const icon = toggle.querySelector('.nav-icon');
       const label = toggle.querySelector('.theme-toggle__label');
-      if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+      if (icon && window.LpNavIcons) window.LpNavIcons.setTheme(icon, isDark);
       if (label) label.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
       toggle.setAttribute('aria-label', isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro');
     });
@@ -808,11 +808,11 @@ function updateLoginButton(user) {
   const label = btn.querySelector('.nav-label');
   const icon = btn.querySelector('.nav-icon');
   if (user) {
-    if (icon) icon.textContent = '👤';
+    if (icon && window.LpNavIcons) window.LpNavIcons.set(icon, 'user');
     if (label) label.textContent = user.name;
     btn.setAttribute('aria-label', user.name + ' — perfil');
   } else {
-    if (icon) icon.textContent = '👤';
+    if (icon && window.LpNavIcons) window.LpNavIcons.set(icon, 'user');
     if (label) label.textContent = 'Iniciar Sesión';
     btn.setAttribute('aria-label', 'Iniciar sesión');
   }
