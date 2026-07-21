@@ -1403,6 +1403,8 @@ a:focus-visible,
     display: flex;
     grid-row: 1;
     grid-column: 1;
+    position: relative;
+    z-index: 20;
   }
   .topbar,
   .topbar.topbar--compact {
@@ -1413,6 +1415,7 @@ a:focus-visible,
     min-height: 0;
     padding: 10px 16px;
     align-items: center;
+    z-index: 20;
   }
   .main {
     grid-row: 3;
@@ -1429,10 +1432,21 @@ a:focus-visible,
     bottom: 0;
     width: 232px;
     transform: translateX(-100%);
-    z-index: 500;
+    z-index: 9999;
     box-shadow: var(--lp-shadow-lg);
   }
   .sidebar.is-open { transform: translateX(0); }
+
+  .sidebar-scrim {
+    z-index: 9998;
+  }
+
+  /* iOS Chrome/Safari: header sticky + backdrop-filter paints above fixed
+     siblings unless explicitly lowered while the drawer is open */
+  body.sidebar-open .mobile-header,
+  body.sidebar-open .topbar {
+    z-index: 1;
+  }
 
   /* Resumen: sin topbar duplicado */
   .app-shell[data-view="resumen"] {

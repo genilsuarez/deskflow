@@ -518,6 +518,7 @@ function setSidebarOpen(open) {
   const toggles = [document.getElementById('menuToggle'), document.getElementById('topbarMenuToggle'), document.getElementById('navigationLauncher')].filter(Boolean);
   sidebar.classList.toggle('is-open', open);
   scrim.hidden = !open;
+  document.body.classList.toggle('sidebar-open', open);
   toggles.forEach((toggle) => {
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', open ? 'Cerrar navegación' : toggle.id === 'navigationLauncher' ? 'Abrir navegación flotante' : 'Abrir navegación');
@@ -526,6 +527,36 @@ function setSidebarOpen(open) {
 
 function closeSidebar() {
   setSidebarOpen(false);
+}
+
+const MOBILE_SIDEBAR_MQ = window.matchMedia('(max-width: 768px)');
+
+function syncSidebarMount() {
+  const shell = document.querySelector('.app-shell');
+  const sidebar = document.getElementById('sidebar');
+  const scrim = document.getElementById('sidebarScrim');
+  const launcher = document.getElementById('navigationLauncher');
+  if (!shell || !sidebar || !scrim) return;
+
+  const mobile = MOBILE_SIDEBAR_MQ.matches;
+  const target = mobile ? document.body : shell;
+
+  if (scrim.parentElement === target && sidebar.parentElement === target) return;
+
+  if (mobile) {
+    document.body.appendChild(scrim);
+    document.body.appendChild(sidebar);
+    return;
+  }
+
+  if (launcher) {
+    launcher.insertAdjacentElement('afterend', scrim);
+    scrim.insertAdjacentElement('afterend', sidebar);
+    return;
+  }
+
+  shell.insertBefore(scrim, shell.firstChild);
+  scrim.insertAdjacentElement('afterend', sidebar);
 }
 
 function setNavigationMode(mode, persist = false) {
@@ -753,6 +784,7 @@ function setupNavigation() {
   }
 
   window.addEventListener('resize', () => {
+    syncSidebarMount();
     const activePanel = document.querySelector('[data-view-panel].is-active');
     if (!activePanel) return;
     updateTopbar(activePanel.id.replace('view-', ''));
@@ -826,6 +858,8 @@ function setupPageContext() {
 setupPageContext();
 setupTheme();
 setupNavigationMode();
+syncSidebarMount();
+MOBILE_SIDEBAR_MQ.addEventListener('change', syncSidebarMount);
 setupNavigation();
 setupActivityFilters();
 renderAll();
