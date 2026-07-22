@@ -1054,8 +1054,28 @@ body {
   gap: 10px;
   margin-bottom: 5px;
 }
-.section-heading h2 { font-family: var(--lp-font-display); font-size: 0.82rem; font-weight: 500; display: inline-flex; align-items: baseline; gap: 6px; }
-.section-heading h2 .section-kicker { font-size: 0.58rem; font-family: var(--lp-font-mono); vertical-align: baseline; }
+.section-heading h2 {
+  font-family: var(--lp-font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.25;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+  color: var(--lp-ink);
+}
+.section-heading h2 .section-kicker {
+  font: inherit;
+  color: inherit;
+  text-transform: none;
+  letter-spacing: inherit;
+}
+.section-heading h2 .section-heading__sep {
+  margin: 0 0.35rem;
+  color: var(--lp-border-strong);
+  font: inherit;
+  font-weight: 500;
+}
 
 /* ─── ACTIVITY LIST ─── */
 .activity-list { display: flex; flex-direction: column; gap: 3px; }
