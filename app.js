@@ -1,5 +1,9 @@
 import { APPS, ProgressReader, STATUS } from './progress-reader.js';
 import { buildContentTitleIndex, resolveContentTitle } from './content-title.js';
+import * as lpSupabase from './lp-supabase.js';
+import { runFullSync } from './sync-engine.js';
+
+window.lpSupabase = lpSupabase;
 
 const APP_CONFIG = Object.freeze({
   fluentflow: {
@@ -1027,6 +1031,25 @@ function setupPageContext() {
   document.getElementById('currentDate').textContent = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' }).format(now);
 }
 
+async function setupSupabaseAuth() {
+  lpSupabase.onAuthStateChange((_event, session) => {
+    if (!session || !session.user) return;
+    lpSupabase.fetchProfile().then((profile) => {
+      lpLogin.setUserFromSupabase(session.user, profile);
+      runFullSync({ force: true }).then((result) => {
+        if (result.synced) renderAll();
+      });
+    });
+  });
+
+  const authed = await lpSupabase.isAuthenticated();
+  if (authed) {
+    runFullSync().then((result) => {
+      if (result.synced) renderAll();
+    });
+  }
+}
+
 setupPageContext();
 setupTheme();
 setupNavigationMode();
@@ -1035,6 +1058,7 @@ MOBILE_SIDEBAR_MQ.addEventListener('change', syncSidebarMount);
 setupNavigation();
 setupActivityFilters();
 renderAll();
+setupSupabaseAuth();
 
 if (new URLSearchParams(location.search).has('debug')) {
   document.getElementById('dataHealth').hidden = false;

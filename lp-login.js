@@ -32,7 +32,20 @@ var lpLogin = (function () {
   }
 
   function logout() {
+    if (window.lpSupabase && window.lpSupabase.signOut) {
+      window.lpSupabase.signOut();
+    }
     setUser(null);
+  }
+
+  function setUserFromSupabase(user, profile) {
+    var fallbackName = (user.email || '').split('@')[0];
+    setUser({
+      id: user.id,
+      name: (profile && profile.name) || fallbackName,
+      email: user.email,
+      isSupabaseUser: true
+    });
   }
 
   function onUpdate(fn) {
@@ -90,6 +103,20 @@ var lpLogin = (function () {
       '      <p class="lp-login__hint" hidden></p>',
       '      <p class="lp-login__note">' + (isEdit ? 'Se muestra en DeskFlow, FluentFlow, HubFlow y LyricFlow.' : 'Se sincroniza en todas las apps de LearnFlow.') + '</p>',
       '    </form>',
+      (user && user.isSupabaseUser)
+        ? '    <p class="lp-login__note lp-login__account">Progreso conectado a la nube como <strong>' + escapeAttr(user.email || '') + '</strong>.</p>'
+        : [
+          '    <div class="lp-login__divider"><span>o</span></div>',
+          '    <div class="lp-login__cloud">',
+          '      <button type="button" class="lp-btn lp-btn--ghost lp-login__google">Continuar con Google</button>',
+          '      <form class="lp-login__magic-form">',
+          '        <input class="lp-login__input lp-login__magic-input" type="email" inputmode="email" autocomplete="email" spellcheck="false" placeholder="tu@email.com">',
+          '        <button type="submit" class="lp-btn lp-btn--ghost lp-login__magic-submit">Enviar enlace mágico</button>',
+          '      </form>',
+          '      <p class="lp-login__magic-status" hidden></p>',
+          '      <p class="lp-login__note">Guarda tu progreso en la nube y accede desde cualquier dispositivo.</p>',
+          '    </div>'
+        ].join('\n'),
       '  </div>',
       '  <footer class="lp-login__footer">',
       '    <button type="submit" form="lp-login-form" class="lp-btn lp-btn--primary lp-login__submit">' + (isEdit ? 'Guardar cambios' : 'Continuar') + '</button>',
@@ -136,6 +163,38 @@ var lpLogin = (function () {
       logoutBtn.addEventListener('click', function () {
         logout();
         close();
+      });
+    }
+
+    var googleBtn = overlay.querySelector('.lp-login__google');
+    if (googleBtn) {
+      googleBtn.addEventListener('click', function () {
+        if (!(window.lpSupabase && window.lpSupabase.signInWithGoogle)) return;
+        googleBtn.disabled = true;
+        window.lpSupabase.signInWithGoogle().catch(function () {
+          googleBtn.disabled = false;
+        });
+      });
+    }
+
+    var magicForm = overlay.querySelector('.lp-login__magic-form');
+    if (magicForm) {
+      magicForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!(window.lpSupabase && window.lpSupabase.signInWithMagicLink)) return;
+        var magicInput = magicForm.querySelector('.lp-login__magic-input');
+        var status = overlay.querySelector('.lp-login__magic-status');
+        var email = magicInput.value.trim();
+        if (!email) return;
+        var submitBtn = magicForm.querySelector('.lp-login__magic-submit');
+        submitBtn.disabled = true;
+        window.lpSupabase.signInWithMagicLink(email).then(function (res) {
+          submitBtn.disabled = false;
+          status.hidden = false;
+          status.textContent = res.error
+            ? 'No se pudo enviar el enlace: ' + res.error.message
+            : 'Revisa tu correo — te enviamos un enlace para entrar.';
+        });
       });
     }
 
@@ -337,6 +396,46 @@ html.dark .lp-login {
   color: var(--lp-muted, #9c8e7c);
 }
 
+.lp-login__divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 14px;
+  color: var(--lp-muted, #9c8e7c);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.lp-login__divider::before,
+.lp-login__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--lp-border, #e8e0d4);
+}
+
+.lp-login__cloud { display: flex; flex-direction: column; gap: 10px; }
+
+.lp-login__google { width: 100%; }
+
+.lp-login__magic-form {
+  display: flex;
+  gap: 8px;
+}
+.lp-login__magic-form .lp-login__input { flex: 1; }
+.lp-login__magic-submit { flex: 0 0 auto; white-space: nowrap; }
+
+.lp-login__magic-status {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--lp-muted, #9c8e7c);
+}
+
+@media (max-width: 420px) {
+  .lp-login__magic-form { flex-direction: column; }
+}
+
 .lp-login__footer {
   display: flex;
   flex-direction: column;
@@ -453,5 +552,13 @@ html.dark .lp-login .lp-btn--ghost {
     }
   });
 
-  return { getUser: getUser, setUser: setUser, logout: logout, open: open, close: close, onUpdate: onUpdate };
+  return {
+    getUser: getUser,
+    setUser: setUser,
+    setUserFromSupabase: setUserFromSupabase,
+    logout: logout,
+    open: open,
+    close: close,
+    onUpdate: onUpdate
+  };
 })();
