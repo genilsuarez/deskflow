@@ -6,7 +6,7 @@
   <script src="lp-input-zoom.js"></script>
   <title>LearnFlow · Tu espacio de aprendizaje</title>
   <meta name="description" content="LearnFlow reúne tu progreso en FluentFlow, HubFlow y LyricFlow en un solo espacio de aprendizaje.">
-  <meta name="theme-color" content="#faf7f2">
+  <meta name="theme-color" content="#ffffff">
   <meta name="color-scheme" content="light">
   <meta property="og:title" content="LearnFlow">
   <meta property="og:description" content="Una plataforma, tres formas de aprender idiomas.">
@@ -82,17 +82,17 @@
     <main class="main" id="mainContent" tabindex="-1">
       <section class="view is-active" id="view-resumen" data-view-panel="resumen" aria-labelledby="summaryTitle">
 
-        <div class="hero-row">
-        <section class="continue-banner" aria-labelledby="continueTitle">
-          <div class="continue-banner__copy">
-            <span class="section-kicker">Siguiente paso</span>
-            <h2 id="continueTitle">Retoma donde lo dejaste</h2>
-            <p id="continueDescription">Continuar aprendiendo</p>
-          </div>
-          <a class="lp-btn lp-btn--primary" id="primaryContinueLink" href="https://genilsuarez.github.io/fluentflow/" rel="noopener">Continuar <span aria-hidden="true">→</span></a>
-        </section>
+        <div class="resumen-hero">
+          <section class="continue-banner" aria-labelledby="continueTitle">
+            <div class="continue-banner__copy">
+              <span class="section-kicker">Siguiente paso</span>
+              <h2 id="continueTitle">Retoma donde lo dejaste</h2>
+              <p id="continueDescription">Continuar aprendiendo</p>
+            </div>
+            <a class="lp-btn lp-btn--primary" id="primaryContinueLink" href="https://genilsuarez.github.io/fluentflow/" rel="noopener">Continuar <span aria-hidden="true">→</span></a>
+          </section>
 
-        <section class="context-card context-card--progress" aria-labelledby="globalTitle">
+          <section class="context-card context-card--progress" aria-labelledby="globalTitle">
             <div class="context-card__visual" id="globalRing" style="--progress: 0" role="img" aria-label="Progreso global pendiente">
               <div><strong id="globalValue">—</strong><span id="globalUnit">prom.</span></div>
             </div>
@@ -102,6 +102,14 @@
               <span class="status-pill status-pill--warning" id="globalStatus">Incompleto</span>
             </div>
           </section>
+
+          <section class="context-card context-card--cefr" aria-labelledby="cefrHeading">
+            <div class="context-card__copy">
+              <span class="section-kicker">Lectura CEFR</span>
+              <h2 id="cefrHeading">Ruta <span id="cefrLevel">—</span></h2>
+              <p id="cefrDescription">Disponible cuando FluentFlow publique información válida de su ruta.</p>
+            </div>
+          </section>
         </div>
 
         <section class="section-block" aria-labelledby="modulesTitle">
@@ -109,14 +117,14 @@
           <div class="module-grid" id="summaryModules"></div>
         </section>
 
-
-
-        <section class="section-block" aria-labelledby="recentTitle">
+        <section class="section-block resumen-recent" aria-labelledby="recentActivityTitle">
           <div class="section-heading">
-            <h2 id="recentTitle"><span class="section-kicker">Últimos movimientos</span> Actividad</h2>
-            <button class="text-action" type="button" data-view="actividad">Ver todo <span aria-hidden="true">→</span></button>
+            <h2 id="recentActivityTitle"><span class="section-kicker">Historial</span> Actividad reciente</h2>
+            <button class="text-action" type="button" data-view="actividad">Ver todo</button>
           </div>
-          <div class="activity-list" id="recentActivity"></div>
+          <div class="resumen-recent__card">
+            <div class="activity-list" id="recentActivity"></div>
+          </div>
         </section>
 
         <section class="data-health" id="dataHealth" aria-labelledby="dataHealthTitle" hidden>
@@ -142,13 +150,17 @@
       </section>
 
       <section class="view" id="view-actividad" data-view-panel="actividad" aria-labelledby="activityTitle" hidden>
-        <div class="filter-row" role="group" aria-label="Filtrar actividad">
-          <button class="lp-pill active" type="button" data-activity-filter="all" aria-pressed="true">Todo</button>
-          <button class="lp-pill" type="button" data-activity-filter="fluentflow" aria-pressed="false">FluentFlow</button>
-          <button class="lp-pill" type="button" data-activity-filter="hubflow" aria-pressed="false">HubFlow</button>
-          <button class="lp-pill" type="button" data-activity-filter="lyricflow" aria-pressed="false">LyricFlow</button>
+        <div class="activity-feed-card">
+          <div class="activity-feed-card__toolbar">
+            <div class="filter-row" role="group" aria-label="Filtrar actividad">
+              <button class="lp-pill active" type="button" data-activity-filter="all" aria-pressed="true">Todo</button>
+              <button class="lp-pill" type="button" data-activity-filter="fluentflow" aria-pressed="false">FluentFlow</button>
+              <button class="lp-pill" type="button" data-activity-filter="hubflow" aria-pressed="false">HubFlow</button>
+              <button class="lp-pill" type="button" data-activity-filter="lyricflow" aria-pressed="false">LyricFlow</button>
+            </div>
+          </div>
+          <div class="activity-list activity-list--full" id="allActivity"></div>
         </div>
-        <div class="activity-list activity-list--full" id="allActivity"></div>
       </section>
 
     </main>

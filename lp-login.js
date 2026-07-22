@@ -70,40 +70,42 @@ var lpLogin = (function () {
 
     var overlay = document.createElement('div');
     overlay.className = 'lp-login';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-label', isEdit ? 'Perfil de usuario' : 'Iniciar sesión');
+    overlay.setAttribute('role', 'presentation');
 
     overlay.innerHTML = [
-      '<div class="lp-login__card">',
-      '  <button type="button" class="lp-icon-btn lp-login__close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>',
-      '  <div class="lp-login__hero">',
-      '    <div class="lp-login__avatar" aria-hidden="true"><span class="lp-login__avatar-letter">' + initial + '</span></div>',
-      '    <p class="lp-login__kicker">' + (isEdit ? 'LearnFlow Platform' : 'Primera vez aquí') + '</p>',
-      '    <h2 class="lp-login__title">' + (isEdit ? 'Tu perfil' : 'Bienvenido') + '</h2>',
+      '<section class="lp-login__card" role="dialog" aria-modal="true" aria-labelledby="lp-login-title">',
+      '  <header class="lp-login__header">',
+      '    <div class="lp-login__identity" aria-hidden="true"><span class="lp-login__avatar-letter">' + initial + '</span></div>',
+      '    <div class="lp-login__header-text">',
+      '      <p class="lp-login__eyebrow">' + (isEdit ? 'LearnFlow · Plataforma' : 'Primera vez aquí') + '</p>',
+      '      <h2 class="lp-login__title" id="lp-login-title">' + (isEdit ? 'Tu perfil' : 'Bienvenido') + '</h2>',
+      '    </div>',
+      '    <button type="button" class="lp-login__close" aria-label="Cerrar"><span aria-hidden="true">✕</span></button>',
+      '  </header>',
+      '  <div class="lp-login__body">',
       '    <p class="lp-login__lede">' + (isEdit ? 'Actualiza cómo te verán las apps.' : 'Elige un nombre para personalizar tu experiencia.') + '</p>',
-      '  </div>',
-      '  <form class="lp-login__form">',
-      '    <div class="lp-login__body">',
+      '    <form class="lp-login__form">',
       '      <label class="lp-login__label" for="lp-login-name">Nombre</label>',
       '      <input class="lp-login__input" id="lp-login-name" type="text" autocomplete="name" spellcheck="false" placeholder="¿Cómo te llamas?" value="' + escapeAttr(user ? user.name : '') + '">',
       '      <p class="lp-login__hint" hidden></p>',
       '      <p class="lp-login__note">' + (isEdit ? 'Se muestra en DeskFlow, FluentFlow, HubFlow y LyricFlow.' : 'Se sincroniza en todas las apps de LearnFlow.') + '</p>',
-      '    </div>',
-      '    <footer class="lp-login__footer">',
-      '      <button type="submit" class="lp-btn lp-btn--primary lp-login__submit">' + (isEdit ? 'Guardar cambios' : 'Continuar') + '</button>',
-      isEdit ? '      <button type="button" class="lp-btn lp-btn--ghost lp-login__logout">Cerrar sesión</button>' : '',
-      '    </footer>',
-      '  </form>',
-      '</div>'
+      '    </form>',
+      '  </div>',
+      '  <footer class="lp-login__footer">',
+      '    <button type="submit" form="lp-login-form" class="lp-btn lp-btn--primary lp-login__submit">' + (isEdit ? 'Guardar cambios' : 'Continuar') + '</button>',
+      isEdit ? '    <button type="button" class="lp-btn lp-btn--ghost lp-login__logout">Cerrar sesión</button>' : '',
+      '  </footer>',
+      '</section>'
     ].join('\n');
+
+    var form = overlay.querySelector('.lp-login__form');
+    form.id = 'lp-login-form';
 
     overlay.querySelector('.lp-login__close').addEventListener('click', close);
     overlay.addEventListener('mousedown', function (e) {
       if (e.target === overlay) close();
     });
 
-    var form = overlay.querySelector('.lp-login__form');
     var input = overlay.querySelector('.lp-login__input');
     var hint = overlay.querySelector('.lp-login__hint');
     var avatarLetter = overlay.querySelector('.lp-login__avatar-letter');
@@ -151,107 +153,146 @@ var lpLogin = (function () {
 
   function injectStyles() {
     var css = `
-/* LP Login — profile modal (Learn Platform design system) */
+/* LP Login — profile modal (Learn Platform design system v2) */
 .lp-login {
-  position: fixed; inset: 0; z-index: 9999;
-  background: color-mix(in srgb, var(--lp-ink, #2c2418) 38%, transparent);
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  animation: lp-login-in .24s ease-out;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: color-mix(in srgb, var(--lp-ink, #2c2418) 45%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: lp-login-in 0.2s ease-out both;
   pointer-events: auto;
 }
-.lp-login--closing { animation: lp-login-out .18s ease-in forwards; }
+.lp-login--closing { animation: lp-login-out 0.18s ease-in forwards; }
+
+[data-theme="dark"] .lp-login,
+html.dark .lp-login {
+  background: color-mix(in srgb, #14171c 55%, transparent);
+}
 
 .lp-login__card {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(calc(100vw - 2rem), 380px);
-  max-height: min(
-    88dvh,
-    calc(100dvh - 2rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
-  );
-  background: var(--lp-surface, #fff);
-  border: 1.5px solid var(--lp-border, #e8e0d4);
-  border-radius: var(--lp-radius-xl, 20px);
-  box-shadow: var(--lp-shadow-lg, 0 8px 28px rgba(44, 36, 24, 0.1), 0 2px 6px rgba(44, 36, 24, 0.05));
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  animation: lp-login-card-in .32s cubic-bezier(0.22, 0.9, 0.36, 1);
+  position: relative;
+  width: min(100%, 420px);
+  max-height: min(680px, calc(100svh - 40px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--lp-border, #e8e0d4);
+  border-radius: var(--lp-radius-lg, 16px);
+  background: var(--lp-bg-paper, var(--lp-surface, #fff));
+  box-shadow:
+    0 24px 48px color-mix(in srgb, var(--lp-ink, #2c2418) 18%, transparent),
+    0 4px 12px color-mix(in srgb, var(--lp-ink, #2c2418) 8%, transparent);
+  color: var(--lp-ink-soft, #5e5041);
+  animation: lp-login-card-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .lp-login--closing .lp-login__card {
-  animation: lp-login-card-out .18s ease-in forwards;
+  animation: lp-login-card-out 0.18s ease-in forwards;
 }
 
-.lp-login__close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 2;
-  font-size: 1.15rem;
-  line-height: 1;
+.lp-login__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--lp-border, #e8e0d4);
+  flex-shrink: 0;
 }
 
-.lp-login__hero {
-  padding: 1.75rem 1.5rem 0.25rem;
-  text-align: center;
+.lp-login__header-text {
+  flex: 1;
+  min-width: 0;
 }
 
-.lp-login__avatar {
-  width: 64px; height: 64px;
-  margin: 0 auto 0.875rem;
+.lp-login__identity {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
-  display: grid; place-items: center;
-  background: var(--lp-accent-soft, #e8f0fe);
-  border: 2px solid color-mix(in srgb, var(--lp-accent, #2563eb) 22%, transparent);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--lp-accent, #2563eb) 14%, transparent);
+  background: var(--lp-accent, #2563eb);
+  color: var(--lp-ink-inverse, #fff);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--lp-accent, #2563eb) 22%, transparent);
 }
 
 .lp-login__avatar-letter {
-  font-family: var(--lp-font-display, Georgia, serif);
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--lp-accent, #2563eb);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
   text-transform: uppercase;
   line-height: 1;
 }
 
-.lp-login__kicker {
-  margin: 0 0 0.25rem;
-  font-family: var(--lp-font-mono, monospace);
-  font-size: 0.58rem;
+.lp-login__eyebrow {
+  margin: 0 0 2px;
+  color: var(--lp-muted, #9c8e7c);
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--lp-accent, #2563eb);
 }
 
 .lp-login__title {
   margin: 0;
   font-family: var(--lp-font-display, Georgia, serif);
-  font-size: 1.35rem;
+  font-size: 18px;
   font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  line-height: 1.1;
   color: var(--lp-ink, #2c2418);
 }
 
-.lp-login__lede {
-  margin: 0.375rem 0 0;
-  font-family: var(--lp-font-body, system-ui, sans-serif);
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: var(--lp-ink-soft, #5e5041);
+.lp-login__close {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  margin: -4px -6px -4px 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--lp-radius-full, 999px);
+  background: transparent;
+  color: var(--lp-muted, #9c8e7c);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.lp-login__close:hover {
+  background: color-mix(in srgb, var(--lp-ink, #2c2418) 6%, transparent);
+  color: var(--lp-ink, #2c2418);
+}
+.lp-login__close:active { transform: scale(0.97); }
+.lp-login__close:focus-visible {
+  outline: 2px solid var(--lp-accent, #2563eb);
+  outline-offset: 2px;
 }
 
-.lp-login__form { display: flex; flex-direction: column; }
-.lp-login__body { padding: 1rem 1.5rem 0.25rem; }
+.lp-login__body {
+  padding: 12px 16px 14px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.lp-login__lede {
+  margin: 0 0 14px;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--lp-muted, #9c8e7c);
+}
+
+.lp-login__form { display: block; }
 
 .lp-login__label {
   display: block;
-  margin-bottom: 0.375rem;
-  font-family: var(--lp-font-body, system-ui, sans-serif);
+  margin-bottom: 6px;
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -261,8 +302,9 @@ var lpLogin = (function () {
 
 .lp-login__input {
   width: 100%;
-  padding: 0.75rem 0.875rem;
-  border: 1.5px solid var(--lp-border, #e8e0d4);
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--lp-border, #e8e0d4);
   border-radius: var(--lp-radius-md, 10px);
   background: var(--lp-surface-sunken, #f0ede7);
   color: var(--lp-ink, #2c2418);
@@ -283,14 +325,14 @@ var lpLogin = (function () {
 }
 
 .lp-login__hint {
-  margin: 0.375rem 0 0;
+  margin: 6px 0 0;
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--lp-error, #c0392b);
 }
 .lp-login__note {
-  margin: 0.75rem 0 0;
-  font-size: 0.72rem;
+  margin: 10px 0 0;
+  font-size: 0.68rem;
   line-height: 1.45;
   color: var(--lp-muted, #9c8e7c);
 }
@@ -298,8 +340,10 @@ var lpLogin = (function () {
 .lp-login__footer {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem 1.5rem 1.5rem;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--lp-border, #e8e0d4);
+  flex-shrink: 0;
 }
 
 .lp-login__submit,
@@ -339,46 +383,17 @@ var lpLogin = (function () {
   border: 1.5px solid var(--lp-border, #e8e0d4);
   box-shadow: none;
 }
-.lp-login .lp-icon-btn {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  border: 1.5px solid var(--lp-navbtn-border, var(--lp-border, #e8e0d4));
-  background: var(--lp-navbtn-bg, var(--lp-surface, #fff));
-  color: var(--lp-navbtn-icon-color, var(--lp-ink-soft, #5e5041));
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--lp-navbtn-shadow, var(--lp-shadow-sm));
-  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-}
-.lp-login .lp-icon-btn:hover {
-  border-color: var(--lp-navbtn-accent, var(--lp-accent, #2563eb));
-  transform: scale(1.06);
-  box-shadow: var(--lp-navbtn-shadow-hover, var(--lp-shadow-hover));
-}
-.lp-login .lp-btn:focus-visible,
-.lp-login .lp-icon-btn:focus-visible {
+.lp-login .lp-btn:focus-visible {
   outline: 2px solid var(--lp-accent, #2563eb);
   outline-offset: 2px;
 }
 
 /* Dark mode */
-[data-theme="dark"] .lp-login,
-html.dark .lp-login {
-  background: color-mix(in srgb, #14171c 72%, transparent);
-}
 [data-theme="dark"] .lp-login__card,
 html.dark .lp-login__card {
-  background: var(--lp-surface, #252930);
+  background: var(--lp-bg-paper, var(--lp-surface, #252930));
   border-color: var(--lp-border, #353b45);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2);
 }
-[data-theme="dark"] .lp-login__avatar,
-html.dark .lp-login__avatar {
-  background: var(--lp-accent-soft, #1a2744);
-  border-color: color-mix(in srgb, var(--lp-accent, #2563eb) 35%, transparent);
-}
-[data-theme="dark"] .lp-login__avatar-letter,
-html.dark .lp-login__avatar-letter { color: #6b9fe8; }
 [data-theme="dark"] .lp-login__input,
 html.dark .lp-login__input {
   background: var(--lp-surface-sunken, #14171c);
@@ -398,33 +413,25 @@ html.dark .lp-login .lp-btn--ghost {
   color: var(--lp-ink-soft, #a8b0bc);
 }
 
-@media (max-width: 640px) {
-  .lp-login__card {
-    width: min(calc(100vw - 1.5rem), 380px);
-    max-height: min(
-      90dvh,
-      calc(100dvh - 1.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
-    );
-  }
-  .lp-login__hero { padding-top: 1.5rem; }
-  .lp-login__footer { padding-bottom: max(1.25rem, env(safe-area-inset-bottom)); }
+@media (max-width: 580px) {
+  .lp-login { padding: 16px; }
+  .lp-login__footer { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
 }
 
 @keyframes lp-login-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes lp-login-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes lp-login-card-in {
-  from { opacity: 0; transform: translate(-50%, calc(-50% + 14px)); }
-  to { opacity: 1; transform: translate(-50%, -50%); }
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes lp-login-card-out {
-  from { opacity: 1; transform: translate(-50%, -50%); }
-  to { opacity: 0; transform: translate(-50%, calc(-50% + 10px)); }
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(10px) scale(0.98); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .lp-login, .lp-login__card, .lp-login--closing, .lp-login--closing .lp-login__card { animation: none !important; }
-  .lp-login .lp-btn:hover, .lp-login .lp-icon-btn:hover { transform: none; }
-  .lp-login__card { transform: translate(-50%, -50%); }
+  .lp-login .lp-btn:hover { transform: none; }
 }
 `;
     var legacy = document.getElementById('lp-login-styles');

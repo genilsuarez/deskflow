@@ -6,7 +6,7 @@
   'use strict';
 
   var STORAGE_KEY = 'lp-theme';
-  var META_LIGHT = '#faf7f2';
+  var META_LIGHT = '#ffffff';
   var META_DARK = '#181b20';
 
   function isLocalDev() {

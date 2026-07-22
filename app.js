@@ -152,29 +152,31 @@ function renderModuleCards() {
   APPS.forEach((app) => {
     const config = APP_CONFIG[app];
     const result = getAppResult(app);
-    const card = element('article', `module-card module-card--${config.color}`);
+    const card = element('button', `module-card module-card--${config.color}`);
+    card.type = 'button';
+    card.dataset.view = app;
 
-    const heading = element('div', 'module-card__heading');
     const mark = element('span', 'module-card__mark', config.name.charAt(0));
     mark.setAttribute('aria-hidden', 'true');
-    const titleBox = element('div');
-    titleBox.append(element('p', 'section-kicker', config.eyebrow), element('h3', '', config.name));
-    heading.append(mark, titleBox);
 
-    const value = element('strong', 'module-card__value', progressLabel(result));
-    const metric = element('p', 'module-card__metric', appMetric(result, config));
+    const copy = element('div', 'module-card__copy');
+    const hint = element('span', 'module-card__hint', `${config.eyebrow} · ${appMetric(result, config)}`);
+    copy.append(element('strong', 'module-card__label', config.name), hint);
+    if (hasValidProgress(result) && result.progress.data.summary.lastContent) {
+      const lastTitle = resolveContentTitle(result.progress.data.summary.lastContent, contentTitleIndex);
+      copy.append(element('span', 'module-card__last', lastTitle));
+    }
+
+    const pct = element('span', 'module-card__pct', progressLabel(result));
+
+    const chevron = element('span', 'module-card__chevron', '→');
+    chevron.setAttribute('aria-hidden', 'true');
+
     const progressValue = hasValidProgress(result) ? rounded(result.progress.data.summary.progressPct) : 0;
     const progress = createProgressBar(progressValue, `Progreso de ${config.name}`);
+    progress.classList.add('module-card__bar');
 
-    const footer = element('div', 'module-card__footer');
-    footer.append(createStatusPill(result.progress.status));
-    const detail = element('button', 'text-action', 'Detalle');
-    detail.type = 'button';
-    detail.dataset.view = app;
-    appendArrow(detail);
-    footer.append(detail);
-
-    card.append(heading, value, metric, progress, footer);
+    card.append(mark, copy, pct, chevron, progress);
     container.append(card);
   });
 }
@@ -236,7 +238,8 @@ function renderCefr() {
   const level = document.getElementById('cefrLevel');
   const description = document.getElementById('cefrDescription');
   if (!level || !description) return;
-  const cefr = hasValidProgress(fluentflow) ? fluentflow.progress.data.cefr : null;
+  const result = getAppResult('fluentflow');
+  const cefr = hasValidProgress(result) ? result.progress.data.cefr : null;
 
   if (!cefr) {
     level.textContent = '—';
@@ -254,9 +257,29 @@ function renderCefr() {
   description.textContent = `${cefr.level} · ${statusCopy[cefr.status]}. ${cefr.completedModules} de ${cefr.totalModules} módulos del nivel completados.`;
 }
 
+const RECENT_ACTIVITY_PER_APP = 4;
+
+function recentEventsForApp(result) {
+  if (result.activity.status !== STATUS.READY) return [];
+  return [...result.activity.data.events]
+    .map((event) => ({ ...event, app: event.app || result.app }))
+    .sort((first, second) => new Date(second.occurredAt) - new Date(first.occurredAt))
+    .slice(0, RECENT_ACTIVITY_PER_APP);
+}
+
 function allValidEvents() {
-  return appData.flatMap((result) => result.activity.status === STATUS.READY ? result.activity.data.events.slice(0, 3) : [])
+  return appData.flatMap(recentEventsForApp)
     .sort((first, second) => new Date(second.occurredAt) - new Date(first.occurredAt));
+}
+
+function latestValidEvents(limit = 3) {
+  return appData.flatMap((result) => (
+    result.activity.status === STATUS.READY
+      ? result.activity.data.events.map((event) => ({ ...event, app: event.app || result.app }))
+      : []
+  ))
+    .sort((first, second) => new Date(second.occurredAt) - new Date(first.occurredAt))
+    .slice(0, limit);
 }
 
 function formatDate(isoDate, { compact = false } = {}) {
@@ -266,36 +289,83 @@ function formatDate(isoDate, { compact = false } = {}) {
   return new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(isoDate));
 }
 
-function readableActivity(activity) {
-  return activity.replaceAll('_', ' ').replaceAll('-', ' ');
+function capitalizeLabel(text) {
+  return text
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toLocaleUpperCase('es') + word.slice(1))
+    .join(' ');
 }
 
-function createActivityItem(event, { compact = false } = {}) {
-  const config = APP_CONFIG[event.app];
-  const item = element('article', compact ? 'activity-item activity-item--compact' : 'activity-item');
+function readableActivity(activity) {
+  return capitalizeLabel(activity.replaceAll('_', ' ').replaceAll('-', ' '));
+}
+
+function readablePassStatus(passed) {
+  return passed ? 'Superado' : 'Por repetir';
+}
+
+function createActivityItem(event, { tabular = false, showApp = false } = {}) {
+  const config = APP_CONFIG[event.app] ?? null;
+  const item = element('article', tabular ? 'activity-item activity-item--compact' : 'activity-item');
 
   const body = element('div', 'activity-item__body');
   const title = element('h3', '', resolveContentTitle(event, contentTitleIndex));
-  const detailParts = [readableActivity(event.activity)];
-  if (event.scorePct !== null) detailParts.push(`${rounded(event.scorePct)}%`);
-  if (event.passed !== null) detailParts.push(event.passed ? 'superado' : 'por repetir');
-  const meta = element('p', '', detailParts.join(' · '));
+  const activityType = readableActivity(event.activity);
+  const scoreText = event.scorePct !== null ? `${rounded(event.scorePct)}%` : null;
+  const statusText = event.passed !== null ? readablePassStatus(event.passed) : null;
+  const detailParts = [activityType];
+  if (scoreText) detailParts.push(scoreText);
+  if (statusText) detailParts.push(statusText);
+  const mobileParts = showApp && config ? [config.name, ...detailParts] : detailParts;
 
-  if (compact) {
-    body.append(title, meta);
+  if (tabular) {
+    body.append(title, element('p', 'activity-item__meta-mobile', mobileParts.join(' · ')));
+    if (showApp && config) {
+      item.append(element('span', `activity-item__cell activity-item__cell--app activity-item__cell--app-${config.color}`, config.name));
+    }
+    item.append(
+      body,
+      element('span', 'activity-item__cell activity-item__cell--type', activityType),
+      element('span', 'activity-item__cell activity-item__cell--score', scoreText ?? '—'),
+      element('span', `activity-item__cell activity-item__cell--status${event.passed === true ? ' activity-item__cell--status-passed' : event.passed === false ? ' activity-item__cell--status-retry' : ''}`, statusText ?? '—')
+    );
   } else {
-    const marker = element('span', `activity-item__marker activity-item__marker--${config.color}`);
-    marker.textContent = config.name.charAt(0);
-    marker.setAttribute('aria-hidden', 'true');
-    const appName = element('span', 'activity-item__app', config.name);
-    body.append(appName, title, meta);
-    item.append(marker);
+    if (config) {
+      const marker = element('span', `activity-item__marker activity-item__marker--${config.color}`);
+      marker.textContent = config.name.charAt(0);
+      marker.setAttribute('aria-hidden', 'true');
+      const appName = element('span', 'activity-item__app', config.name);
+      body.append(appName, title, element('p', '', detailParts.join(' · ')));
+      item.append(marker, body);
+    } else {
+      body.append(title, element('p', '', detailParts.join(' · ')));
+      item.append(body);
+    }
   }
 
-  const time = element('time', 'activity-item__time', formatDate(event.occurredAt, { compact }));
+  const time = element('time', 'activity-item__time', formatDate(event.occurredAt, { compact: tabular }));
   time.dateTime = event.occurredAt;
-  item.append(body, time);
+  item.append(time);
   return item;
+}
+
+function createActivityTableHeader({ showApp = false } = {}) {
+  const header = element('div', 'activity-table-header');
+  header.setAttribute('aria-hidden', 'true');
+  const columns = [];
+  if (showApp) columns.push(['--app', 'Módulo']);
+  columns.push(
+    ['--title', 'Contenido'],
+    ['--type', 'Tipo'],
+    ['--score', 'Puntuación'],
+    ['--status', 'Estado'],
+    ['--time', 'Fecha']
+  );
+  columns.forEach(([modifier, label]) => {
+    header.append(element('span', `activity-table-header__col activity-table-header__col${modifier}`, label));
+  });
+  return header;
 }
 
 function createEmptyState(title, description) {
@@ -306,21 +376,40 @@ function createEmptyState(title, description) {
   return state;
 }
 
-function renderActivityList(container, events, limit, { compact = false } = {}) {
+function renderActivityList(container, events, limit, { tabular = false, showApp = false, emptyDescription } = {}) {
+  if (!container) return;
   container.replaceChildren();
+  container.classList.toggle('activity-list--compact', tabular);
+  container.classList.toggle('activity-list--with-app', tabular && showApp);
   const visible = typeof limit === 'number' ? events.slice(0, limit) : events;
   if (visible.length === 0) {
-    container.append(createEmptyState('Todavía no hay actividad reciente', 'LearnFlow no inventa ejemplos: aparecerán aquí los eventos válidos publicados por tus módulos.'));
+    const description = emptyDescription ?? 'Tus sesiones recientes se mostrarán aquí al completar actividades en tus módulos.';
+    container.append(createEmptyState('Sin actividad reciente', description));
     return;
   }
-  visible.forEach((event) => container.append(createActivityItem(event, { compact })));
+  if (tabular) container.append(createActivityTableHeader({ showApp }));
+  visible.forEach((event) => {
+    try {
+      container.append(createActivityItem(event, { tabular, showApp }));
+    } catch (error) {
+      console.error('No se pudo renderizar un evento de actividad', event, error);
+    }
+  });
 }
 
 function renderActivity() {
   const events = allValidEvents();
-  renderActivityList(document.getElementById('recentActivity'), events, 3);
   const filtered = activityFilter === 'all' ? events : events.filter((event) => event.app === activityFilter);
-  renderActivityList(document.getElementById('allActivity'), filtered);
+  renderActivityList(document.getElementById('allActivity'), filtered, undefined, {
+    tabular: true,
+    showApp: activityFilter === 'all'
+  });
+}
+
+function renderRecentActivity() {
+  renderActivityList(document.getElementById('recentActivity'), latestValidEvents(3), 3, {
+    emptyDescription: 'Tus sesiones recientes se mostrarán aquí al completar actividades en tus módulos.'
+  });
 }
 
 function renderContinue() {
@@ -354,17 +443,63 @@ function renderContinue() {
   });
 }
 
+function buildModuleInsight(app, result, config) {
+  const insight = element('section', `detail-insight detail-insight--${config.color}`);
+  const kickers = {
+    fluentflow: 'Lectura CEFR',
+    hubflow: 'Práctica temática',
+    lyricflow: 'Progreso por canción'
+  };
+
+  insight.append(element('p', 'detail-insight__kicker section-kicker', kickers[app]));
+
+  if (app === 'fluentflow') {
+    const cefr = hasValidProgress(result) ? result.progress.data.cefr : null;
+    const headline = cefr ? `Ruta ${cefr.level}` : 'Sin nivel CEFR';
+    const detail = cefr
+      ? `${cefr.completedModules} de ${cefr.totalModules} módulos en el nivel`
+      : 'Completa módulos para ver tu nivel.';
+    insight.append(element('h2', 'detail-insight__title', headline), element('p', 'detail-insight__detail', detail));
+  } else if (app === 'hubflow') {
+    insight.append(
+      element('h2', 'detail-insight__title', '5 modos por ejercicio'),
+      element('p', 'detail-insight__detail', 'Incluye Battle 2P.')
+    );
+  } else {
+    const summary = hasValidProgress(result) ? result.progress.data.summary : null;
+    const headline = summary?.totalContent != null ? `${summary.totalContent} canciones` : 'Catálogo musical';
+    const detail = summary?.completedActivities != null && summary?.totalActivities != null
+      ? `${summary.completedActivities} de ${summary.totalActivities} actividades completadas`
+      : 'El desglose aparece al completar canciones.';
+    insight.append(element('h2', 'detail-insight__title', headline), element('p', 'detail-insight__detail', detail));
+  }
+
+  return insight;
+}
+
 function renderModuleDetail(app) {
   const config = APP_CONFIG[app];
   const result = getAppResult(app);
   const container = document.querySelector(`[data-app-detail="${app}"]`);
   container.replaceChildren();
 
-  const actionBar = element('div', `module-detail__action module-detail__action--${config.color}`);
-  const desc = Array.isArray(config.description)
-    ? (() => { const d = document.createDocumentFragment(); config.description.forEach(line => d.append(element('p', '', line))); return d; })()
-    : element('p', '', config.description);
-  actionBar.append(desc, createAppLink(app, `Abrir ${config.name}`, true));
+  const actionBar = element('a', `module-detail__action module-detail__action--${config.color} app-link`);
+  actionBar.href = config.url;
+  actionBar.dataset.appLink = app;
+  actionBar.rel = 'noopener';
+
+  const mark = element('span', 'module-detail__mark', config.name.charAt(0));
+  mark.setAttribute('aria-hidden', 'true');
+
+  const copy = element('div', 'module-detail__copy');
+  const actionLabel = hasValidProgress(result) ? `Continuar en ${config.name}` : `Explorar ${config.name}`;
+  const actionHint = hasValidProgress(result) ? progressLabel(result) : config.eyebrow;
+  copy.append(element('strong', 'module-detail__label', actionLabel), element('span', 'module-detail__hint', actionHint));
+
+  const chevron = element('span', 'module-detail__chevron', '→');
+  chevron.setAttribute('aria-hidden', 'true');
+
+  actionBar.append(mark, copy, chevron);
 
   const statsSection = element('section', 'section-block detail-metrics');
   const statsCard = element('div', `detail-metrics__card detail-metrics__card--${config.color}`);
@@ -388,20 +523,7 @@ function renderModuleDetail(app) {
   statsCard.append(stats);
   statsSection.append(statsCard);
 
-  const insight = element('section', 'detail-insight');
-  insight.append(element('p', 'section-kicker', app === 'fluentflow' ? 'Lectura CEFR' : app === 'hubflow' ? 'Práctica temática' : 'Progreso por canción'));
-  if (app === 'fluentflow') {
-    const cefr = hasValidProgress(result) ? result.progress.data.cefr : null;
-    insight.append(element('h2', '', cefr ? `Ruta ${cefr.level}` : 'Ruta CEFR no disponible'), element('p', '', cefr ? `${cefr.completedModules} de ${cefr.totalModules} módulos del nivel completados.` : 'Sin datos de nivel desde FluentFlow.'));
-  } else if (app === 'hubflow') {
-    insight.append(element('h2', '', 'Cada contenido conserva su propia regla'), element('p', '', 'Proyección publicada por HubFlow; sin interpretación de prefijos o scores internos.'));
-  } else {
-    const summary = hasValidProgress(result) ? result.progress.data.summary : null;
-    const activityText = summary && summary.completedActivities !== null && summary.totalActivities !== null
-      ? `${summary.completedActivities} de ${summary.totalActivities} actividades completadas.`
-      : 'Desglose disponible cuando LyricFlow lo publique.';
-    insight.append(element('h2', '', 'Canciones como unidad'), element('p', '', activityText));
-  }
+  const insight = buildModuleInsight(app, result, config);
 
   const activity = element('section', 'section-block detail-activity');
   const activityCard = element('div', `detail-activity__card detail-activity__card--${config.color}`);
@@ -410,7 +532,10 @@ function renderModuleDetail(app) {
   activityHeader.append(activityTitle);
   const list = element('div', 'activity-list activity-list--compact');
   const events = result.activity.status === STATUS.READY ? [...result.activity.data.events].sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt)) : [];
-  renderActivityList(list, events, 3, { compact: true });
+  renderActivityList(list, events, 3, {
+    tabular: true,
+    emptyDescription: `Completa una sesión en ${config.name} y aparecerá en esta lista.`
+  });
   activityCard.append(activityHeader, list);
   activity.append(activityCard);
 
@@ -501,6 +626,7 @@ function renderAll() {
   renderHeaderStats();
   renderCefr();
   renderModuleCards();
+  renderRecentActivity();
   renderContinue();
   APPS.forEach(renderModuleDetail);
   renderActivity();
@@ -672,6 +798,7 @@ function showView(viewName, updateHash = true) {
   updateTopbar(viewName);
   const shell = document.querySelector('.app-shell');
   if (shell) shell.dataset.view = viewName;
+  if (viewName === 'actividad') renderActivity();
   if (updateHash) history.replaceState(null, '', `${location.pathname}${location.search}#${viewName}`);
   closeSidebar();
   document.getElementById('mainContent').focus({ preventScroll: true });
@@ -698,19 +825,33 @@ function showAboutLearnFlow(event) {
     <section class="about-modal" role="dialog" aria-modal="true" aria-labelledby="aboutLearnFlowTitle" aria-describedby="aboutLearnFlowDescription">
       <header class="about-header">
         <div class="about-identity" aria-hidden="true">L</div>
-        <div>
+        <div class="about-header__text">
           <p class="about-eyebrow">LearnFlow · Plataforma</p>
           <h2 id="aboutLearnFlowTitle">About LearnFlow</h2>
         </div>
         <button class="about-close" id="aboutCloseBtn" type="button" aria-label="Cerrar About LearnFlow">✕</button>
       </header>
-      <p id="aboutLearnFlowDescription" class="about-description">Una plataforma para aprender idiomas con estructura, práctica y música.</p>
-      <nav class="about-modules" aria-label="Aplicaciones de LearnFlow">
-        <a href="${getAppHref('/deskflow/', 3000)}" data-app-link="deskflow"><strong>LearnFlow</strong><span>Portal</span></a>
-        <a href="${getAppHref('/fluentflow/', 3001)}" data-app-link="fluentflow"><strong>FluentFlow</strong><span>Ruta de inglés por niveles CEFR</span></a>
-        <a href="${getAppHref('/hubflow/', 3002)}" data-app-link="hubflow"><strong>HubFlow</strong><span>Práctica flexible de gramática</span></a>
-        <a href="${getAppHref('/lyricflow/', 3003)}" data-app-link="lyricflow"><strong>LyricFlow</strong><span>Aprender con música</span></a>
-      </nav>
+      <div class="about-body">
+        <p id="aboutLearnFlowDescription" class="about-description">Una plataforma para aprender idiomas con estructura, práctica y música.</p>
+        <nav class="about-modules" aria-label="Aplicaciones de LearnFlow">
+          <a href="${getAppHref('/deskflow/', 3000)}" data-app-link="deskflow">
+            <span class="about-module__mark about-module__mark--portal" aria-hidden="true">L</span>
+            <span class="about-module__text"><strong>LearnFlow</strong><span>Portal</span></span>
+          </a>
+          <a href="${getAppHref('/fluentflow/', 3001)}" data-app-link="fluentflow">
+            <span class="about-module__mark about-module__mark--fluent" aria-hidden="true">F</span>
+            <span class="about-module__text"><strong>FluentFlow</strong><span>Ruta de inglés por niveles CEFR</span></span>
+          </a>
+          <a href="${getAppHref('/hubflow/', 3002)}" data-app-link="hubflow">
+            <span class="about-module__mark about-module__mark--hub" aria-hidden="true">H</span>
+            <span class="about-module__text"><strong>HubFlow</strong><span>Práctica flexible de gramática</span></span>
+          </a>
+          <a href="${getAppHref('/lyricflow/', 3003)}" data-app-link="lyricflow">
+            <span class="about-module__mark about-module__mark--lyric" aria-hidden="true">LF</span>
+            <span class="about-module__text"><strong>LyricFlow</strong><span>Aprender con música</span></span>
+          </a>
+        </nav>
+      </div>
       <footer class="about-footer">
         <div class="about-author">
           <div class="about-author__avatar" aria-hidden="true">GS</div>

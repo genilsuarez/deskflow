@@ -1,6 +1,7 @@
 /**
- * Learn Platform — prevent mobile browser zoom on text field focus (lp-input-zoom v1)
- * iOS Safari zooms when font-size < 16px; locking maximum-scale on focus avoids layout jumps.
+ * Learn Platform — prevent mobile browser zoom on text field focus (lp-input-zoom v2)
+ * iOS Safari auto-zooms when computed font-size < 16px. We enforce 16px via injected CSS
+ * and lock viewport maximum-scale on touch/focus as a secondary safeguard.
  * Vanilla apps: load in <head> after viewport meta. FluentFlow: public/lp-input-zoom.js.
  */
 (function (global) {
@@ -9,6 +10,7 @@
   var locked = false;
   var originalViewport = null;
   var viewportMeta = null;
+  var STYLE_ID = 'lp-input-zoom-style';
 
   function isMobileTouch() {
     if (typeof window === 'undefined' || !window.matchMedia) return false;
@@ -38,6 +40,38 @@
       return true;
     }
     return false;
+  }
+
+  function resolveTextField(el) {
+    if (!el || el.nodeType !== 1) return null;
+    if (isTextField(el)) return el;
+    if (el.tagName === 'LABEL') {
+      var forId = el.htmlFor;
+      if (forId) {
+        var control = document.getElementById(forId);
+        if (isTextField(control)) return control;
+      }
+      var nested = el.querySelector(
+        'input, textarea, select, [contenteditable="true"], [role="textbox"]'
+      );
+      if (isTextField(nested)) return nested;
+    }
+    return null;
+  }
+
+  function injectMobileInputStyles() {
+    if (!isMobileTouch() || document.getElementById(STYLE_ID)) return;
+    var style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent =
+      '@media (hover: none) and (pointer: coarse) {' +
+      'input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=reset]):not([type=file]):not([type=hidden]):not([type=range]):not([type=color]),' +
+      'textarea, select, [contenteditable="true"], [role="textbox"] {' +
+      'font-size: 16px !important;' +
+      '}' +
+      '}';
+    var parent = document.head || document.documentElement;
+    parent.appendChild(style);
   }
 
   function getViewportMeta() {
@@ -72,6 +106,11 @@
     locked = false;
   }
 
+  function maybeLockFromInteraction(e) {
+    if (!isMobileTouch()) return;
+    if (resolveTextField(e.target)) lockViewport();
+  }
+
   function onFocusIn(e) {
     if (!isMobileTouch()) return;
     if (isTextField(e.target)) lockViewport();
@@ -87,6 +126,9 @@
 
   function init() {
     if (!isMobileTouch()) return;
+    injectMobileInputStyles();
+    document.addEventListener('touchstart', maybeLockFromInteraction, { capture: true, passive: true });
+    document.addEventListener('pointerdown', maybeLockFromInteraction, { capture: true, passive: true });
     document.addEventListener('focusin', onFocusIn, true);
     document.addEventListener('focusout', onFocusOut, true);
     document.addEventListener('visibilitychange', function () {
@@ -100,6 +142,8 @@
     unlock: unlockViewport,
     isTextField: isTextField,
   };
+
+  injectMobileInputStyles();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
