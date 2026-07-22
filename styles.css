@@ -934,12 +934,25 @@ body {
 }
 
 .module-card__last {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3em;
+  min-width: 0;
   font-size: 0.64rem;
   color: var(--lp-ink-soft);
   line-height: 1.35;
+}
+
+.module-card__last-label {
+  flex-shrink: 0;
+  color: var(--lp-muted);
+}
+
+.module-card__last-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .module-card__pct {
@@ -2257,6 +2270,10 @@ a:focus-visible,
 
   #view-resumen .module-card__last {
     white-space: normal;
+  }
+
+  #view-resumen .module-card__last-title {
+    white-space: nowrap;
   }
 
   .module-card {

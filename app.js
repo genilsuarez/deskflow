@@ -7,6 +7,7 @@ const APP_CONFIG = Object.freeze({
     eyebrow: 'Ruta estructurada',
     description: 'Ruta A1–C2 con módulos secuenciales y práctica guiada.',
     unit: 'módulos',
+    lastLabel: 'Ejercicio',
     color: 'purple',
     url: 'https://genilsuarez.github.io/fluentflow/'
   },
@@ -15,6 +16,7 @@ const APP_CONFIG = Object.freeze({
     eyebrow: 'Práctica temática',
     description: '5 modos por ejercicio incluyendo Battle 2P.',
     unit: 'contenidos',
+    lastLabel: 'Ejercicio',
     color: 'amber',
     url: 'https://genilsuarez.github.io/hubflow/'
   },
@@ -23,6 +25,7 @@ const APP_CONFIG = Object.freeze({
     eyebrow: 'Aprendizaje con música',
     description: 'Entrena escucha y comprensión con canciones y actividades.',
     unit: 'canciones',
+    lastLabel: 'Canción',
     color: 'teal',
     url: 'https://genilsuarez.github.io/lyricflow/'
   }
@@ -104,9 +107,9 @@ function rounded(value) {
 function appMetric(result, config) {
   if (hasValidProgress(result)) {
     const summary = result.progress.data.summary;
-    return `${summary.completedContent} de ${summary.totalContent} ${config.unit}`;
+    return `${summary.completedContent} de ${summary.totalContent}`;
   }
-  if (result.progress.status === STATUS.UNAVAILABLE) return `0 ${config.unit} completados`;
+  if (result.progress.status === STATUS.UNAVAILABLE) return `0 ${config.unit}`;
   return STATUS_COPY[result.progress.status];
 }
 
@@ -145,6 +148,15 @@ function createAppLink(app, label = 'Abrir módulo', primary = false) {
   return link;
 }
 
+function createModuleCardLast(last, config) {
+  const row = element('span', 'module-card__last');
+  row.append(
+    element('span', 'module-card__last-label', `${config.lastLabel} ·`),
+    element('span', 'module-card__last-title', resolveContentTitle(last, contentTitleIndex))
+  );
+  return row;
+}
+
 function renderModuleCards() {
   const container = document.getElementById('summaryModules');
   container.replaceChildren();
@@ -160,11 +172,10 @@ function renderModuleCards() {
     mark.setAttribute('aria-hidden', 'true');
 
     const copy = element('div', 'module-card__copy');
-    const hint = element('span', 'module-card__hint', `${config.eyebrow} · ${appMetric(result, config)}`);
+    const hint = element('span', 'module-card__hint', appMetric(result, config));
     copy.append(element('strong', 'module-card__label', config.name), hint);
     if (hasValidProgress(result) && result.progress.data.summary.lastContent) {
-      const lastTitle = resolveContentTitle(result.progress.data.summary.lastContent, contentTitleIndex);
-      copy.append(element('span', 'module-card__last', lastTitle));
+      copy.append(createModuleCardLast(result.progress.data.summary.lastContent, config));
     }
 
     const pct = element('span', 'module-card__pct', progressLabel(result));
