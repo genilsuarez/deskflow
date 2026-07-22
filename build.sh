@@ -3,6 +3,8 @@
 # Monitoring is non-blocking: failures are reported but don't break the pipeline
 set -euo pipefail
 
+cd "$(dirname "$0")"
+
 REPO="genilsuarez/deskflow"
 WORKFLOW_CI="CI Validate"
 WORKFLOW_CD="CD Deploy"
