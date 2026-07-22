@@ -2306,6 +2306,10 @@ a:focus-visible,
 
   #view-resumen .section-heading h2 { font-size: 0.88rem; }
 
+  #view-resumen .resumen-recent {
+    display: none;
+  }
+
   @media (max-width: 380px) {
     .mobile-header__brand { font-size: 1.1rem; }
   }
