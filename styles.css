@@ -1845,7 +1845,6 @@ body {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
-.foot-sig { font-family: var(--lp-font-display); font-style: italic; font-size: 13px; color: var(--lp-ink-soft); }
 .foot-meta { font-family: var(--lp-font-mono); font-size: 9px; font-weight: 700; color: var(--lp-muted); letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* ═══════════════════════════════════════════════════════════════════════════

@@ -906,13 +906,6 @@ function getAppHref(app) {
   return `https://genilsuarez.github.io/${app}/`;
 }
 
-function showAboutLearnFlow(event) {
-  lpAbout.open(event, {
-    beforeOpen: closeSidebar,
-    inertElements: [document.querySelector('.app-shell')],
-  });
-}
-
 function setupNavigation() {
   document.addEventListener('click', (event) => {
     const viewControl = event.target.closest('button[data-view]');
@@ -952,7 +945,12 @@ function setupNavigation() {
     }
   });
 
-  document.getElementById('aboutTrigger').addEventListener('click', showAboutLearnFlow);
+  document.getElementById('aboutTrigger').addEventListener('click', (event) => {
+    lpAbout.open(event, {
+      beforeOpen: closeSidebar,
+      inertElements: [document.querySelector('.app-shell')],
+    });
+  });
   lpLogin.bindNavButton('#loginTrigger', {
     beforeOpen: closeSidebar,
     labelSelector: '.nav-label',
@@ -969,7 +967,9 @@ function setupNavigation() {
   const initialView = location.hash.slice(1);
   if (initialView === 'about') {
     showView('resumen', false);
-    showAboutLearnFlow();
+    lpAbout.open(null, {
+      inertElements: [document.querySelector('.app-shell')],
+    });
   } else {
     showView(document.querySelector(`[data-view-panel="${initialView}"]`) ? initialView : 'resumen', false);
   }

@@ -15,11 +15,26 @@ Static site — HTML + CSS + vanilla JS. No build step.
 ## Structure
 
 ```
-index.html      — Entry point / portal dashboard
-styles.css      — All styles (design tokens + components)
-scripts/        — Scripts (QA, audits, utilities)
-scripts/tmp/    — Temporary scripts (gitignored)
-AGENTS.md       — This file
+index.html           — Entry point / portal dashboard
+styles.css           — All styles (design tokens + components)
+lp-theme.js          — Theme init (copy of scripts/lp-theme.js)
+lp-platform-urls.js  — Cross-app URLs (copy of scripts/)
+lp-nav-icons.js      — Sidebar icon SVGs (copy of scripts/)
+lp-nav-active.css    — Active nav item styles (copy of scripts/)
+lp-login.js          — Login modal + bindNavButton (copy of scripts/)
+lp-guest-reset.js    — Guest/logout cross-tab (copy of scripts/)
+lp-about.js          — About LearnFlow modal (copy of scripts/)
+lp-about.css         — About modal styles (copy of scripts/)
+lp-auth-setup.js     — Supabase auth wiring (copy of scripts/)
+lp-supabase.js       — Supabase client (copy of scripts/)
+lp-progress-summary.js — Progress summary helpers (copy of scripts/)
+sync-engine.js       — Cloud sync base (copy of scripts/)
+sync-engine-audit.js — DeskFlow-only repair/audit helpers
+app.js               — Portal logic, navigation, views
+progress-reader.js   — Reads learnflow:progress:* from localStorage
+scripts/             — Scripts (QA, audits, utilities)
+scripts/tmp/         — Temporary scripts (gitignored)
+AGENTS.md            — This file
 ```
 
 ## Serve in development
@@ -59,7 +74,15 @@ The topbar updates its content dynamically based on the active view via `updateT
 
 ### Key rule
 
-Do NOT add `page-header` elements inside `view-actividad` or `view-continuar` — their header content is rendered in the shared topbar.
+Do NOT add `page-header` elements inside `view-actividad` or `view-continuar` — their header content is rendered in the shared topbar. The `.page-header` CSS class is **deprecated and removed** — do not reintroduce it.
+
+## Auth, login, and cloud sync
+
+- Login modal: `lp-login.js` — use `lpLogin.bindNavButton('#loginTrigger', …)` in `app.js`
+- Auth session: `lp-auth-setup.js` → imports `sync-engine.js`
+- Cloud sync base: `sync-engine.js` (canonical in `Learn/scripts/`)
+- DeskFlow audit/repair only: `sync-engine-audit.js` (`repairLocalProjections`, `auditLocalProjections`, `auditCloudAlignment`)
+- About modal: `lpAbout.open()` from `lp-about.js` (not inline in `app.js`)
 
 ## Connected apps
 
