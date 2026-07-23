@@ -16,6 +16,14 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true, // para OAuth redirects
+    // PKCE (default) hace `await` en el code challenge antes de
+    // window.location.assign() dentro de signInWithOAuth — ese hueco async
+    // entre el tap y la navegación es un patrón asociado a redirects que no
+    // ocurren en iOS Safari/Chrome (WebKit). 'implicit' construye la URL de
+    // forma síncrona, sin ese hueco. Trade-off: PKCE protege mejor contra
+    // interceptación del auth code; implicit es el flujo OAuth clásico,
+    // menos robusto en ese aspecto pero ampliamente usado y sin este problema.
+    flowType: 'implicit',
   },
 });
 
