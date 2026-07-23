@@ -32,10 +32,15 @@ var lpLogin = (function () {
   }
 
   function logout() {
+    var user = getUser();
+    var wasCloud = user && user.isSupabaseUser;
     if (window.lpSupabase && window.lpSupabase.signOut) {
       window.lpSupabase.signOut();
     }
     setUser(null);
+    if (wasCloud && window.lpGuestReset && window.lpGuestReset.clearGuestLocalProgress) {
+      window.lpGuestReset.clearGuestLocalProgress();
+    }
   }
 
   function setUserFromSupabase(user, profile) {

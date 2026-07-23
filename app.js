@@ -1122,7 +1122,11 @@ async function setupSupabaseAuth() {
     if (!session?.user) {
       resetDownloadState();
       if (lpLogin.getUser()?.isSupabaseUser) {
+        if (window.lpGuestReset?.clearGuestLocalProgress) {
+          window.lpGuestReset.clearGuestLocalProgress();
+        }
         lpLogin.setUser(null);
+        renderAll();
       }
       return;
     }
@@ -1157,6 +1161,9 @@ setupNavigation();
 setupActivityFilters();
 renderAll();
 setupSupabaseAuth();
+window.addEventListener('lp-guest-reset', () => {
+  renderAll();
+});
 
 if (new URLSearchParams(location.search).has('debug')) {
   document.getElementById('dataHealth').hidden = false;
