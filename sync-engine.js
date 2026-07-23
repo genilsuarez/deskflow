@@ -55,6 +55,16 @@ function emptyProgressDoc(app) {
   };
 }
 
+// Postgres/PostgREST devuelve timestamptz como "2026-07-16T00:00:00+00:00"
+// (sin milisegundos, offset en vez de "Z"). progress-reader.js exige match
+// exacto con Date#toISOString() para aceptar una fecha — sin normalizar,
+// CUALQUIER entrada con completedAt remoto invalida todo el documento.
+function normalizeIsoDate(value) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
 // Combina una fila remota con la entrada local existente sin retroceder
 // progreso ya alcanzado (favorece completado=true, mejor puntaje, más intentos).
 function mergeContentEntry(existing, row) {
@@ -63,7 +73,7 @@ function mergeContentEntry(existing, row) {
     contentType: row.content_type || existing?.contentType || 'module',
     progressPct: Math.max(row.progress_pct ?? 0, existing?.progressPct ?? 0),
     completed: Boolean(row.completed) || Boolean(existing?.completed),
-    completedAt: row.completed_at || existing?.completedAt || null,
+    completedAt: normalizeIsoDate(row.completed_at) || existing?.completedAt || null,
     bestScorePct:
       row.best_score_pct != null || existing?.bestScorePct != null
         ? Math.max(row.best_score_pct ?? 0, existing?.bestScorePct ?? 0)

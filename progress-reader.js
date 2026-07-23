@@ -10,6 +10,12 @@ const STATUS = Object.freeze({
   INVALID: 'invalid'
 });
 
+// HubFlow usó :v2 brevemente; la migración a :v1 abandonó los datos sin copiar.
+const LEGACY_STORAGE_KEYS = Object.freeze({
+  'learnflow:progress:hubflow:v1': 'learnflow:progress:hubflow:v2',
+  'learnflow:activity:hubflow:v1': 'learnflow:activity:hubflow:v2',
+});
+
 function result(status, data = null, reason = '') {
   return Object.freeze({ status, data, reason });
 }
@@ -230,6 +236,36 @@ function validateActivity(document, app) {
   return result(events.length === 0 ? STATUS.EMPTY : STATUS.READY, data);
 }
 
+function emptyProgressResult(app) {
+  const timestamp = new Date().toISOString();
+  const data = Object.freeze({
+    app,
+    updatedAt: timestamp,
+    catalogVersion: null,
+    summary: Object.freeze({
+      progressPct: 0,
+      completedContent: 0,
+      totalContent: 0,
+      attemptedContent: 0,
+      completedActivities: null,
+      totalActivities: null,
+      lastContent: null,
+    }),
+    content: Object.freeze({}),
+    cefr: null,
+  });
+  return result(STATUS.EMPTY, data);
+}
+
+function emptyActivityResult(app) {
+  const data = Object.freeze({
+    app,
+    updatedAt: new Date().toISOString(),
+    events: Object.freeze([]),
+  });
+  return result(STATUS.EMPTY, data);
+}
+
 export class ProgressReader {
   constructor(storage = window.localStorage) {
     this.storage = storage;
@@ -256,7 +292,25 @@ export class ProgressReader {
       return result(STATUS.UNAVAILABLE, null, 'El almacenamiento local no está accesible.');
     }
 
-    if (raw === null) return result(STATUS.UNAVAILABLE, null, 'La proyección todavía no existe.');
+    if (raw === null) {
+      const legacyKey = LEGACY_STORAGE_KEYS[key];
+      if (legacyKey) {
+        raw = this.storage.getItem(legacyKey);
+        if (raw !== null) {
+          try {
+            this.storage.setItem(key, raw);
+          } catch {
+            /* lectura sigue con el valor legacy */
+          }
+        }
+      }
+    }
+
+    if (raw === null) {
+      return key.startsWith('learnflow:progress:')
+        ? emptyProgressResult(key.split(':')[2])
+        : emptyActivityResult(key.split(':')[2]);
+    }
     const parsed = parseStoredValue(raw);
     if (parsed.error) return result(STATUS.INVALID, null, parsed.error);
     return validator(parsed.value);

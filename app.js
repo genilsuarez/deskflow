@@ -104,14 +104,36 @@ function hasValidProgress(result) {
   return result.progress.status === STATUS.READY || result.progress.status === STATUS.EMPTY;
 }
 
+/** Métricas primarias para UI — LyricFlow cuenta actividades (alineado con progressPct). */
+function progressDisplayMetrics(result) {
+  const summary = result.progress.data.summary;
+  if (
+    result.app === 'lyricflow'
+    && summary.completedActivities != null
+    && summary.totalActivities != null
+    && summary.totalActivities > 0
+  ) {
+    return {
+      completed: summary.completedActivities,
+      total: summary.totalActivities,
+      unit: 'actividades',
+    };
+  }
+  return {
+    completed: summary.completedContent,
+    total: summary.totalContent,
+    unit: APP_CONFIG[result.app]?.unit || 'contenidos',
+  };
+}
+
 function rounded(value) {
   return Math.round(value);
 }
 
 function appMetric(result, config) {
   if (hasValidProgress(result)) {
-    const summary = result.progress.data.summary;
-    return `${summary.completedContent} de ${summary.totalContent}`;
+    const { completed, total } = progressDisplayMetrics(result);
+    return `${completed} de ${total}`;
   }
   if (result.progress.status === STATUS.UNAVAILABLE) return `0 ${config.unit}`;
   return STATUS_COPY[result.progress.status];
@@ -120,6 +142,27 @@ function appMetric(result, config) {
 function progressLabel(result) {
   if (hasValidProgress(result)) return `${rounded(result.progress.data.summary.progressPct)}%`;
   if (result.progress.status === STATUS.UNAVAILABLE) return '0%';
+  return '—';
+}
+
+function completedMetric(result) {
+  if (hasValidProgress(result)) {
+    const { completed, total } = progressDisplayMetrics(result);
+    return `${completed} / ${total}`;
+  }
+  if (result.progress.status === STATUS.UNAVAILABLE) return '0';
+  return '—';
+}
+
+function attemptedMetric(result) {
+  if (hasValidProgress(result)) return String(result.progress.data.summary.attemptedContent);
+  if (result.progress.status === STATUS.UNAVAILABLE) return '0';
+  return '—';
+}
+
+function attemptedTotalLabel(result) {
+  if (hasValidProgress(result)) return `de ${result.progress.data.summary.totalContent}`;
+  if (result.progress.status === STATUS.UNAVAILABLE) return 'de 0';
   return '—';
 }
 
@@ -226,7 +269,7 @@ function renderGlobalProgress() {
     ring.style.setProperty('--progress', String(displayValue));
     ring.setAttribute('aria-label', `Progreso parcial ${displayValue} por ciento`);
   } else {
-    value.textContent = '—';
+    value.textContent = '0%';
     unit.textContent = '0/3';
     ring.style.setProperty('--progress', '0');
     ring.setAttribute('aria-label', 'Progreso global pendiente');
@@ -531,9 +574,9 @@ function renderModuleDetail(app) {
   const progressStat = element('article', 'detail-stat');
   progressStat.append(element('span', '', 'Progreso'), element('strong', '', progressLabel(result)), createStatusPill(result.progress.status));
   const contentStat = element('article', 'detail-stat');
-  contentStat.append(element('span', '', 'Completado'), element('strong', '', hasValidProgress(result) ? `${result.progress.data.summary.completedContent} / ${result.progress.data.summary.totalContent}` : '—'), element('p', '', config.unit));
+  contentStat.append(element('span', '', 'Completado'), element('strong', '', completedMetric(result)), element('p', '', progressDisplayMetrics(result).unit));
   const attemptedStat = element('article', 'detail-stat');
-  attemptedStat.append(element('span', '', 'Iniciado'), element('strong', '', hasValidProgress(result) ? String(result.progress.data.summary.attemptedContent) : '—'), element('p', '', hasValidProgress(result) ? `de ${result.progress.data.summary.totalContent}` : '—'));
+  attemptedStat.append(element('span', '', 'Iniciado'), element('strong', '', attemptedMetric(result)), element('p', '', attemptedTotalLabel(result)));
   stats.append(progressStat, contentStat, attemptedStat);
   statsCard.append(stats);
   statsSection.append(statsCard);
