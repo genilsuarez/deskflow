@@ -18,9 +18,11 @@
 // remoto requeriría mapear cada scoreKey por módulo, fuera de alcance por ahora.
 
 import * as lpSupabase from './lp-supabase.js';
+import { computeHubflowActivitySummary, computeLyricflowActivitySummary } from './progress-reader.js';
 
 const APPS = ['fluentflow', 'hubflow', 'lyricflow'];
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+const MAX_ACTIVITY_EVENTS = 200;
 
 let lastSyncAt = 0;
 let syncing = false;
@@ -110,7 +112,7 @@ async function downloadApp(app) {
 
   if (changed) {
     const items = Object.values(doc.content);
-    doc.summary = {
+    const baseSummary = {
       progressPct: items.length
         ? items.reduce((sum, item) => sum + item.progressPct, 0) / items.length
         : 0,
@@ -118,11 +120,76 @@ async function downloadApp(app) {
       totalContent: items.length,
       attemptedContent: items.filter((item) => item.attempts > 0).length,
     };
+    doc.summary = app === 'lyricflow'
+      ? { ...baseSummary, ...computeLyricflowActivitySummary(doc.content, items.length) }
+      : app === 'hubflow'
+        ? { ...baseSummary, ...computeHubflowActivitySummary(doc.content) }
+        : baseSummary;
     doc.updatedAt = new Date().toISOString();
     writeRaw(key, doc);
   }
 
   return { downloaded: changed, count: remoteRows.length };
+}
+
+function emptyActivityDoc(app) {
+  return {
+    schemaVersion: 1,
+    app,
+    updatedAt: new Date().toISOString(),
+    events: [],
+  };
+}
+
+function rowToActivityEvent(row, app) {
+  return {
+    eventId: row.event_id,
+    runId: row.run_id,
+    app: row.app || app,
+    contentId: row.content_id,
+    title: row.title || row.content_id,
+    activity: row.activity,
+    eventType: row.event_type || 'attempt_completed',
+    occurredAt: normalizeIsoDate(row.occurred_at),
+    scorePct: row.score_pct ?? null,
+    passed: row.passed ?? null,
+    durationMs: row.duration_ms ?? null,
+    metrics: row.metrics || {},
+  };
+}
+
+function mergeActivityEvents(localEvents, remoteRows, app) {
+  const byId = new Map();
+  for (const event of localEvents || []) {
+    if (event?.eventId && event?.occurredAt) byId.set(event.eventId, event);
+  }
+  for (const row of remoteRows) {
+    const event = rowToActivityEvent(row, app);
+    if (!event?.eventId || !event.occurredAt || byId.has(event.eventId)) continue;
+    byId.set(event.eventId, event);
+  }
+  return [...byId.values()]
+    .sort((first, second) => second.occurredAt.localeCompare(first.occurredAt))
+    .slice(0, MAX_ACTIVITY_EVENTS);
+}
+
+async function downloadActivityApp(app) {
+  const remoteRows = await lpSupabase.fetchActivityEvents(app);
+  if (remoteRows === null) return { downloaded: false, reason: 'fetch_error' };
+  if (!remoteRows.length) return { downloaded: false, reason: 'no_remote_data' };
+
+  const key = `learnflow:activity:${app}:v1`;
+  const doc = readRaw(key) || emptyActivityDoc(app);
+  const merged = mergeActivityEvents(doc.events, remoteRows, app);
+  const unchanged =
+    merged.length === (doc.events?.length || 0) &&
+    merged.every((event, index) => event.eventId === doc.events?.[index]?.eventId);
+  if (unchanged) return { downloaded: false, reason: 'unchanged', count: remoteRows.length };
+
+  doc.events = merged;
+  doc.updatedAt = new Date().toISOString();
+  writeRaw(key, doc);
+  return { downloaded: true, count: remoteRows.length };
 }
 
 // Se llama una sola vez por sesión, justo después de autenticarse.
@@ -140,9 +207,11 @@ export async function downloadOnLogin() {
   let hadFetchError = false;
   let anyChanged = false;
   for (const app of APPS) {
-    perApp[app] = await downloadApp(app);
-    if (perApp[app].reason === 'fetch_error') hadFetchError = true;
-    if (perApp[app].downloaded) anyChanged = true;
+    const progress = await downloadApp(app);
+    const activity = await downloadActivityApp(app);
+    perApp[app] = { progress, activity };
+    if (progress.reason === 'fetch_error' || activity.reason === 'fetch_error') hadFetchError = true;
+    if (progress.downloaded || activity.downloaded) anyChanged = true;
   }
 
   if (!hadFetchError) downloaded = true;

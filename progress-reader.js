@@ -1,6 +1,7 @@
 const APPS = Object.freeze(['fluentflow', 'hubflow', 'lyricflow']);
 const SCHEMA_VERSION = 1;
 const MAX_ACTIVITY_EVENTS = 200;
+const LYRICFLOW_ACTIVITY_IDS = Object.freeze(['listen', 'dictation', 'challenge', 'quiz']);
 
 const STATUS = Object.freeze({
   READY: 'ready',
@@ -152,6 +153,153 @@ function normalizeCefr(document, app) {
   });
 }
 
+function isActivityAttempted(activity) {
+  if (!isRecord(activity)) return false;
+  if (isInteger(activity.attempts) && activity.attempts > 0) return true;
+  if (isInteger(activity.completedKeys) && activity.completedKeys > 0) return true;
+  const covered = Number(activity.coveredDurationSec);
+  return Number.isFinite(covered) && covered > 0;
+}
+
+/** Deriva contadores de actividades desde content crudo (HubFlow: modos/packs por ejercicio). */
+export function computeHubflowActivitySummary(content) {
+  const items = isRecord(content) ? Object.values(content).filter(isRecord) : [];
+  let completedActivities = 0;
+  let totalActivities = 0;
+  let attemptedActivities = 0;
+
+  for (const item of items) {
+    if (!isRecord(item.activities)) continue;
+    const activities = Object.values(item.activities).filter(isRecord);
+    totalActivities += activities.length;
+    let itemAttempted = false;
+    for (const activity of activities) {
+      if (activity.completed) completedActivities++;
+      if (isActivityAttempted(activity)) {
+        attemptedActivities++;
+        itemAttempted = true;
+      }
+    }
+    // Tras sync remoto a veces quedan attempts a nivel de ejercicio pero no en cada actividad.
+    if (!itemAttempted && isInteger(item.attempts) && item.attempts > 0) attemptedActivities++;
+  }
+
+  return Object.freeze({
+    completedActivities,
+    totalActivities,
+    attemptedActivities,
+  });
+}
+
+/** Deriva contadores de actividades desde content crudo (LyricFlow guarda 4 por canción). */
+export function computeLyricflowActivitySummary(content, totalSongs = null) {
+  const songs = isRecord(content) ? Object.values(content).filter(isRecord) : [];
+  const songCount = isInteger(totalSongs) ? totalSongs : songs.length;
+  let completedActivities = 0;
+  let attemptedActivities = 0;
+
+  for (const song of songs) {
+    const activities = isRecord(song.activities) ? song.activities : {};
+    for (const activityId of LYRICFLOW_ACTIVITY_IDS) {
+      const activity = activities[activityId];
+      if (isRecord(activity) && activity.completed) completedActivities++;
+      if (isActivityAttempted(activity)) attemptedActivities++;
+    }
+  }
+
+  return Object.freeze({
+    completedActivities,
+    totalActivities: songCount * LYRICFLOW_ACTIVITY_IDS.length,
+    attemptedActivities,
+  });
+}
+
+function repairContentEntry(contentId, item, app) {
+  if (!isRecord(item)) return null;
+  let repaired = false;
+
+  if (!isNonEmptyString(item.contentId) || item.contentId !== contentId) {
+    item.contentId = contentId;
+    repaired = true;
+  }
+  if (!isNonEmptyString(item.contentType)) {
+    item.contentType = app === 'lyricflow' ? 'song' : 'exercise';
+    repaired = true;
+  }
+  if (!Number.isFinite(item.progressPct) || item.progressPct < 0 || item.progressPct > 100) {
+    const pct = Number(item.progressPct);
+    item.progressPct = Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 0;
+    repaired = true;
+  }
+  if (typeof item.completed !== 'boolean') {
+    item.completed = Boolean(item.completed);
+    repaired = true;
+  }
+  if (item.completedAt != null && !isIsoDate(item.completedAt)) {
+    item.completedAt = canonicalIsoDate(item.completedAt);
+    repaired = true;
+  }
+  if (item.bestScorePct != null && !isPercentage(item.bestScorePct)) {
+    const score = Number(item.bestScorePct);
+    item.bestScorePct = Number.isFinite(score) ? Math.min(100, Math.max(0, score)) : null;
+    repaired = true;
+  }
+  if (!isInteger(item.attempts)) {
+    item.attempts = Math.max(0, Math.round(Number(item.attempts) || 0));
+    repaired = true;
+  }
+
+  return repaired ? item : item;
+}
+
+function repairProgressDocument(document, app) {
+  if (!isRecord(document) || !isRecord(document.summary) || !isRecord(document.content)) return false;
+  let repaired = false;
+
+  if (isNonEmptyString(document.updatedAt)) {
+    const fixed = canonicalIsoDate(document.updatedAt);
+    if (fixed && fixed !== document.updatedAt) {
+      document.updatedAt = fixed;
+      repaired = true;
+    }
+  }
+
+  const sanitized = {};
+  for (const [contentId, item] of Object.entries(document.content)) {
+    const repairedItem = repairContentEntry(contentId, item, app);
+    if (!repairedItem || !isValidContentEntry(contentId, repairedItem)) continue;
+    sanitized[contentId] = repairedItem;
+    if (repairedItem !== item) repaired = true;
+  }
+
+  if (Object.keys(sanitized).length !== Object.keys(document.content).length) {
+    document.content = sanitized;
+    repaired = true;
+  }
+
+  const contentCount = Object.keys(document.content).length;
+  const summary = document.summary;
+
+  if (contentCount > 0 && summary.totalContent !== contentCount) {
+    summary.totalContent = contentCount;
+    repaired = true;
+  }
+  if (summary.completedContent > summary.totalContent) {
+    summary.completedContent = summary.totalContent;
+    repaired = true;
+  }
+  if (summary.attemptedContent > summary.totalContent) {
+    summary.attemptedContent = summary.totalContent;
+    repaired = true;
+  }
+  if (!isPercentage(summary.progressPct)) {
+    summary.progressPct = 0;
+    repaired = true;
+  }
+
+  return repaired;
+}
+
 function normalizeLastContent(summary) {
   if (!isRecord(summary.lastContent) || !isNonEmptyString(summary.lastContent.contentId)) return null;
   const item = summary.lastContent;
@@ -186,6 +334,9 @@ function validateProgress(document, app) {
   if (document.app !== app) return result(STATUS.INVALID, null, 'La aplicación no coincide con la clave.');
   if (!isIsoDate(document.updatedAt)) return result(STATUS.INVALID, null, 'updatedAt debe ser una fecha ISO UTC.');
   if (!isRecord(document.summary)) return result(STATUS.INVALID, null, 'Falta el resumen de progreso.');
+  if (!isRecord(document.content)) return result(STATUS.INVALID, null, 'content debe ser un objeto.');
+
+  repairProgressDocument(document, app);
 
   const summary = document.summary;
   const fieldsAreValid = isPercentage(summary.progressPct)
@@ -196,12 +347,10 @@ function validateProgress(document, app) {
     && summary.attemptedContent <= summary.totalContent;
 
   if (!fieldsAreValid) return result(STATUS.INVALID, null, 'El resumen contiene valores fuera de rango.');
-  if (!isRecord(document.content)) return result(STATUS.INVALID, null, 'content debe ser un objeto.');
 
   const contentEntries = Object.entries(document.content);
-  if (contentEntries.length < summary.totalContent
-    || !contentEntries.every(([contentId, item]) => isValidContentEntry(contentId, item))) {
-    return result(STATUS.INVALID, null, 'content no coincide con el resumen o contiene campos inválidos.');
+  if (!contentEntries.every(([contentId, item]) => isValidContentEntry(contentId, item))) {
+    return result(STATUS.INVALID, null, 'content contiene campos inválidos.');
   }
 
   const normalizedContent = Object.freeze(Object.fromEntries(
@@ -213,6 +362,14 @@ function validateProgress(document, app) {
     ]),
   ));
 
+  const lyricflowActivities = app === 'lyricflow'
+    ? computeLyricflowActivitySummary(document.content, summary.totalContent)
+    : null;
+  const hubflowActivities = app === 'hubflow'
+    ? computeHubflowActivitySummary(document.content)
+    : null;
+  const activitySummary = lyricflowActivities || hubflowActivities;
+
   const data = Object.freeze({
     app,
     updatedAt: document.updatedAt,
@@ -222,8 +379,12 @@ function validateProgress(document, app) {
       completedContent: summary.completedContent,
       totalContent: summary.totalContent,
       attemptedContent: summary.attemptedContent,
-      completedActivities: isInteger(summary.completedActivities) ? summary.completedActivities : null,
-      totalActivities: isInteger(summary.totalActivities) ? summary.totalActivities : null,
+      completedActivities: activitySummary?.completedActivities
+        ?? (isInteger(summary.completedActivities) ? summary.completedActivities : null),
+      totalActivities: activitySummary?.totalActivities
+        ?? (isInteger(summary.totalActivities) ? summary.totalActivities : null),
+      attemptedActivities: activitySummary?.attemptedActivities
+        ?? (isInteger(summary.attemptedActivities) ? summary.attemptedActivities : null),
       lastContent: normalizeLastContent(summary)
     }),
     content: normalizedContent,
@@ -295,6 +456,7 @@ function emptyProgressResult(app) {
       attemptedContent: 0,
       completedActivities: null,
       totalActivities: null,
+      attemptedActivities: null,
       lastContent: null,
     }),
     content: Object.freeze({}),
@@ -359,7 +521,7 @@ export class ProgressReader {
     }
     const parsed = parseStoredValue(raw);
     if (parsed.error) return result(STATUS.INVALID, null, parsed.error);
-    if (repairStoredDocument(parsed.value)) {
+    if (repairStoredDocument(parsed.value) || repairProgressDocument(parsed.value, key.split(':')[2])) {
       try {
         this.storage.setItem(key, JSON.stringify(parsed.value));
       } catch {

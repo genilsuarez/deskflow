@@ -109,6 +109,24 @@ export async function fetchProgress(app) {
   return data ?? [];
 }
 
+export async function fetchActivityEvents(app) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return [];
+
+  const { data, error } = await supabase
+    .from('activity_events')
+    .select(
+      'event_id, run_id, app, content_id, title, activity, event_type, occurred_at, score_pct, passed, duration_ms, metrics'
+    )
+    .eq('user_id', session.user.id)
+    .eq('app', app)
+    .order('occurred_at', { ascending: false })
+    .limit(200);
+
+  if (error) return null;
+  return data ?? [];
+}
+
 // === ACTIVITY EVENTS ===
 
 export async function syncActivityEvents(app, events) {

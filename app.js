@@ -19,7 +19,7 @@ const APP_CONFIG = Object.freeze({
     name: 'HubFlow',
     eyebrow: 'Práctica temática',
     description: '5 modos por ejercicio incluyendo Battle 2P.',
-    unit: 'contenidos',
+    unit: 'actividades',
     lastLabel: 'Ejercicio',
     color: 'amber',
     url: 'https://genilsuarez.github.io/hubflow/'
@@ -28,7 +28,7 @@ const APP_CONFIG = Object.freeze({
     name: 'LyricFlow',
     eyebrow: 'Aprendizaje con música',
     description: 'Entrena escucha y comprensión con canciones y actividades.',
-    unit: 'canciones',
+    unit: 'actividades',
     lastLabel: 'Canción',
     color: 'teal',
     url: 'https://genilsuarez.github.io/lyricflow/'
@@ -104,20 +104,19 @@ function hasValidProgress(result) {
   return result.progress.status === STATUS.READY || result.progress.status === STATUS.EMPTY;
 }
 
-/** Métricas primarias para UI — LyricFlow cuenta actividades; el % mostrado deriva de completed/total. */
+/** Métricas primarias para UI — HubFlow/LyricFlow cuentan actividades; el % deriva de completed/total. */
 function progressDisplayMetrics(result) {
   const summary = result.progress.data.summary;
-  if (
-    result.app === 'lyricflow'
-    && summary.completedActivities != null
-    && summary.totalActivities != null
-    && summary.totalActivities > 0
-  ) {
-    return {
-      completed: summary.completedActivities,
-      total: summary.totalActivities,
-      unit: 'actividades',
-    };
+  if (result.app === 'hubflow' || result.app === 'lyricflow') {
+    const total = summary.totalActivities ?? 0;
+    const completed = summary.completedActivities ?? 0;
+    if (total > 0) {
+      return {
+        completed,
+        total,
+        unit: 'actividades',
+      };
+    }
   }
   return {
     completed: summary.completedContent,
@@ -161,13 +160,21 @@ function completedMetric(result) {
 }
 
 function attemptedMetric(result) {
-  if (hasValidProgress(result)) return String(result.progress.data.summary.attemptedContent);
-  return '0';
+  if (!hasValidProgress(result)) return '0';
+  if ((result.app === 'hubflow' || result.app === 'lyricflow')
+    && result.progress.data.summary.attemptedActivities != null) {
+    return String(result.progress.data.summary.attemptedActivities);
+  }
+  return String(result.progress.data.summary.attemptedContent);
 }
 
 function attemptedTotalLabel(result) {
-  if (hasValidProgress(result)) return `de ${result.progress.data.summary.totalContent}`;
-  return 'de 0';
+  if (!hasValidProgress(result)) return 'de 0';
+  if (result.app === 'hubflow' || result.app === 'lyricflow') {
+    const { total } = progressDisplayMetrics(result);
+    return `de ${total}`;
+  }
+  return `de ${result.progress.data.summary.totalContent}`;
 }
 
 function createStatusPill(status) {
@@ -288,7 +295,12 @@ function renderHeaderStats() {
   const pctEl = document.getElementById('headerStatsPct');
   if (!completedEl || !pctEl) return;
   const validResults = appData.filter(hasValidProgress);
-  const totalCompleted = validResults.reduce((total, result) => total + result.progress.data.summary.completedContent, 0);
+  const totalCompleted = validResults.reduce((total, result) => {
+    if (result.app === 'hubflow' || result.app === 'lyricflow') {
+      return total + (result.progress.data.summary.completedActivities ?? 0);
+    }
+    return total + result.progress.data.summary.completedContent;
+  }, 0);
   const average = validResults.length > 0
     ? validResults.reduce((total, result) => total + displayProgressPct(result), 0) / validResults.length
     : 0;
@@ -510,7 +522,7 @@ function buildModuleInsight(app, result, config) {
   const kickers = {
     fluentflow: 'Lectura CEFR',
     hubflow: 'Práctica temática',
-    lyricflow: 'Progreso por canción'
+    lyricflow: 'Progreso por actividad'
   };
 
   insight.append(element('p', 'detail-insight__kicker section-kicker', kickers[app]));
@@ -523,16 +535,18 @@ function buildModuleInsight(app, result, config) {
       : 'Completa módulos para ver tu nivel.';
     insight.append(element('h2', 'detail-insight__title', headline), element('p', 'detail-insight__detail', detail));
   } else if (app === 'hubflow') {
-    insight.append(
-      element('h2', 'detail-insight__title', '5 modos por ejercicio'),
-      element('p', 'detail-insight__detail', 'Incluye Battle 2P.')
-    );
+    const metrics = hasValidProgress(result) ? progressDisplayMetrics(result) : null;
+    const headline = metrics?.total ? `${metrics.total} actividades` : 'Práctica temática';
+    const detail = metrics?.total
+      ? `${metrics.completed} de ${metrics.total} actividades completadas`
+      : 'El desglose aparece al completar actividades.';
+    insight.append(element('h2', 'detail-insight__title', headline), element('p', 'detail-insight__detail', detail));
   } else {
-    const summary = hasValidProgress(result) ? result.progress.data.summary : null;
-    const headline = summary?.totalContent != null ? `${summary.totalContent} canciones` : 'Catálogo musical';
-    const detail = summary?.completedActivities != null && summary?.totalActivities != null
-      ? `${summary.completedActivities} de ${summary.totalActivities} actividades completadas`
-      : 'El desglose aparece al completar canciones.';
+    const metrics = hasValidProgress(result) ? progressDisplayMetrics(result) : null;
+    const headline = metrics?.total ? `${metrics.total} actividades` : 'Catálogo musical';
+    const detail = metrics?.total
+      ? `${metrics.completed} de ${metrics.total} actividades completadas`
+      : 'El desglose aparece al completar actividades.';
     insight.append(element('h2', 'detail-insight__title', headline), element('p', 'detail-insight__detail', detail));
   }
 
