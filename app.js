@@ -141,8 +141,7 @@ function appMetric(result, config) {
 
 function progressLabel(result) {
   if (hasValidProgress(result)) return `${rounded(result.progress.data.summary.progressPct)}%`;
-  if (result.progress.status === STATUS.UNAVAILABLE) return '0%';
-  return '—';
+  return '0%';
 }
 
 function completedMetric(result) {
@@ -150,20 +149,17 @@ function completedMetric(result) {
     const { completed, total } = progressDisplayMetrics(result);
     return `${completed} / ${total}`;
   }
-  if (result.progress.status === STATUS.UNAVAILABLE) return '0';
-  return '—';
+  return '0';
 }
 
 function attemptedMetric(result) {
   if (hasValidProgress(result)) return String(result.progress.data.summary.attemptedContent);
-  if (result.progress.status === STATUS.UNAVAILABLE) return '0';
-  return '—';
+  return '0';
 }
 
 function attemptedTotalLabel(result) {
   if (hasValidProgress(result)) return `de ${result.progress.data.summary.totalContent}`;
-  if (result.progress.status === STATUS.UNAVAILABLE) return 'de 0';
-  return '—';
+  return 'de 0';
 }
 
 function createStatusPill(status) {
@@ -300,7 +296,7 @@ function renderCefr() {
   const cefr = hasValidProgress(result) ? result.progress.data.cefr : null;
 
   if (!cefr) {
-    level.textContent = '—';
+    level.textContent = 'pendiente';
     description.textContent = 'Disponible cuando FluentFlow publique información válida de su ruta.';
     return;
   }
