@@ -30,7 +30,30 @@
   }
 
   function getStoredTheme() {
+    try {
+      var saved = localStorage.getItem(STORAGE_KEY);
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch (e) {
+      /* noop */
+    }
     return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  }
+
+  var APP_PATH_RE = /^\/(deskflow|fluentflow|hubflow|lyricflow)(\/|$)/;
+
+  function isCrossAppHref(href) {
+    if (!href || href.charAt(0) === '#') return false;
+    try {
+      var url = new URL(href, location.origin);
+      var host = url.hostname;
+      var isLocalHost =
+        host === 'localhost' || host === '127.0.0.1' || host.indexOf('192.168.') === 0;
+      if (!isLocalHost) return false;
+      if (url.port && url.port !== location.port) return true;
+      return APP_PATH_RE.test(url.pathname);
+    } catch (e) {
+      return false;
+    }
   }
 
   function syncThemeUrlParam(theme) {
@@ -94,11 +117,13 @@
   function setupCrossAppThemeLinks() {
     if (!isLocalDev()) return;
     document.addEventListener('click', function (e) {
-      var a = e.target.closest('a[href*="localhost:"]');
+      var a = e.target.closest('a[href]');
       if (!a) return;
+      var raw = a.getAttribute('href');
+      if (!isCrossAppHref(raw)) return;
       var theme = getStoredTheme();
       try {
-        var url = new URL(a.href);
+        var url = new URL(raw, location.origin);
         url.searchParams.set('theme', theme);
         a.href = url.toString();
       } catch (err) {
@@ -110,6 +135,12 @@
   function initEarly() {
     var theme = readInitialTheme();
     if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+    try {
+      localStorage.setItem(STORAGE_KEY, theme);
+    } catch (e) {
+      /* noop */
+    }
     updateMetaTags(theme);
   }
 
