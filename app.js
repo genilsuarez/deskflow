@@ -1,7 +1,7 @@
 import { APPS, ProgressReader, STATUS } from './progress-reader.js';
 import { buildContentTitleIndex, resolveContentTitle } from './content-title.js';
 import * as lpSupabase from './lp-supabase.js';
-import { runFullSync, downloadOnLogin, resetDownloadState } from './sync-engine.js';
+import { runFullSync, downloadOnLogin, resetDownloadState, repairLocalProjections, auditLocalProjections, auditCloudAlignment } from './sync-engine.js';
 
 window.lpSupabase = lpSupabase;
 
@@ -701,28 +701,22 @@ function isLocalEnvironment() {
   return host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.');
 }
 
-function isUnifiedLocalEnvironment() {
-  return isLocalEnvironment() && location.port === '3000' && location.pathname.startsWith('/deskflow/');
-}
-
 function prepareAppLinks() {
-  const host = location.hostname;
-  const isLocal = isLocalEnvironment();
-  const isUnifiedLocal = isUnifiedLocalEnvironment();
-  const localPorts = { fluentflow: '3001', hubflow: '3002', lyricflow: '3003' };
-
   document.querySelectorAll('[data-app-link]').forEach((link) => {
     const app = link.dataset.appLink;
     if (!APP_CONFIG[app]) return;
-    let href = isUnifiedLocal ? `/${app}/` : isLocal ? `http://${host}:${localPorts[app]}/` : APP_CONFIG[app].url;
+    let href = window.LPPlatformUrls
+      ? window.LPPlatformUrls.appHref(app)
+      : APP_CONFIG[app].url;
     if (window.LPTheme) href = window.LPTheme.appendThemeToHref(href);
     link.href = href;
-    if (isLocal) link.removeAttribute('rel');
+    if (window.LPPlatformUrls?.isLocalDev()) link.removeAttribute('rel');
     else link.rel = 'noopener';
   });
 }
 
 function renderAll() {
+  repairLocalProjections();
   appData = reader.readAll();
   contentTitleIndex = buildContentTitleIndex(appData);
   renderGlobalProgress();
@@ -908,13 +902,9 @@ function showView(viewName, updateHash = true) {
   window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
 
-function getAppHref(path, port) {
-  const host = location.hostname;
-  const isLocal = host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.');
-  const isUnified = isLocal && location.port === '3000' && location.pathname.startsWith('/deskflow/');
-  if (isUnified) return path;
-  if (isLocal) return `http://${host}:${port}/`;
-  return `https://genilsuarez.github.io${path}`;
+function getAppHref(app) {
+  if (window.LPPlatformUrls) return window.LPPlatformUrls.appHref(app);
+  return `https://genilsuarez.github.io/${app}/`;
 }
 
 function showAboutLearnFlow(event) {
@@ -937,19 +927,19 @@ function showAboutLearnFlow(event) {
       <div class="about-body">
         <p id="aboutLearnFlowDescription" class="about-description">Una plataforma para aprender idiomas con estructura, práctica y música.</p>
         <nav class="about-modules" aria-label="Aplicaciones de LearnFlow">
-          <a href="${getAppHref('/deskflow/', 3000)}" data-app-link="deskflow">
+          <a href="${getAppHref('deskflow')}" data-app-link="deskflow">
             <span class="about-module__mark about-module__mark--portal" aria-hidden="true">L</span>
             <span class="about-module__text"><strong>LearnFlow</strong><span>Portal</span></span>
           </a>
-          <a href="${getAppHref('/fluentflow/', 3001)}" data-app-link="fluentflow">
+          <a href="${getAppHref('fluentflow')}" data-app-link="fluentflow">
             <span class="about-module__mark about-module__mark--fluent" aria-hidden="true">F</span>
             <span class="about-module__text"><strong>FluentFlow</strong><span>Ruta de inglés por niveles CEFR</span></span>
           </a>
-          <a href="${getAppHref('/hubflow/', 3002)}" data-app-link="hubflow">
+          <a href="${getAppHref('hubflow')}" data-app-link="hubflow">
             <span class="about-module__mark about-module__mark--hub" aria-hidden="true">H</span>
             <span class="about-module__text"><strong>HubFlow</strong><span>Práctica flexible de gramática</span></span>
           </a>
-          <a href="${getAppHref('/lyricflow/', 3003)}" data-app-link="lyricflow">
+          <a href="${getAppHref('lyricflow')}" data-app-link="lyricflow">
             <span class="about-module__mark about-module__mark--lyric" aria-hidden="true">LF</span>
             <span class="about-module__text"><strong>LyricFlow</strong><span>Aprender con música</span></span>
           </a>
@@ -1159,6 +1149,12 @@ setupSupabaseAuth();
 
 if (new URLSearchParams(location.search).has('debug')) {
   document.getElementById('dataHealth').hidden = false;
+  window.lpSyncAudit = {
+    local: auditLocalProjections,
+    cloud: auditCloudAlignment,
+    repair: repairLocalProjections,
+    fullSync: () => runFullSync({ force: true }),
+  };
 }
 document.getElementById('refreshData').addEventListener('click', renderAll);
 window.addEventListener('storage', (event) => {

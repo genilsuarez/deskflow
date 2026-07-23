@@ -191,6 +191,120 @@ export function computeHubflowActivitySummary(content) {
   });
 }
 
+/** Deriva contadores alineados con FluentFlow (solo completados válidos en la ruta CEFR). */
+const FLUENTFLOW_LEVELS = Object.freeze(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
+
+function groupFluentflowContentByLevel(content) {
+  const byLevel = Object.fromEntries(FLUENTFLOW_LEVELS.map((level) => [level, []]));
+  for (const item of Object.values(content)) {
+    if (!isRecord(item) || !isNonEmptyString(item.cefrLevel)) continue;
+    const level = item.cefrLevel.toUpperCase();
+    if (byLevel[level]) byLevel[level].push(item);
+  }
+  return byLevel;
+}
+
+function isFluentflowPreviousLevelComplete(cefrLevel, byLevel) {
+  const idx = FLUENTFLOW_LEVELS.indexOf(cefrLevel);
+  if (idx <= 0) return true;
+  const previousLevel = FLUENTFLOW_LEVELS[idx - 1];
+  const previousModules = byLevel[previousLevel] || [];
+  if (previousModules.length === 0) return true;
+  return previousModules.every((item) => item.completed === true);
+}
+
+export function computeFluentflowProgressSummary(content) {
+  const byLevel = groupFluentflowContentByLevel(content);
+  let completedContent = 0;
+
+  for (const level of FLUENTFLOW_LEVELS) {
+    for (const item of byLevel[level]) {
+      if (item.completed !== true) continue;
+      if (!isFluentflowPreviousLevelComplete(level, byLevel)) continue;
+      completedContent++;
+    }
+  }
+
+  const totalContent = Object.values(content).filter(isRecord).length;
+  const cefr = Object.fromEntries(
+    FLUENTFLOW_LEVELS.map((level) => {
+      const levelModules = byLevel[level];
+      const completedModules = levelModules.filter(
+        (item) => item.completed === true && isFluentflowPreviousLevelComplete(level, byLevel)
+      ).length;
+      const totalModules = levelModules.length;
+      const progressPct = totalModules > 0 ? (completedModules / totalModules) * 100 : 0;
+      const status =
+        completedModules === 0
+          ? 'not_started'
+          : completedModules === totalModules
+            ? 'completed'
+            : progressPct >= 80
+              ? 'near_completion'
+              : 'in_progress';
+      return [level, { progressPct, completedModules, totalModules, status }];
+    })
+  );
+
+  return Object.freeze({
+    completedContent,
+    totalContent,
+    progressPct: totalContent > 0 ? (completedContent / totalContent) * 100 : 0,
+    cefr,
+  });
+}
+
+/** Rebuild summary (and FluentFlow cefr) from raw content — used after cloud download merge. */
+export function recomputeProgressDocumentSummary(doc, app) {
+  if (!isRecord(doc) || !isRecord(doc.content)) return false;
+  doc.summary = isRecord(doc.summary) ? doc.summary : {};
+
+  if (app === 'fluentflow') {
+    const ff = computeFluentflowProgressSummary(doc.content);
+    doc.summary.completedContent = ff.completedContent;
+    doc.summary.totalContent = ff.totalContent;
+    doc.summary.progressPct = ff.progressPct;
+    doc.cefr = ff.cefr;
+    return true;
+  }
+
+  const items = Object.values(doc.content).filter(isRecord);
+  if (app === 'hubflow') {
+    const activities = computeHubflowActivitySummary(doc.content);
+    doc.summary = {
+      ...doc.summary,
+      progressPct: items.length
+        ? items.reduce((sum, item) => sum + (item.progressPct || 0), 0) / items.length
+        : 0,
+      completedContent: items.filter((item) => item.completed).length,
+      totalContent: items.length,
+      attemptedContent: items.filter((item) => (item.attempts || 0) > 0).length,
+      ...activities,
+    };
+    return true;
+  }
+
+  if (app === 'lyricflow') {
+    const catalogTotal = isInteger(doc.summary.totalContent) && doc.summary.totalContent > 0
+      ? doc.summary.totalContent
+      : items.length;
+    const activities = computeLyricflowActivitySummary(doc.content, catalogTotal);
+    doc.summary = {
+      ...doc.summary,
+      progressPct: items.length
+        ? items.reduce((sum, item) => sum + (item.progressPct || 0), 0) / items.length
+        : 0,
+      completedContent: items.filter((item) => item.completed).length,
+      totalContent: catalogTotal,
+      attemptedContent: items.filter((item) => (item.attempts || 0) > 0).length,
+      ...activities,
+    };
+    return true;
+  }
+
+  return false;
+}
+
 /** Deriva contadores de actividades desde content crudo (LyricFlow guarda 4 por canción). */
 export function computeLyricflowActivitySummary(content, totalSongs = null) {
   const songs = isRecord(content) ? Object.values(content).filter(isRecord) : [];
@@ -368,16 +482,26 @@ function validateProgress(document, app) {
   const hubflowActivities = app === 'hubflow'
     ? computeHubflowActivitySummary(document.content)
     : null;
+  const fluentflowSummary = app === 'fluentflow'
+    ? computeFluentflowProgressSummary(document.content)
+    : null;
   const activitySummary = lyricflowActivities || hubflowActivities;
+
+  const summaryCompleted = fluentflowSummary?.completedContent ?? summary.completedContent;
+  const summaryTotal = fluentflowSummary?.totalContent ?? summary.totalContent;
+  const summaryProgressPct = fluentflowSummary?.progressPct ?? summary.progressPct;
+  const summaryCefr = fluentflowSummary
+    ? normalizeCefr({ cefr: fluentflowSummary.cefr, summary: {} }, app)
+    : normalizeCefr(document, app);
 
   const data = Object.freeze({
     app,
     updatedAt: document.updatedAt,
     catalogVersion: isNonEmptyString(document.catalogVersion) ? document.catalogVersion : null,
     summary: Object.freeze({
-      progressPct: summary.progressPct,
-      completedContent: summary.completedContent,
-      totalContent: summary.totalContent,
+      progressPct: summaryProgressPct,
+      completedContent: summaryCompleted,
+      totalContent: summaryTotal,
       attemptedContent: summary.attemptedContent,
       completedActivities: activitySummary?.completedActivities
         ?? (isInteger(summary.completedActivities) ? summary.completedActivities : null),
@@ -388,12 +512,12 @@ function validateProgress(document, app) {
       lastContent: normalizeLastContent(summary)
     }),
     content: normalizedContent,
-    cefr: normalizeCefr(document, app)
+    cefr: summaryCefr
   });
 
   const isEmpty = summary.attemptedContent === 0
-    && summary.completedContent === 0
-    && summary.progressPct === 0;
+    && summaryCompleted === 0
+    && summaryProgressPct === 0;
   return result(isEmpty ? STATUS.EMPTY : STATUS.READY, data);
 }
 

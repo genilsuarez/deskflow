@@ -45,6 +45,9 @@
     if (!href || href.charAt(0) === '#') return false;
     try {
       var url = new URL(href, location.origin);
+      if (!isLocalDev()) return false;
+      // Same gateway origin — localStorage is shared; no ?theme= bridge needed.
+      if (url.origin === location.origin) return false;
       var host = url.hostname;
       var isLocalHost =
         host === 'localhost' || host === '127.0.0.1' || host.indexOf('192.168.') === 0;

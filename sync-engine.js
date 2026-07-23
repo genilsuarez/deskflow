@@ -18,7 +18,7 @@
 // remoto requeriría mapear cada scoreKey por módulo, fuera de alcance por ahora.
 
 import * as lpSupabase from './lp-supabase.js';
-import { computeHubflowActivitySummary, computeLyricflowActivitySummary } from './progress-reader.js';
+import { recomputeProgressDocumentSummary } from './progress-reader.js';
 
 const APPS = ['fluentflow', 'hubflow', 'lyricflow'];
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
@@ -110,26 +110,13 @@ async function downloadApp(app) {
     }
   }
 
-  if (changed) {
-    const items = Object.values(doc.content);
-    const baseSummary = {
-      progressPct: items.length
-        ? items.reduce((sum, item) => sum + item.progressPct, 0) / items.length
-        : 0,
-      completedContent: items.filter((item) => item.completed).length,
-      totalContent: items.length,
-      attemptedContent: items.filter((item) => item.attempts > 0).length,
-    };
-    doc.summary = app === 'lyricflow'
-      ? { ...baseSummary, ...computeLyricflowActivitySummary(doc.content, items.length) }
-      : app === 'hubflow'
-        ? { ...baseSummary, ...computeHubflowActivitySummary(doc.content) }
-        : baseSummary;
+  const summaryChanged = recomputeProgressDocumentSummary(doc, app);
+  if (changed || summaryChanged) {
     doc.updatedAt = new Date().toISOString();
     writeRaw(key, doc);
   }
 
-  return { downloaded: changed, count: remoteRows.length };
+  return { downloaded: changed || summaryChanged, count: remoteRows.length };
 }
 
 function emptyActivityDoc(app) {
@@ -219,12 +206,17 @@ export async function downloadOnLogin() {
 }
 
 async function syncApp(app) {
-  const progressDoc = readRaw(`learnflow:progress:${app}:v1`);
+  const progressKey = `learnflow:progress:${app}:v1`;
+  const progressDoc = readRaw(progressKey);
   const activityDoc = readRaw(`learnflow:activity:${app}:v1`);
 
   const results = {};
 
   if (progressDoc && progressDoc.content && Object.keys(progressDoc.content).length) {
+    if (recomputeProgressDocumentSummary(progressDoc, app)) {
+      progressDoc.updatedAt = new Date().toISOString();
+      writeRaw(progressKey, progressDoc);
+    }
     results.progress = await lpSupabase.syncProgress(app, { content: progressDoc.content });
   }
   if (activityDoc && Array.isArray(activityDoc.events) && activityDoc.events.length) {
@@ -254,4 +246,82 @@ export async function runFullSync({ force = false } = {}) {
   } finally {
     syncing = false;
   }
+}
+
+/** Recompute stored summaries from raw content — fixes drift after catalog changes. */
+export function repairLocalProjections() {
+  let repaired = false;
+  for (const app of APPS) {
+    const key = `learnflow:progress:${app}:v1`;
+    const doc = readRaw(key);
+    if (!doc?.content) continue;
+    if (recomputeProgressDocumentSummary(doc, app)) {
+      doc.updatedAt = new Date().toISOString();
+      writeRaw(key, doc);
+      repaired = true;
+    }
+  }
+  return repaired;
+}
+
+/** Compare stored summary vs recomputed values (no network). */
+export function auditLocalProjections() {
+  const report = {};
+  for (const app of APPS) {
+    const key = `learnflow:progress:${app}:v1`;
+    const doc = readRaw(key);
+    if (!doc) {
+      report[app] = { status: 'missing' };
+      continue;
+    }
+    const stored = { ...(doc.summary || {}) };
+    const clone = JSON.parse(JSON.stringify(doc));
+    recomputeProgressDocumentSummary(clone, app);
+    report[app] = {
+      status: 'ok',
+      contentEntries: Object.keys(doc.content || {}).length,
+      storedCompleted: stored.completedContent ?? null,
+      recomputedCompleted: clone.summary?.completedContent ?? null,
+      summaryDrift: stored.completedContent !== clone.summary?.completedContent,
+    };
+  }
+  return report;
+}
+
+/** Compare local progress keys with Supabase rows for the signed-in user. */
+export async function auditCloudAlignment() {
+  const authed = await lpSupabase.isAuthenticated();
+  if (!authed) return { ok: false, reason: 'not_authenticated' };
+
+  const report = {};
+  for (const app of APPS) {
+    const key = `learnflow:progress:${app}:v1`;
+    const doc = readRaw(key);
+    const localIds = new Set(Object.keys(doc?.content || {}));
+    const remoteRows = await lpSupabase.fetchProgress(app);
+    if (remoteRows === null) {
+      report[app] = { status: 'fetch_error' };
+      continue;
+    }
+    const remoteIds = new Set(remoteRows.map((row) => row.content_id));
+    const onlyLocal = [...localIds].filter((id) => !remoteIds.has(id));
+    const onlyRemote = [...remoteIds].filter((id) => !localIds.has(id));
+    const localCompleted = [...localIds].filter((id) => doc.content[id]?.completed).length;
+    const remoteCompleted = remoteRows.filter((row) => row.completed).length;
+
+    report[app] = {
+      status: 'ok',
+      localEntries: localIds.size,
+      remoteEntries: remoteIds.size,
+      localCompleted,
+      remoteCompleted,
+      onlyLocal: onlyLocal.slice(0, 10),
+      onlyRemote: onlyRemote.slice(0, 10),
+      onlyLocalCount: onlyLocal.length,
+      onlyRemoteCount: onlyRemote.length,
+      pendingUpload: onlyLocal.length > 0,
+      pendingDownload: onlyRemote.length > 0,
+    };
+  }
+  return { ok: true, report };
 }
