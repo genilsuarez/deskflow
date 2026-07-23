@@ -237,11 +237,10 @@ export class ProgressReader {
 
   readApp(app) {
     if (!APPS.includes(app)) throw new TypeError(`Aplicación no admitida: ${app}`);
-    const version = app === 'hubflow' ? 'v2' : 'v1';
     return Object.freeze({
       app,
-      progress: this.#readKey(`learnflow:progress:${app}:${version}`, (document) => validateProgress(document, app)),
-      activity: this.#readKey(`learnflow:activity:${app}:${version}`, (document) => validateActivity(document, app))
+      progress: this.#readKey(`learnflow:progress:${app}:v1`, (document) => validateProgress(document, app)),
+      activity: this.#readKey(`learnflow:activity:${app}:v1`, (document) => validateActivity(document, app))
     });
   }
 

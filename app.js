@@ -1,7 +1,7 @@
 import { APPS, ProgressReader, STATUS } from './progress-reader.js';
 import { buildContentTitleIndex, resolveContentTitle } from './content-title.js';
 import * as lpSupabase from './lp-supabase.js';
-import { runFullSync } from './sync-engine.js';
+import { runFullSync, downloadOnLogin } from './sync-engine.js';
 
 window.lpSupabase = lpSupabase;
 
@@ -1036,16 +1036,19 @@ async function setupSupabaseAuth() {
     if (!session || !session.user) return;
     lpSupabase.fetchProfile().then((profile) => {
       lpLogin.setUserFromSupabase(session.user, profile);
-      runFullSync({ force: true }).then((result) => {
-        if (result.synced) renderAll();
-      });
+      // Descarga primero (pobla/mezcla el caché local), luego sube el
+      // resultado mezclado — así no se pierde nada en ningún sentido.
+      downloadOnLogin()
+        .then(() => runFullSync({ force: true }))
+        .then(() => renderAll());
     });
   });
 
   const authed = await lpSupabase.isAuthenticated();
   if (authed) {
-    runFullSync().then((result) => {
-      if (result.synced) renderAll();
+    downloadOnLogin().then((downloadResult) => {
+      if (downloadResult.downloaded) renderAll();
+      return runFullSync();
     });
   }
 }
@@ -1069,7 +1072,7 @@ window.addEventListener('storage', (event) => {
     setNavigationMode(NAVIGATION_MODES.has(event.newValue) ? event.newValue : 'sidebar');
     return;
   }
-  if (/^learnflow:(progress|activity):(fluentflow|hubflow|lyricflow):v[12]$/.test(event.key || '')) renderAll();
+  if (/^learnflow:(progress|activity):(fluentflow|hubflow|lyricflow):v1$/.test(event.key || '')) renderAll();
 });
 
 (function rotateHints() {

@@ -1,20 +1,30 @@
-// sync-engine.js — Sube el progreso local (localStorage) de FluentFlow, HubFlow
-// y LyricFlow a Supabase cuando el usuario está autenticado. DeskFlow actúa como
-// coordinador porque es el único punto donde las 3 apps conviven en un mismo origin.
+// sync-engine.js — Sincroniza el progreso local (localStorage) de FluentFlow,
+// HubFlow y LyricFlow con Supabase cuando el usuario está autenticado. DeskFlow
+// actúa como coordinador porque es el único punto donde las 3 apps conviven en
+// un mismo origin.
 //
-// Solo sube (local -> remoto). La descarga/merge (remoto -> local, multi-dispositivo)
-// queda pendiente: el esquema local actual solo trae updatedAt a nivel de documento,
-// no por content_id, así que un merge último-en-escribir real requeriría antes decidir
-// esa granularidad — no vale la pena improvisarlo.
+// Sube en cada lección completada (debounced, ver sync-hooks en cada app).
+// Descarga UNA vez al autenticarse, para poblar el caché local en un
+// dispositivo nuevo — no hay polling.
+//
+// Nota de alcance: el merge de descarga escribe en learnflow:progress:{app}:v1,
+// que es la fuente de verdad real para LyricFlow. Para HubFlow y FluentFlow esa
+// clave es una vista DERIVADA (HubFlow la recalcula desde sus score-history keys
+// en cada carga; FluentFlow la deriva de su store de Zustand) — el merge aquí
+// deja el portal de DeskFlow mostrando los datos correctos, pero no reconstruye
+// el estado interno de esas dos apps por sí solo. FluentFlow soluciona esto en
+// su propio syncEngine.ts, mezclando directo en su store. HubFlow queda
+// pendiente: reconstruir sus score-history keys individuales desde progress
+// remoto requeriría mapear cada scoreKey por módulo, fuera de alcance por ahora.
 
 import * as lpSupabase from './lp-supabase.js';
 
 const APPS = ['fluentflow', 'hubflow', 'lyricflow'];
-const VERSION = { fluentflow: 'v1', hubflow: 'v2', lyricflow: 'v1' };
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
 
 let lastSyncAt = 0;
 let syncing = false;
+let downloaded = false;
 
 function readRaw(key) {
   try {
@@ -25,10 +35,103 @@ function readRaw(key) {
   }
 }
 
+function writeRaw(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function emptyProgressDoc(app) {
+  return {
+    schemaVersion: 1,
+    app,
+    updatedAt: new Date().toISOString(),
+    catalogVersion: null,
+    summary: { progressPct: 0, completedContent: 0, totalContent: 0, attemptedContent: 0 },
+    content: {},
+  };
+}
+
+// Combina una fila remota con la entrada local existente sin retroceder
+// progreso ya alcanzado (favorece completado=true, mejor puntaje, más intentos).
+function mergeContentEntry(existing, row) {
+  return {
+    contentId: row.content_id,
+    contentType: row.content_type || existing?.contentType || 'module',
+    progressPct: Math.max(row.progress_pct ?? 0, existing?.progressPct ?? 0),
+    completed: Boolean(row.completed) || Boolean(existing?.completed),
+    completedAt: row.completed_at || existing?.completedAt || null,
+    bestScorePct:
+      row.best_score_pct != null || existing?.bestScorePct != null
+        ? Math.max(row.best_score_pct ?? 0, existing?.bestScorePct ?? 0)
+        : null,
+    lastScorePct: row.last_score_pct ?? existing?.lastScorePct ?? null,
+    attempts: Math.max(row.attempts ?? 0, existing?.attempts ?? 0),
+    activities: existing?.activities || row.activities || {},
+  };
+}
+
+async function downloadApp(app) {
+  const remoteRows = await lpSupabase.fetchProgress(app);
+  if (!remoteRows || !remoteRows.length) return { downloaded: false, reason: 'no_remote_data' };
+
+  const key = `learnflow:progress:${app}:v1`;
+  const doc = readRaw(key) || emptyProgressDoc(app);
+  doc.content = doc.content || {};
+
+  let changed = false;
+  for (const row of remoteRows) {
+    const existing = doc.content[row.content_id];
+    const merged = mergeContentEntry(existing, row);
+    if (
+      !existing ||
+      merged.completed !== existing.completed ||
+      merged.bestScorePct !== existing.bestScorePct ||
+      merged.attempts !== existing.attempts
+    ) {
+      doc.content[row.content_id] = merged;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    const items = Object.values(doc.content);
+    doc.summary = {
+      progressPct: items.length
+        ? items.reduce((sum, item) => sum + item.progressPct, 0) / items.length
+        : 0,
+      completedContent: items.filter((item) => item.completed).length,
+      totalContent: items.length,
+      attemptedContent: items.filter((item) => item.attempts > 0).length,
+    };
+    doc.updatedAt = new Date().toISOString();
+    writeRaw(key, doc);
+  }
+
+  return { downloaded: changed, count: remoteRows.length };
+}
+
+// Se llama una sola vez por sesión, justo después de autenticarse.
+export async function downloadOnLogin() {
+  if (downloaded) return { downloaded: false, reason: 'already_downloaded_this_session' };
+
+  const authed = await lpSupabase.isAuthenticated();
+  if (!authed) return { downloaded: false, reason: 'not_authenticated' };
+
+  downloaded = true;
+  const perApp = {};
+  for (const app of APPS) {
+    perApp[app] = await downloadApp(app);
+  }
+  return { downloaded: true, perApp };
+}
+
 async function syncApp(app) {
-  const version = VERSION[app];
-  const progressDoc = readRaw(`learnflow:progress:${app}:${version}`);
-  const activityDoc = readRaw(`learnflow:activity:${app}:${version}`);
+  const progressDoc = readRaw(`learnflow:progress:${app}:v1`);
+  const activityDoc = readRaw(`learnflow:activity:${app}:v1`);
 
   const results = {};
 
