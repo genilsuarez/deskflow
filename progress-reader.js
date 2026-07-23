@@ -433,10 +433,8 @@ function validateActivity(document, app) {
 
   const events = document.events
     .slice(0, MAX_ACTIVITY_EVENTS)
-    .map((event) => normalizeEvent(event, app));
-  if (events.some((event) => event === null)) {
-    return result(STATUS.INVALID, null, 'Hay eventos con campos esenciales inválidos.');
-  }
+    .map((event) => normalizeEvent(event, app))
+    .filter((event) => event !== null);
   events.sort((first, second) => second.occurredAt.localeCompare(first.occurredAt));
 
   const data = Object.freeze({ app, updatedAt: document.updatedAt, events: Object.freeze(events) });
