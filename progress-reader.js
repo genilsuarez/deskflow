@@ -42,6 +42,52 @@ function isIsoDate(value) {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString() === value;
 }
 
+function canonicalIsoDate(value) {
+  if (!isNonEmptyString(value)) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+// Repara fechas Postgres (+00:00, sin ms) que sync-engine.js de LyricFlow/HubFlow
+// escribía sin normalizar — progress-reader las rechazaba y el documento entero
+// quedaba INVALID ("No se pudo leer el progreso").
+function repairStoredDocument(document) {
+  if (!isRecord(document)) return false;
+  let repaired = false;
+
+  if (isNonEmptyString(document.updatedAt)) {
+    const fixed = canonicalIsoDate(document.updatedAt);
+    if (fixed && fixed !== document.updatedAt) {
+      document.updatedAt = fixed;
+      repaired = true;
+    }
+  }
+
+  if (isRecord(document.content)) {
+    for (const item of Object.values(document.content)) {
+      if (!isRecord(item) || item.completedAt == null) continue;
+      const fixed = canonicalIsoDate(item.completedAt);
+      if (fixed && fixed !== item.completedAt) {
+        item.completedAt = fixed;
+        repaired = true;
+      }
+    }
+  }
+
+  if (Array.isArray(document.events)) {
+    for (const event of document.events) {
+      if (!isRecord(event) || !isNonEmptyString(event.occurredAt)) continue;
+      const fixed = canonicalIsoDate(event.occurredAt);
+      if (fixed && fixed !== event.occurredAt) {
+        event.occurredAt = fixed;
+        repaired = true;
+      }
+    }
+  }
+
+  return repaired;
+}
+
 function parseStoredValue(raw) {
   try {
     return { value: JSON.parse(raw) };
@@ -313,6 +359,13 @@ export class ProgressReader {
     }
     const parsed = parseStoredValue(raw);
     if (parsed.error) return result(STATUS.INVALID, null, parsed.error);
+    if (repairStoredDocument(parsed.value)) {
+      try {
+        this.storage.setItem(key, JSON.stringify(parsed.value));
+      } catch {
+        /* lectura sigue con el documento reparado en memoria */
+      }
+    }
     return validator(parsed.value);
   }
 }

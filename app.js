@@ -104,7 +104,7 @@ function hasValidProgress(result) {
   return result.progress.status === STATUS.READY || result.progress.status === STATUS.EMPTY;
 }
 
-/** Métricas primarias para UI — LyricFlow cuenta actividades (alineado con progressPct). */
+/** Métricas primarias para UI — LyricFlow cuenta actividades; el % mostrado deriva de completed/total. */
 function progressDisplayMetrics(result) {
   const summary = result.progress.data.summary;
   if (
@@ -130,6 +130,14 @@ function rounded(value) {
   return Math.round(value);
 }
 
+/** Porcentaje alineado con el contador "X de Y" (no el progressPct crudo del storage). */
+function displayProgressPct(result) {
+  if (!hasValidProgress(result)) return 0;
+  const { completed, total } = progressDisplayMetrics(result);
+  if (!total) return 0;
+  return Math.round((completed / total) * 100);
+}
+
 function appMetric(result, config) {
   if (hasValidProgress(result)) {
     const { completed, total } = progressDisplayMetrics(result);
@@ -140,7 +148,7 @@ function appMetric(result, config) {
 }
 
 function progressLabel(result) {
-  if (hasValidProgress(result)) return `${rounded(result.progress.data.summary.progressPct)}%`;
+  if (hasValidProgress(result)) return `${displayProgressPct(result)}%`;
   return '0%';
 }
 
@@ -226,7 +234,7 @@ function renderModuleCards() {
     const chevron = element('span', 'module-card__chevron', '→');
     chevron.setAttribute('aria-hidden', 'true');
 
-    const progressValue = hasValidProgress(result) ? rounded(result.progress.data.summary.progressPct) : 0;
+    const progressValue = hasValidProgress(result) ? displayProgressPct(result) : 0;
     const progress = createProgressBar(progressValue, `Progreso de ${config.name}`);
     progress.classList.add('module-card__bar');
 
@@ -244,7 +252,7 @@ function renderGlobalProgress() {
   const description = document.getElementById('globalDescription');
 
   if (validResults.length === APPS.length) {
-    const average = validResults.reduce((total, result) => total + result.progress.data.summary.progressPct, 0) / APPS.length;
+    const average = validResults.reduce((total, result) => total + displayProgressPct(result), 0) / APPS.length;
     const displayValue = rounded(average);
     value.textContent = `${displayValue}%`;
     unit.textContent = 'prom.';
@@ -258,7 +266,7 @@ function renderGlobalProgress() {
 
   const partial = validResults.length > 0;
   if (partial) {
-    const average = validResults.reduce((total, result) => total + result.progress.data.summary.progressPct, 0) / validResults.length;
+    const average = validResults.reduce((total, result) => total + displayProgressPct(result), 0) / validResults.length;
     const displayValue = rounded(average);
     value.textContent = `${displayValue}%`;
     unit.textContent = `${validResults.length}/3`;
@@ -282,7 +290,7 @@ function renderHeaderStats() {
   const validResults = appData.filter(hasValidProgress);
   const totalCompleted = validResults.reduce((total, result) => total + result.progress.data.summary.completedContent, 0);
   const average = validResults.length > 0
-    ? validResults.reduce((total, result) => total + result.progress.data.summary.progressPct, 0) / validResults.length
+    ? validResults.reduce((total, result) => total + displayProgressPct(result), 0) / validResults.length
     : 0;
   completedEl.textContent = String(totalCompleted);
   pctEl.textContent = `${rounded(average)}%`;
@@ -563,7 +571,7 @@ function renderModuleDetail(app) {
   statsHeader.append(statsTitle);
   statsCard.append(statsHeader);
 
-  const progressValue = hasValidProgress(result) ? rounded(result.progress.data.summary.progressPct) : 0;
+  const progressValue = hasValidProgress(result) ? displayProgressPct(result) : 0;
   statsCard.append(createProgressBar(progressValue, `Progreso de ${config.name}`));
 
   const stats = element('div', 'detail-stats');
