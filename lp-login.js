@@ -34,12 +34,22 @@ var lpLogin = (function () {
   function logout() {
     var user = getUser();
     var wasCloud = user && user.isSupabaseUser;
-    if (window.lpSupabase && window.lpSupabase.signOut) {
-      window.lpSupabase.signOut();
+
+    if (wasCloud && window.lpGuestReset && window.lpGuestReset.markExplicitLogout) {
+      window.lpGuestReset.markExplicitLogout();
     }
+
     setUser(null);
-    if (wasCloud && window.lpGuestReset && window.lpGuestReset.clearGuestLocalProgress) {
-      window.lpGuestReset.clearGuestLocalProgress();
+    if (window.lpGuestReset) {
+      if (wasCloud && window.lpGuestReset.clearGuestLocalProgress) {
+        window.lpGuestReset.clearGuestLocalProgress();
+      } else if (window.lpGuestReset.clearSharedUserIdentity) {
+        window.lpGuestReset.clearSharedUserIdentity();
+      }
+    }
+
+    if (wasCloud && window.lpSupabase && window.lpSupabase.signOut) {
+      Promise.resolve(window.lpSupabase.signOut()).catch(function () {});
     }
   }
 

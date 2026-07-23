@@ -1117,10 +1117,19 @@ async function hydrateFromCloud({ forceDownload = false } = {}) {
   return result;
 }
 
+async function clearOrphanSupabaseSession() {
+  try {
+    await lpSupabase.signOut();
+  } catch {
+    /* noop */
+  }
+}
+
 async function setupSupabaseAuth() {
   lpSupabase.onAuthStateChange(async (event, session) => {
     if (!session?.user) {
       resetDownloadState();
+      window.lpGuestReset?.clearExplicitLogout?.();
       if (lpLogin.getUser()?.isSupabaseUser) {
         if (window.lpGuestReset?.clearGuestLocalProgress) {
           window.lpGuestReset.clearGuestLocalProgress();
@@ -1131,7 +1140,16 @@ async function setupSupabaseAuth() {
       return;
     }
 
-    if (event === 'SIGNED_IN') {
+    if (window.lpGuestReset?.shouldRejectSession?.()) {
+      await clearOrphanSupabaseSession();
+      window.lpGuestReset?.clearExplicitLogout?.();
+      return;
+    }
+
+    const forceDownload =
+      event === 'SIGNED_IN' || !!window.lpGuestReset?.shouldForceCloudDownload?.();
+
+    if (event === 'SIGNED_IN' || forceDownload) {
       resetDownloadState();
     }
 
@@ -1141,15 +1159,39 @@ async function setupSupabaseAuth() {
     } catch {
       profile = null;
     }
-    lpLogin.setUserFromSupabase(session.user, profile);
-    // Descarga primero (pobla/mezcla el caché local), luego sube el mezclado.
-    await hydrateFromCloud({ forceDownload: event === 'SIGNED_IN' });
+    if (!window.lpGuestReset?.hasLocalSupabaseIdentity?.()) {
+      lpLogin.setUserFromSupabase(session.user, profile);
+    }
+    await hydrateFromCloud({ forceDownload });
   });
 
   const authed = await lpSupabase.isAuthenticated();
-  if (authed) {
-    await hydrateFromCloud();
+  if (!authed) return;
+
+  if (window.lpGuestReset?.shouldRejectSession?.()) {
+    await clearOrphanSupabaseSession();
+    window.lpGuestReset?.clearExplicitLogout?.();
+    return;
   }
+
+  const forceDownload = !!window.lpGuestReset?.shouldForceCloudDownload?.();
+  if (forceDownload) {
+    resetDownloadState();
+    const {
+      data: { session },
+    } = await lpSupabase.getSession();
+    if (session?.user && !window.lpGuestReset?.hasLocalSupabaseIdentity?.()) {
+      let profile = null;
+      try {
+        profile = await lpSupabase.fetchProfile();
+      } catch {
+        profile = null;
+      }
+      lpLogin.setUserFromSupabase(session.user, profile);
+    }
+  }
+
+  await hydrateFromCloud({ forceDownload });
 }
 
 setupPageContext();
