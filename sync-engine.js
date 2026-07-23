@@ -7,18 +7,12 @@
 // Descarga UNA vez al autenticarse, para poblar el caché local en un
 // dispositivo nuevo — no hay polling.
 //
-// Nota de alcance: el merge de descarga escribe en learnflow:progress:{app}:v1,
-// que es la fuente de verdad real para LyricFlow. Para HubFlow y FluentFlow esa
-// clave es una vista DERIVADA (HubFlow la recalcula desde sus score-history keys
-// en cada carga; FluentFlow la deriva de su store de Zustand) — el merge aquí
-// deja el portal de DeskFlow mostrando los datos correctos, pero no reconstruye
-// el estado interno de esas dos apps por sí solo. FluentFlow soluciona esto en
-// su propio syncEngine.ts, mezclando directo en su store. HubFlow queda
-// pendiente: reconstruir sus score-history keys individuales desde progress
-// remoto requeriría mapear cada scoreKey por módulo, fuera de alcance por ahora.
+// Nota de alcance: el merge de descarga escribe en learnflow:progress:{app}:v1.
+// LyricFlow la usa como fuente de verdad. HubFlow reconstruye score-history via
+// hydrateHubFlowFromCloud(); FluentFlow importa la proyección en syncEngine.ts.
 
 import * as lpSupabase from './lp-supabase.js';
-import { recomputeProgressDocumentSummary } from './progress-reader.js';
+import { recomputeProgressDocumentSummary, inferFluentflowCefrLevel } from './lp-progress-summary.js';
 
 const APPS = ['fluentflow', 'hubflow', 'lyricflow'];
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
@@ -27,8 +21,6 @@ const MAX_ACTIVITY_EVENTS = 200;
 let lastSyncAt = 0;
 let syncing = false;
 let downloaded = false;
-// True only after a successful authenticated cloud fetch this session — blocks
-// runFullSync from uploading stale local projections before hydration.
 let cloudHydrated = false;
 
 function readRaw(key) {
@@ -72,8 +64,8 @@ function normalizeIsoDate(value) {
 
 // Combina una fila remota con la entrada local existente sin retroceder
 // progreso ya alcanzado (favorece completado=true, mejor puntaje, más intentos).
-function mergeContentEntry(existing, row) {
-  return {
+function mergeContentEntry(existing, row, { app } = {}) {
+  const merged = {
     contentId: row.content_id,
     contentType: row.content_type || existing?.contentType || 'module',
     progressPct: Math.max(row.progress_pct ?? 0, existing?.progressPct ?? 0),
@@ -86,7 +78,15 @@ function mergeContentEntry(existing, row) {
     lastScorePct: row.last_score_pct ?? existing?.lastScorePct ?? null,
     attempts: Math.max(row.attempts ?? 0, existing?.attempts ?? 0),
     activities: existing?.activities || row.activities || {},
+    title: existing?.title || null,
+    cefrLevel: existing?.cefrLevel || null,
   };
+
+  if (app === 'fluentflow' && !merged.cefrLevel) {
+    merged.cefrLevel = inferFluentflowCefrLevel(row.content_id);
+  }
+
+  return merged;
 }
 
 async function downloadApp(app) {
@@ -101,7 +101,7 @@ async function downloadApp(app) {
   let changed = false;
   for (const row of remoteRows) {
     const existing = doc.content[row.content_id];
-    const merged = mergeContentEntry(existing, row);
+    const merged = mergeContentEntry(existing, row, { app });
     if (
       !existing ||
       merged.completed !== existing.completed ||
@@ -188,6 +188,10 @@ export function resetDownloadState() {
   cloudHydrated = false;
 }
 
+export function isCloudHydrated() {
+  return cloudHydrated;
+}
+
 export async function downloadOnLogin({ force = false } = {}) {
   if (downloaded && !force) return { downloaded: false, reason: 'already_downloaded_this_session' };
 
@@ -254,82 +258,4 @@ export async function runFullSync({ force = false } = {}) {
   } finally {
     syncing = false;
   }
-}
-
-/** Recompute stored summaries from raw content — fixes drift after catalog changes. */
-export function repairLocalProjections() {
-  let repaired = false;
-  for (const app of APPS) {
-    const key = `learnflow:progress:${app}:v1`;
-    const doc = readRaw(key);
-    if (!doc?.content) continue;
-    if (recomputeProgressDocumentSummary(doc, app)) {
-      doc.updatedAt = new Date().toISOString();
-      writeRaw(key, doc);
-      repaired = true;
-    }
-  }
-  return repaired;
-}
-
-/** Compare stored summary vs recomputed values (no network). */
-export function auditLocalProjections() {
-  const report = {};
-  for (const app of APPS) {
-    const key = `learnflow:progress:${app}:v1`;
-    const doc = readRaw(key);
-    if (!doc) {
-      report[app] = { status: 'missing' };
-      continue;
-    }
-    const stored = { ...(doc.summary || {}) };
-    const clone = JSON.parse(JSON.stringify(doc));
-    recomputeProgressDocumentSummary(clone, app);
-    report[app] = {
-      status: 'ok',
-      contentEntries: Object.keys(doc.content || {}).length,
-      storedCompleted: stored.completedContent ?? null,
-      recomputedCompleted: clone.summary?.completedContent ?? null,
-      summaryDrift: stored.completedContent !== clone.summary?.completedContent,
-    };
-  }
-  return report;
-}
-
-/** Compare local progress keys with Supabase rows for the signed-in user. */
-export async function auditCloudAlignment() {
-  const authed = await lpSupabase.isAuthenticated();
-  if (!authed) return { ok: false, reason: 'not_authenticated' };
-
-  const report = {};
-  for (const app of APPS) {
-    const key = `learnflow:progress:${app}:v1`;
-    const doc = readRaw(key);
-    const localIds = new Set(Object.keys(doc?.content || {}));
-    const remoteRows = await lpSupabase.fetchProgress(app);
-    if (remoteRows === null) {
-      report[app] = { status: 'fetch_error' };
-      continue;
-    }
-    const remoteIds = new Set(remoteRows.map((row) => row.content_id));
-    const onlyLocal = [...localIds].filter((id) => !remoteIds.has(id));
-    const onlyRemote = [...remoteIds].filter((id) => !localIds.has(id));
-    const localCompleted = [...localIds].filter((id) => doc.content[id]?.completed).length;
-    const remoteCompleted = remoteRows.filter((row) => row.completed).length;
-
-    report[app] = {
-      status: 'ok',
-      localEntries: localIds.size,
-      remoteEntries: remoteIds.size,
-      localCompleted,
-      remoteCompleted,
-      onlyLocal: onlyLocal.slice(0, 10),
-      onlyRemote: onlyRemote.slice(0, 10),
-      onlyLocalCount: onlyLocal.length,
-      onlyRemoteCount: onlyRemote.length,
-      pendingUpload: onlyLocal.length > 0,
-      pendingDownload: onlyRemote.length > 0,
-    };
-  }
-  return { ok: true, report };
 }

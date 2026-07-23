@@ -1,13 +1,15 @@
 /**
- * Learn Platform — clear local learning progress when leaving a cloud account.
- * Guest mode should start at zero; cloud progress stays in Supabase until next login.
+ * Learn Platform — guest/logout progress reset and auth session helpers.
+ * Canonical copy — replicate to each app (DeskFlow root, HubFlow/LyricFlow root, FluentFlow/public/).
  */
 (function (global) {
   'use strict';
 
   var HUB_SCORE_PREFIX_RE = /^(advcoll|art|causative|clause|cleft|coll|comp|cond|conf|dict|errhunt|ger|inver|irr|kwt|listen|madeof|modals|odd|paracloze|paraphrase|phonics|phrasal|plural|pos|pref|prep|pron-study|quant|regswitch|rs|sbe|sentcomb|stress|tense|usedto|vchunks|vocab|wf|wordorder|wr)-/;
   var LOGOUT_FLAG_KEY = 'lp-explicit-logout';
+  var LOGOUT_FLAG_TTL_MS = 5 * 60 * 1000;
   var PROGRESS_APPS = ['fluentflow', 'hubflow', 'lyricflow'];
+  var PRESERVED_CACHE_KEYS = { 'lp-theme': 1, 'lp-navigation-mode': 1, 'lp-user': 1 };
 
   var EMPTY_SCORE = { correct: 0, incorrect: 0, total: 0, accuracy: 0 };
 
@@ -25,6 +27,11 @@
     } catch (e) {
       /* noop */
     }
+  }
+
+  function isPreservedCacheKey(key) {
+    if (PRESERVED_CACHE_KEYS[key]) return true;
+    return /^sb-.+-auth-token$/.test(key);
   }
 
   function hasLocalSupabaseIdentity() {
@@ -54,8 +61,10 @@
   }
 
   function markExplicitLogout() {
+    var stamp = String(Date.now());
     try {
-      sessionStorage.setItem(LOGOUT_FLAG_KEY, '1');
+      localStorage.setItem(LOGOUT_FLAG_KEY, stamp);
+      sessionStorage.setItem(LOGOUT_FLAG_KEY, stamp);
     } catch (e) {
       /* noop */
     }
@@ -63,26 +72,37 @@
 
   function isExplicitLogout() {
     try {
-      return sessionStorage.getItem(LOGOUT_FLAG_KEY) === '1';
+      var raw = localStorage.getItem(LOGOUT_FLAG_KEY);
+      if (raw) {
+        var ts = parseInt(raw, 10);
+        if (!isNaN(ts) && Date.now() - ts < LOGOUT_FLAG_TTL_MS) return true;
+        localStorage.removeItem(LOGOUT_FLAG_KEY);
+      }
+      var sessionRaw = sessionStorage.getItem(LOGOUT_FLAG_KEY);
+      if (sessionRaw) {
+        var sessionTs = parseInt(sessionRaw, 10);
+        if (!isNaN(sessionTs) && Date.now() - sessionTs < LOGOUT_FLAG_TTL_MS) return true;
+        sessionStorage.removeItem(LOGOUT_FLAG_KEY);
+      }
     } catch (e) {
-      return false;
+      /* noop */
     }
+    return false;
   }
 
   function clearExplicitLogout() {
     try {
+      localStorage.removeItem(LOGOUT_FLAG_KEY);
       sessionStorage.removeItem(LOGOUT_FLAG_KEY);
     } catch (e) {
       /* noop */
     }
   }
 
-  /** User clicked "Cerrar sesión" — reject surviving Supabase session. */
   function shouldRejectSession() {
     return isExplicitLogout();
   }
 
-  /** Wiped local cache while cloud session is still valid — pull from Supabase. */
   function shouldForceCloudDownload() {
     if (isExplicitLogout()) return false;
     if (!hasLocalSupabaseIdentity()) return true;
@@ -140,9 +160,41 @@
     }
   }
 
+  /** Wipe local learning cache but keep theme, display name, and Supabase session. */
+  function clearLocalCachePreserveSession() {
+    var keys = Object.keys(localStorage);
+    for (var i = 0; i < keys.length; i++) {
+      if (!isPreservedCacheKey(keys[i])) {
+        localStorage.removeItem(keys[i]);
+      }
+    }
+    try {
+      var sessionKeys = Object.keys(sessionStorage);
+      for (var j = 0; j < sessionKeys.length; j++) {
+        if (sessionKeys[j] !== LOGOUT_FLAG_KEY) {
+          sessionStorage.removeItem(sessionKeys[j]);
+        }
+      }
+    } catch (e) {
+      /* noop */
+    }
+  }
+
+  if (typeof global.addEventListener === 'function') {
+    global.addEventListener('storage', function (e) {
+      if (e.key !== LOGOUT_FLAG_KEY || !e.newValue) return;
+      try {
+        global.dispatchEvent(new CustomEvent('lp-explicit-logout'));
+      } catch (err) {
+        /* noop */
+      }
+    });
+  }
+
   global.lpGuestReset = {
     clearGuestLocalProgress: clearGuestLocalProgress,
     clearSharedUserIdentity: clearSharedUserIdentity,
+    clearLocalCachePreserveSession: clearLocalCachePreserveSession,
     hasLocalSupabaseIdentity: hasLocalSupabaseIdentity,
     hasLocalProgress: hasLocalProgress,
     markExplicitLogout: markExplicitLogout,

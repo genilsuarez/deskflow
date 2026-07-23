@@ -1,0 +1,39 @@
+/**
+ * Learn Platform — sidebar / hamburger nav active item (LP spec v1)
+ * Replicate in each app (no build step). FluentFlow: html.dark; vanilla: [data-theme="dark"].
+ *
+ * Tokens required:
+ *   :root { --lp-accent-text: #1e40af; }
+ *   dark  { --lp-accent-text: #93c5fd; }
+ */
+
+/* Light */
+.lp-nav-item.is-active,
+.nav-item.is-active,
+.sb-item.active,
+.unified-nav-item.is-active,
+.header-side-menu__item--active {
+  background: var(--lp-accent-soft);
+  color: var(--lp-accent-text);
+  font-weight: 700;
+}
+
+/* Dark — ~6.3:1 contrast on active surface (WCAG AA) */
+[data-theme="dark"] .lp-nav-item.is-active,
+[data-theme="dark"] .nav-item.is-active,
+[data-theme="dark"] .sb-item.active,
+[data-theme="dark"] .unified-nav-item.is-active,
+html.dark .header-side-menu__item--active {
+  background: color-mix(in srgb, var(--lp-accent) 20%, var(--lp-surface-raised));
+  border: 1px solid color-mix(in srgb, var(--lp-accent-text) 42%, transparent);
+  color: var(--lp-accent-text);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--lp-accent-text) 10%, transparent);
+}
+
+[data-theme="dark"] .lp-nav-footer .lp-nav-icon,
+[data-theme="dark"] .sidebar__footer .nav-icon,
+[data-theme="dark"] .sidebar-footer .sb-icon,
+[data-theme="dark"] .unified-nav-footer .unified-nav-icon,
+html.dark .header-side-menu__footer .header-side-menu__icon {
+  color: var(--lp-accent-text);
+}

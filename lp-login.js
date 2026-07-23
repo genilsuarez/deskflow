@@ -135,7 +135,9 @@ var lpLogin = (function () {
       '  </div>',
       '  <footer class="lp-login__footer">',
       '    <button type="submit" form="lp-login-form" class="lp-btn lp-btn--primary lp-login__submit">' + (isEdit ? 'Guardar cambios' : 'Continuar') + '</button>',
-      isEdit ? '    <button type="button" class="lp-btn lp-btn--ghost lp-login__logout">Cerrar sesión</button>' : '',
+      isEdit
+        ? '    <button type="button" class="lp-btn lp-btn--ghost lp-login__logout">' + (user && user.isSupabaseUser ? 'Cerrar sesión' : 'Quitar nombre') + '</button>'
+        : '',
       '  </footer>',
       '</section>'
     ].join('\n');
@@ -567,10 +569,42 @@ html.dark .lp-login .lp-btn--ghost {
 
   window.addEventListener('storage', function (e) {
     if (e.key === STORAGE_KEY) {
-      var user = e.newValue ? JSON.parse(e.newValue) : null;
+      var user = null;
+      if (e.newValue) {
+        try {
+          user = JSON.parse(e.newValue);
+        } catch (err) {
+          user = null;
+        }
+      }
       notify(user);
     }
   });
+
+  function bindNavButton(selector, options) {
+    options = options || {};
+    var btn = typeof selector === 'string' ? document.querySelector(selector) : selector;
+    if (!btn) return function () {};
+    var labelEl = options.labelSelector
+      ? (typeof options.labelSelector === 'string'
+          ? btn.querySelector(options.labelSelector)
+          : options.labelSelector)
+      : btn.querySelector('.nav-label, .sb-label') || btn.querySelector('span:last-child');
+    var defaultLabel = options.defaultLabel || 'Iniciar Sesión';
+
+    function syncLabel(user) {
+      if (labelEl) labelEl.textContent = user ? user.name : defaultLabel;
+      if (options.onSync) options.onSync(user, btn);
+    }
+
+    btn.addEventListener('click', function () {
+      if (options.beforeOpen) options.beforeOpen();
+      open();
+    });
+    onUpdate(syncLabel);
+    syncLabel(getUser());
+    return syncLabel;
+  }
 
   return {
     getUser: getUser,
@@ -579,6 +613,7 @@ html.dark .lp-login .lp-btn--ghost {
     logout: logout,
     open: open,
     close: close,
-    onUpdate: onUpdate
+    onUpdate: onUpdate,
+    bindNavButton: bindNavButton
   };
 })();

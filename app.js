@@ -1,9 +1,8 @@
 import { APPS, ProgressReader, STATUS } from './progress-reader.js';
 import { buildContentTitleIndex, resolveContentTitle } from './content-title.js';
-import * as lpSupabase from './lp-supabase.js';
-import { runFullSync, downloadOnLogin, resetDownloadState, repairLocalProjections, auditLocalProjections, auditCloudAlignment } from './sync-engine.js';
-
-window.lpSupabase = lpSupabase;
+import { repairLocalProjections, auditLocalProjections, auditCloudAlignment } from './sync-engine-audit.js';
+import { runFullSync } from './sync-engine.js';
+import { setupSupabaseAuth } from './lp-auth-setup.js';
 
 const APP_CONFIG = Object.freeze({
   fluentflow: {
@@ -908,78 +907,10 @@ function getAppHref(app) {
 }
 
 function showAboutLearnFlow(event) {
-  document.getElementById('aboutLearnFlow')?.remove();
-  const opener = event?.currentTarget instanceof HTMLElement ? event.currentTarget : document.activeElement;
-  const shell = document.querySelector('.app-shell');
-  const overlay = document.createElement('div');
-  overlay.id = 'aboutLearnFlow';
-  overlay.className = 'about-overlay';
-  overlay.innerHTML = `
-    <section class="about-modal" role="dialog" aria-modal="true" aria-labelledby="aboutLearnFlowTitle" aria-describedby="aboutLearnFlowDescription">
-      <header class="about-header">
-        <div class="about-identity" aria-hidden="true">L</div>
-        <div class="about-header__text">
-          <p class="about-eyebrow">LearnFlow · Plataforma</p>
-          <h2 id="aboutLearnFlowTitle">About LearnFlow</h2>
-        </div>
-        <button class="about-close" id="aboutCloseBtn" type="button" aria-label="Cerrar About LearnFlow">✕</button>
-      </header>
-      <div class="about-body">
-        <p id="aboutLearnFlowDescription" class="about-description">Una plataforma para aprender idiomas con estructura, práctica y música.</p>
-        <nav class="about-modules" aria-label="Aplicaciones de LearnFlow">
-          <a href="${getAppHref('deskflow')}" data-app-link="deskflow">
-            <span class="about-module__mark about-module__mark--portal" aria-hidden="true">L</span>
-            <span class="about-module__text"><strong>LearnFlow</strong><span>Portal</span></span>
-          </a>
-          <a href="${getAppHref('fluentflow')}" data-app-link="fluentflow">
-            <span class="about-module__mark about-module__mark--fluent" aria-hidden="true">F</span>
-            <span class="about-module__text"><strong>FluentFlow</strong><span>Ruta de inglés por niveles CEFR</span></span>
-          </a>
-          <a href="${getAppHref('hubflow')}" data-app-link="hubflow">
-            <span class="about-module__mark about-module__mark--hub" aria-hidden="true">H</span>
-            <span class="about-module__text"><strong>HubFlow</strong><span>Práctica flexible de gramática</span></span>
-          </a>
-          <a href="${getAppHref('lyricflow')}" data-app-link="lyricflow">
-            <span class="about-module__mark about-module__mark--lyric" aria-hidden="true">LF</span>
-            <span class="about-module__text"><strong>LyricFlow</strong><span>Aprender con música</span></span>
-          </a>
-        </nav>
-      </div>
-      <footer class="about-footer">
-        <div class="about-author">
-          <div class="about-author__avatar" aria-hidden="true">GS</div>
-          <div class="about-author__info">
-            <strong>Genil Suárez</strong>
-            <span>Diseñado y desarrollado como proyecto personal</span>
-          </div>
-        </div>
-      </footer>
-    </section>
-  `;
-  shell.inert = true;
-  document.body.appendChild(overlay);
-  closeSidebar();
-
-  const focusable = [...overlay.querySelectorAll('button, a[href]')];
-  const close = () => {
-    overlay.remove();
-    shell.inert = false;
-    document.removeEventListener('keydown', onAboutKeydown);
-    if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
-  };
-  const onAboutKeydown = (keyEvent) => {
-    if (keyEvent.key === 'Escape') { keyEvent.preventDefault(); close(); return; }
-    if (keyEvent.key !== 'Tab' || focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (keyEvent.shiftKey && document.activeElement === first) { keyEvent.preventDefault(); last.focus(); }
-    else if (!keyEvent.shiftKey && document.activeElement === last) { keyEvent.preventDefault(); first.focus(); }
-  };
-
-  overlay.querySelector('#aboutCloseBtn').addEventListener('click', close);
-  overlay.addEventListener('click', (clickEvent) => { if (clickEvent.target === overlay) close(); });
-  document.addEventListener('keydown', onAboutKeydown);
-  overlay.querySelector('#aboutCloseBtn').focus();
+  lpAbout.open(event, {
+    beforeOpen: closeSidebar,
+    inertElements: [document.querySelector('.app-shell')],
+  });
 }
 
 function setupNavigation() {
@@ -1022,9 +953,15 @@ function setupNavigation() {
   });
 
   document.getElementById('aboutTrigger').addEventListener('click', showAboutLearnFlow);
-  document.getElementById('loginTrigger').addEventListener('click', () => { closeSidebar(); lpLogin.open(); });
-  lpLogin.onUpdate(updateLoginButton);
-  updateLoginButton(lpLogin.getUser());
+  lpLogin.bindNavButton('#loginTrigger', {
+    beforeOpen: closeSidebar,
+    labelSelector: '.nav-label',
+    onSync(user, btn) {
+      const icon = btn.querySelector('.nav-icon');
+      if (icon && window.LpNavIcons) window.LpNavIcons.set(icon, 'user');
+      btn.setAttribute('aria-label', user ? user.name + ' — perfil' : 'Iniciar sesión');
+    },
+  });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeSidebar();
   });
@@ -1088,110 +1025,9 @@ function setupActivityFilters() {
   });
 }
 
-function updateLoginButton(user) {
-  const btn = document.getElementById('loginTrigger');
-  if (!btn) return;
-  const label = btn.querySelector('.nav-label');
-  const icon = btn.querySelector('.nav-icon');
-  if (user) {
-    if (icon && window.LpNavIcons) window.LpNavIcons.set(icon, 'user');
-    if (label) label.textContent = user.name;
-    btn.setAttribute('aria-label', user.name + ' — perfil');
-  } else {
-    if (icon && window.LpNavIcons) window.LpNavIcons.set(icon, 'user');
-    if (label) label.textContent = 'Iniciar Sesión';
-    btn.setAttribute('aria-label', 'Iniciar sesión');
-  }
-}
-
 function setupPageContext() {
   const now = new Date();
   document.getElementById('currentDate').textContent = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' }).format(now);
-}
-
-async function hydrateFromCloud({ forceDownload = false } = {}) {
-  const result = await downloadOnLogin({ force: forceDownload });
-  if (!result.hydrated) return result;
-  await runFullSync({ force: true });
-  renderAll();
-  return result;
-}
-
-async function clearOrphanSupabaseSession() {
-  try {
-    await lpSupabase.signOut();
-  } catch {
-    /* noop */
-  }
-}
-
-async function setupSupabaseAuth() {
-  lpSupabase.onAuthStateChange(async (event, session) => {
-    if (!session?.user) {
-      resetDownloadState();
-      window.lpGuestReset?.clearExplicitLogout?.();
-      if (lpLogin.getUser()?.isSupabaseUser) {
-        if (window.lpGuestReset?.clearGuestLocalProgress) {
-          window.lpGuestReset.clearGuestLocalProgress();
-        }
-        lpLogin.setUser(null);
-        renderAll();
-      }
-      return;
-    }
-
-    if (window.lpGuestReset?.shouldRejectSession?.()) {
-      await clearOrphanSupabaseSession();
-      window.lpGuestReset?.clearExplicitLogout?.();
-      return;
-    }
-
-    const forceDownload =
-      event === 'SIGNED_IN' || !!window.lpGuestReset?.shouldForceCloudDownload?.();
-
-    if (event === 'SIGNED_IN' || forceDownload) {
-      resetDownloadState();
-    }
-
-    let profile = null;
-    try {
-      profile = await lpSupabase.fetchProfile();
-    } catch {
-      profile = null;
-    }
-    if (!window.lpGuestReset?.hasLocalSupabaseIdentity?.()) {
-      lpLogin.setUserFromSupabase(session.user, profile);
-    }
-    await hydrateFromCloud({ forceDownload });
-  });
-
-  const authed = await lpSupabase.isAuthenticated();
-  if (!authed) return;
-
-  if (window.lpGuestReset?.shouldRejectSession?.()) {
-    await clearOrphanSupabaseSession();
-    window.lpGuestReset?.clearExplicitLogout?.();
-    return;
-  }
-
-  const forceDownload = !!window.lpGuestReset?.shouldForceCloudDownload?.();
-  if (forceDownload) {
-    resetDownloadState();
-    const {
-      data: { session },
-    } = await lpSupabase.getSession();
-    if (session?.user && !window.lpGuestReset?.hasLocalSupabaseIdentity?.()) {
-      let profile = null;
-      try {
-        profile = await lpSupabase.fetchProfile();
-      } catch {
-        profile = null;
-      }
-      lpLogin.setUserFromSupabase(session.user, profile);
-    }
-  }
-
-  await hydrateFromCloud({ forceDownload });
 }
 
 setupPageContext();
@@ -1202,7 +1038,10 @@ MOBILE_SIDEBAR_MQ.addEventListener('change', syncSidebarMount);
 setupNavigation();
 setupActivityFilters();
 renderAll();
-setupSupabaseAuth();
+setupSupabaseAuth({
+  onAfterLogin: () => renderAll(),
+  onAfterLogout: () => renderAll(),
+});
 window.addEventListener('lp-guest-reset', () => {
   renderAll();
 });
