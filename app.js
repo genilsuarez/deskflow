@@ -1109,31 +1109,42 @@ function setupPageContext() {
   document.getElementById('currentDate').textContent = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' }).format(now);
 }
 
+async function hydrateFromCloud({ forceDownload = false } = {}) {
+  const result = await downloadOnLogin({ force: forceDownload });
+  if (!result.hydrated) return result;
+  await runFullSync({ force: true });
+  renderAll();
+  return result;
+}
+
 async function setupSupabaseAuth() {
-  lpSupabase.onAuthStateChange((_event, session) => {
-    if (!session || !session.user) {
+  lpSupabase.onAuthStateChange(async (event, session) => {
+    if (!session?.user) {
       resetDownloadState();
       if (lpLogin.getUser()?.isSupabaseUser) {
         lpLogin.setUser(null);
       }
       return;
     }
-    lpSupabase.fetchProfile().then((profile) => {
-      lpLogin.setUserFromSupabase(session.user, profile);
-      // Descarga primero (pobla/mezcla el caché local), luego sube el
-      // resultado mezclado — así no se pierde nada en ningún sentido.
-      downloadOnLogin()
-        .then(() => runFullSync({ force: true }))
-        .then(() => renderAll());
-    });
+
+    if (event === 'SIGNED_IN') {
+      resetDownloadState();
+    }
+
+    let profile = null;
+    try {
+      profile = await lpSupabase.fetchProfile();
+    } catch {
+      profile = null;
+    }
+    lpLogin.setUserFromSupabase(session.user, profile);
+    // Descarga primero (pobla/mezcla el caché local), luego sube el mezclado.
+    await hydrateFromCloud({ forceDownload: event === 'SIGNED_IN' });
   });
 
   const authed = await lpSupabase.isAuthenticated();
   if (authed) {
-    downloadOnLogin().then(() => {
-      renderAll();
-      return runFullSync();
-    });
+    await hydrateFromCloud();
   }
 }
 

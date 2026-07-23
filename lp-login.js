@@ -154,7 +154,12 @@ var lpLogin = (function () {
         return;
       }
       var u = getUser();
-      setUser({ id: (u && u.id) || String(Date.now()), name: trimmed });
+      var nextUser = { id: (u && u.id) || String(Date.now()), name: trimmed };
+      if (u && u.isSupabaseUser) {
+        nextUser.isSupabaseUser = true;
+        if (u.email) nextUser.email = u.email;
+      }
+      setUser(nextUser);
       close();
     });
 
