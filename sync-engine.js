@@ -86,7 +86,8 @@ function mergeContentEntry(existing, row) {
 
 async function downloadApp(app) {
   const remoteRows = await lpSupabase.fetchProgress(app);
-  if (!remoteRows || !remoteRows.length) return { downloaded: false, reason: 'no_remote_data' };
+  if (remoteRows === null) return { downloaded: false, reason: 'fetch_error' };
+  if (!remoteRows.length) return { downloaded: false, reason: 'no_remote_data' };
 
   const key = `learnflow:progress:${app}:v1`;
   const doc = readRaw(key) || emptyProgressDoc(app);
@@ -125,18 +126,27 @@ async function downloadApp(app) {
 }
 
 // Se llama una sola vez por sesión, justo después de autenticarse.
+export function resetDownloadState() {
+  downloaded = false;
+}
+
 export async function downloadOnLogin() {
   if (downloaded) return { downloaded: false, reason: 'already_downloaded_this_session' };
 
   const authed = await lpSupabase.isAuthenticated();
   if (!authed) return { downloaded: false, reason: 'not_authenticated' };
 
-  downloaded = true;
   const perApp = {};
+  let hadFetchError = false;
+  let anyChanged = false;
   for (const app of APPS) {
     perApp[app] = await downloadApp(app);
+    if (perApp[app].reason === 'fetch_error') hadFetchError = true;
+    if (perApp[app].downloaded) anyChanged = true;
   }
-  return { downloaded: true, perApp };
+
+  if (!hadFetchError) downloaded = true;
+  return { downloaded: anyChanged, perApp };
 }
 
 async function syncApp(app) {

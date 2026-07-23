@@ -96,17 +96,17 @@ export async function syncProgress(app, localProgress) {
 }
 
 export async function fetchProgress(app) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return [];
 
   const { data, error } = await supabase
     .from('progress')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', session.user.id)
     .eq('app', app);
 
   if (error) return null;
-  return data;
+  return data ?? [];
 }
 
 // === ACTIVITY EVENTS ===

@@ -1,7 +1,7 @@
 import { APPS, ProgressReader, STATUS } from './progress-reader.js';
 import { buildContentTitleIndex, resolveContentTitle } from './content-title.js';
 import * as lpSupabase from './lp-supabase.js';
-import { runFullSync, downloadOnLogin } from './sync-engine.js';
+import { runFullSync, downloadOnLogin, resetDownloadState } from './sync-engine.js';
 
 window.lpSupabase = lpSupabase;
 
@@ -1080,7 +1080,13 @@ function setupPageContext() {
 
 async function setupSupabaseAuth() {
   lpSupabase.onAuthStateChange((_event, session) => {
-    if (!session || !session.user) return;
+    if (!session || !session.user) {
+      resetDownloadState();
+      if (lpLogin.getUser()?.isSupabaseUser) {
+        lpLogin.setUser(null);
+      }
+      return;
+    }
     lpSupabase.fetchProfile().then((profile) => {
       lpLogin.setUserFromSupabase(session.user, profile);
       // Descarga primero (pobla/mezcla el caché local), luego sube el
@@ -1093,8 +1099,8 @@ async function setupSupabaseAuth() {
 
   const authed = await lpSupabase.isAuthenticated();
   if (authed) {
-    downloadOnLogin().then((downloadResult) => {
-      if (downloadResult.downloaded) renderAll();
+    downloadOnLogin().then(() => {
+      renderAll();
       return runFullSync();
     });
   }
