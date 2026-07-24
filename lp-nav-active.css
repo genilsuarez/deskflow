@@ -44,7 +44,7 @@ html.dark .header-side-menu__footer .header-side-menu__icon {
 }
 
 html[data-stats-syncing] .progress-track__fill,
-html[data-stats-syncing] .progress-snapshot__fill,
+html[data-stats-syncing] .progress-snapshot__visual,
 html[data-stats-syncing] .context-card__visual {
   opacity: 0.72;
 }
@@ -55,7 +55,7 @@ html[data-stats-syncing] .context-card__visual {
   }
 
   html[data-stats-syncing] .progress-track__fill,
-  html[data-stats-syncing] .progress-snapshot__fill,
+  html[data-stats-syncing] .progress-snapshot__visual,
   html[data-stats-syncing] .context-card__visual {
     opacity: 1;
   }

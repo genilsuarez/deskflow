@@ -72,12 +72,42 @@ var lpLogin = (function () {
     return function () { listeners = listeners.filter(function (f) { return f !== fn; }); };
   }
 
+  function refreshCloudProfileIntoUi() {
+    var user = getUser();
+    if (!user || !user.isSupabaseUser) return;
+    if (!(window.lpSupabase && window.lpSupabase.fetchProfile)) return;
+
+    window.lpSupabase.fetchProfile().then(function (profile) {
+      if (!profile) return;
+      var current = getUser();
+      if (!current || !current.isSupabaseUser || current.id !== user.id) return;
+
+      var fallbackName = (current.email || '').split('@')[0];
+      var cloudName = profile.name || fallbackName;
+      if (current.name === cloudName) return;
+
+      setUserFromSupabase(
+        { id: current.id, email: current.email || '' },
+        profile
+      );
+
+      if (!modalEl) return;
+      updateProfileDisplay(modalEl, cloudName);
+      var footer = modalEl.querySelector('.lp-login__footer--profile');
+      var nameInput = modalEl.querySelector('.lp-login__name-input');
+      if (nameInput && (!footer || footer.getAttribute('data-state') !== 'edit')) {
+        nameInput.value = cloudName;
+      }
+    }).catch(function () { /* keep local name */ });
+  }
+
   function open() {
     injectStyles();
     if (modalEl) { modalEl.remove(); modalEl = null; }
     modalEl = buildModal();
     document.body.appendChild(modalEl);
     document.body.style.overflow = 'hidden';
+    refreshCloudProfileIntoUi();
     setTimeout(function () {
       var isEditing = !!getUser();
       if (!isEditing) {

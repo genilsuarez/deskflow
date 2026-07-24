@@ -42,8 +42,22 @@ async function handleLogin(session, onAfterLogin, { forceDownload = false } = {}
     } catch {
       profile = null;
     }
-    if (typeof lpLogin !== 'undefined' && !window.lpGuestReset?.hasLocalSupabaseIdentity?.()) {
-      lpLogin.setUserFromSupabase(session.user, profile);
+    if (typeof lpLogin !== 'undefined') {
+      const hasLocal = !!window.lpGuestReset?.hasLocalSupabaseIdentity?.();
+      if (!hasLocal) {
+        // First cloud identity on this device.
+        lpLogin.setUserFromSupabase(session.user, profile);
+      } else if (profile) {
+        // Already logged in — refresh name/email from cloud (other browser edits).
+        const current = lpLogin.getUser();
+        if (current?.isSupabaseUser && current.id === session.user.id) {
+          const fallbackName = (session.user.email || '').split('@')[0];
+          const cloudName = profile.name || fallbackName;
+          if (current.name !== cloudName || current.email !== session.user.email) {
+            lpLogin.setUserFromSupabase(session.user, profile);
+          }
+        }
+      }
     }
     await hydrateFromCloud(onAfterLogin, { forceDownload });
     lastHandledUserId = session.user.id;
