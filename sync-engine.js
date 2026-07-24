@@ -13,6 +13,7 @@
 
 import * as lpSupabase from './lp-supabase.js';
 import {
+  applyHubflowActivityEvents,
   applyLyricflowActivityEvents,
   contentEntryMergeChanged,
   inferFluentflowCefrLevel,
@@ -128,6 +129,24 @@ export function reconcileLyricflowProgressFromEvents() {
   if (!changed) return false;
 
   recomputeProgressDocumentSummary(doc, 'lyricflow');
+  doc.updatedAt = new Date().toISOString();
+  writeRaw(progressKey, doc);
+  return true;
+}
+
+/** Reconstruye activities de HubFlow desde el ledger local de eventos. */
+export function reconcileHubflowProgressFromEvents() {
+  const progressKey = 'learnflow:progress:hubflow:v1';
+  const activityKey = 'learnflow:activity:hubflow:v1';
+  const doc = readRaw(progressKey);
+  const activityDoc = readRaw(activityKey);
+  if (!doc || !activityDoc?.events?.length) return false;
+
+  doc.content = doc.content || {};
+  const changed = applyHubflowActivityEvents(doc.content, activityDoc.events);
+  if (!changed) return false;
+
+  recomputeProgressDocumentSummary(doc, 'hubflow');
   doc.updatedAt = new Date().toISOString();
   writeRaw(progressKey, doc);
   return true;
@@ -250,6 +269,7 @@ export async function downloadOnLogin({ force = false } = {}) {
 
   if (!hadFetchError) {
     if (reconcileLyricflowProgressFromEvents()) anyChanged = true;
+    if (reconcileHubflowProgressFromEvents()) anyChanged = true;
     downloaded = true;
     cloudHydrated = true;
     notifyCloudHydrated();
@@ -263,6 +283,10 @@ function prepareProgressDocForUpload(progressDoc, app, activityDoc) {
 
   if (app === 'lyricflow' && activityDoc?.events?.length) {
     if (applyLyricflowActivityEvents(progressDoc.content, activityDoc.events)) changed = true;
+  }
+
+  if (app === 'hubflow' && activityDoc?.events?.length) {
+    if (applyHubflowActivityEvents(progressDoc.content, activityDoc.events)) changed = true;
   }
 
   if (recomputeProgressDocumentSummary(progressDoc, app)) changed = true;

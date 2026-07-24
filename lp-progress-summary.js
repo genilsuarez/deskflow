@@ -407,6 +407,101 @@ export function enrichHubflowContentEntry(item) {
   };
 }
 
+function hubflowActivityFromEvents(events) {
+  if (!Array.isArray(events) || !events.length) return null;
+  const scores = events.map((event) => event.scorePct).filter(Number.isFinite);
+  const bestScorePct = scores.length ? Math.max(...scores) : null;
+  const passedKeys = new Set(
+    events
+      .filter((event) => event.passed === true && event.metrics?.scoreKey)
+      .map((event) => event.metrics.scoreKey),
+  );
+  const hasPassed = events.some((event) => event.passed === true);
+  const lastEvent = events.reduce((latest, event) => {
+    if (!event?.occurredAt) return latest;
+    if (!latest?.occurredAt) return event;
+    return new Date(event.occurredAt) > new Date(latest.occurredAt) ? event : latest;
+  }, null);
+  const completedKeys = passedKeys.size > 0 ? passedKeys.size : (hasPassed ? 1 : 0);
+  const totalKeys = Math.max(completedKeys, 1);
+  const completed = hasPassed && (passedKeys.size === 0 || completedKeys >= totalKeys);
+  return {
+    completed,
+    completedKeys,
+    totalKeys,
+    bestScorePct,
+    attempts: events.length,
+    completedAt: completed ? (lastEvent?.occurredAt ?? null) : null,
+    lastAttemptAt: lastEvent?.occurredAt ?? null,
+  };
+}
+
+function rederiveHubflowExerciseFromActivities(item) {
+  const activityList = Object.values(item.activities || {}).filter(isRecord);
+  if (!activityList.length) return;
+  const totalKeys = activityList.reduce((sum, activity) => sum + (activity.totalKeys ?? 0), 0);
+  const completedKeys = activityList.reduce((sum, activity) => sum + (activity.completedKeys ?? 0), 0);
+  const completedActivities = activityList.filter((activity) => activity.completed).length;
+  item.progressPct = totalKeys > 0 ? (completedKeys / totalKeys) * 100 : 0;
+  item.completed = completedActivities === activityList.length;
+  item.attempts = activityList.reduce((sum, activity) => sum + (activity.attempts ?? 0), 0);
+  item.bestScorePct = activityList.reduce(
+    (best, activity) => mergeNumericMax(best, activity.bestScorePct),
+    null,
+  );
+  const completedAtCandidates = activityList
+    .map((activity) => activity.completedAt)
+    .filter(Boolean)
+    .sort();
+  item.completedAt = item.completed ? (completedAtCandidates.at(-1) || item.completedAt || null) : null;
+}
+
+/**
+ * Refuerza progress.activities desde el ledger de eventos cuando el JSON en
+ * Supabase quedó vacío o incompleto (mismo patrón que LyricFlow).
+ */
+export function applyHubflowActivityEvents(content, events) {
+  if (!isRecord(content) || !Array.isArray(events) || !events.length) return false;
+
+  const grouped = new Map();
+  for (const event of events) {
+    if (!event?.contentId || !event?.activity) continue;
+    const groupKey = `${event.contentId}\u0000${event.activity}`;
+    if (!grouped.has(groupKey)) grouped.set(groupKey, []);
+    grouped.get(groupKey).push(event);
+  }
+
+  let changed = false;
+  for (const [groupKey, activityEvents] of grouped.entries()) {
+    const [contentId, activityId] = groupKey.split('\u0000');
+    const fromEvents = hubflowActivityFromEvents(activityEvents);
+    if (!fromEvents) continue;
+
+    if (!isRecord(content[contentId])) {
+      content[contentId] = {
+        contentId,
+        contentType: 'exercise',
+        progressPct: 0,
+        completed: false,
+        completedAt: null,
+        bestScorePct: null,
+        attempts: 0,
+        activities: {},
+      };
+      changed = true;
+    }
+
+    const item = content[contentId];
+    if (!isRecord(item.activities)) item.activities = {};
+    const before = JSON.stringify(item.activities[activityId] ?? null);
+    item.activities[activityId] = mergeHubflowActivityEntry(item.activities[activityId], fromEvents);
+    rederiveHubflowExerciseFromActivities(item);
+    if (JSON.stringify(item.activities[activityId] ?? null) !== before) changed = true;
+  }
+
+  return changed;
+}
+
 export function computeHubflowActivitySummary(content) {
   const items = content && typeof content === 'object' ? Object.values(content).filter(isRecord) : [];
   let completedActivities = 0;
@@ -488,13 +583,17 @@ export function recomputeProgressDocumentSummary(doc, app) {
 
   if (app === 'hubflow') {
     for (const item of items) enrichHubflowContentEntry(item);
+    const catalogTotal = Math.max(
+      items.length,
+      Number.isInteger(doc.summary.totalContent) ? doc.summary.totalContent : 0,
+    );
     doc.summary = {
       ...doc.summary,
       progressPct: items.length
         ? items.reduce((sum, item) => sum + (item.progressPct || 0), 0) / items.length
         : 0,
       completedContent: items.filter((item) => item.completed).length,
-      totalContent: items.length,
+      totalContent: catalogTotal,
       attemptedContent: items.filter((item) => (item.attempts || 0) > 0).length,
       ...computeHubflowActivitySummary(doc.content),
     };

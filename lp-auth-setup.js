@@ -8,8 +8,8 @@ let authListenerRegistered = false;
 async function hydrateFromCloud(onAfterLogin, { forceDownload = false } = {}) {
   const result = await downloadOnLogin({ force: forceDownload });
   if (!result.hydrated) return result;
-  await runFullSync({ force: true });
   onAfterLogin?.();
+  await runFullSync({ force: true });
   return result;
 }
 
