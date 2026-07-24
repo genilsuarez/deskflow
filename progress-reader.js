@@ -3,6 +3,8 @@ import {
   computeFluentflowProgressSummary,
   computeHubflowActivitySummary,
   computeLyricflowActivitySummary,
+  applyHubflowActivityEvents,
+  applyLyricflowActivityEvents,
   enrichHubflowContentEntry,
   enrichLyricflowSongEntry,
   recomputeProgressDocumentSummary,
@@ -228,9 +230,15 @@ function repairProgressDocument(document, app) {
 
   const contentCount = Object.keys(document.content).length;
   const summary = document.summary;
+  const catalogTotal = Number.isInteger(summary.totalContent) && summary.totalContent > 0
+    ? summary.totalContent
+    : 0;
+  const preservedTotal = app === 'hubflow' || app === 'lyricflow'
+    ? Math.max(contentCount, catalogTotal)
+    : contentCount;
 
-  if (contentCount > 0 && summary.totalContent !== contentCount) {
-    summary.totalContent = contentCount;
+  if (contentCount > 0 && summary.totalContent !== preservedTotal) {
+    summary.totalContent = preservedTotal;
     repaired = true;
   }
   if (summary.completedContent > summary.totalContent) {
@@ -247,6 +255,27 @@ function repairProgressDocument(document, app) {
   }
 
   return repaired;
+}
+
+function reconcileProgressFromActivityLedger(storage, document, app) {
+  if (app !== 'hubflow' && app !== 'lyricflow') return false;
+  if (!isRecord(document?.content)) return false;
+
+  let activityRaw;
+  try {
+    activityRaw = storage.getItem(`learnflow:activity:${app}:v1`);
+  } catch {
+    return false;
+  }
+  if (activityRaw === null) return false;
+
+  const activityParsed = parseStoredValue(activityRaw);
+  if (activityParsed.error || !isRecord(activityParsed.value)) return false;
+  const events = activityParsed.value.events;
+  if (!Array.isArray(events) || events.length === 0) return false;
+
+  if (app === 'lyricflow') return applyLyricflowActivityEvents(document.content, events);
+  return applyHubflowActivityEvents(document.content, events);
 }
 
 function normalizeLastContent(summary) {
@@ -295,6 +324,8 @@ function validateProgress(document, app) {
       enrichLyricflowSongEntry(contentId, item);
     }
   }
+
+  recomputeProgressDocumentSummary(document, app);
 
   const summary = document.summary;
   const fieldsAreValid = isPercentage(summary.progressPct)
@@ -492,6 +523,17 @@ export class ProgressReader {
         this.storage.setItem(key, JSON.stringify(parsed.value));
       } catch {
         /* lectura sigue con el documento reparado en memoria */
+      }
+    }
+    if (key.startsWith('learnflow:progress:')) {
+      const app = key.split(':')[2];
+      if (reconcileProgressFromActivityLedger(this.storage, parsed.value, app)) {
+        recomputeProgressDocumentSummary(parsed.value, app);
+        try {
+          this.storage.setItem(key, JSON.stringify(parsed.value));
+        } catch {
+          /* lectura sigue con el documento reconciliado en memoria */
+        }
       }
     }
     return validator(parsed.value);

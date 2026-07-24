@@ -3,11 +3,14 @@
 // actúa como coordinador porque es el único punto donde las 3 apps conviven en
 // un mismo origin.
 //
-// Sube en cada lección completada (debounced, ver sync-hooks en cada app).
-// Descarga UNA vez al autenticarse, para poblar el caché local en un
-// dispositivo nuevo — no hay polling.
+// Modelo multi-sesión (best practices):
+// 1. Descarga al autenticarse + refresco al volver a la pestaña (visibility/focus)
+// 2. Pull-merge-push antes de cada upload (merge-by-max local)
+// 3. Upload vía RPC upsert_progress_merge (merge monotónico en servidor)
+// 4. BroadcastChannel entre tabs del mismo origen
+// 5. activity_events append-only (ignoreDuplicates)
 //
-// Nota de alcance: el merge de descarga escribe en learnflow:progress:{app}:v1.
+// Nota: el merge de descarga escribe en learnflow:progress:{app}:v1.
 // LyricFlow la usa como fuente de verdad. HubFlow reconstruye score-history via
 // hydrateHubFlowFromCloud(); FluentFlow importa la proyección en syncEngine.ts.
 
@@ -25,11 +28,93 @@ import {
 const APPS = ['fluentflow', 'hubflow', 'lyricflow'];
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_ACTIVITY_EVENTS = 200;
+const VISIBILITY_REFRESH_MIN_MS = 12_000;
+const SYNC_CHANNEL_NAME = 'lp-sync';
 
 let lastSyncAt = 0;
 let syncing = false;
 let downloaded = false;
 let cloudHydrated = false;
+let lastVisibilityRefreshAt = 0;
+let multiSessionSetup = false;
+let syncChannel = null;
+let refreshingFromCloud = false;
+
+const STATS_DEFERRAL_TIMEOUT_MS = 8000;
+let statsDisplayReady = !hasStoredSupabaseSession();
+let statsDeferralTimer = null;
+let statsRevealPending = false;
+
+function hasStoredSupabaseSession() {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (!/^sb-.+-auth-token$/.test(key || '')) continue;
+      const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+      if (parsed?.access_token || parsed?.currentSession?.access_token) return true;
+    }
+  } catch {
+    /* noop */
+  }
+  return false;
+}
+
+function setStatsSyncingAttribute(syncing) {
+  if (typeof document === 'undefined') return;
+  if (syncing) document.documentElement.dataset.statsSyncing = 'true';
+  else document.documentElement.removeAttribute('data-stats-syncing');
+}
+
+function scheduleStatsDeferralTimeout() {
+  if (statsDeferralTimer || typeof window === 'undefined') return;
+  statsDeferralTimer = window.setTimeout(() => {
+    statsDeferralTimer = null;
+    markStatsDisplayReady();
+  }, STATS_DEFERRAL_TIMEOUT_MS);
+}
+
+function beginStatsDeferral() {
+  if (!hasStoredSupabaseSession()) return;
+  statsDisplayReady = false;
+  setStatsSyncingAttribute(true);
+  scheduleStatsDeferralTimeout();
+}
+
+/** True while home/header stats should render zeros (logged-in, cloud not ready). */
+export function shouldDeferStatsDisplay() {
+  return !statsDisplayReady;
+}
+
+/** One-shot: true on the first render after cloud hydration (enables count-up / bar fill). */
+export function consumeStatsRevealAnimation() {
+  const animate = statsRevealPending;
+  statsRevealPending = false;
+  return animate;
+}
+
+/** Unblocks stats UI — call after auth resolves (guest) or cloud hydration completes. */
+export function markStatsDisplayReady() {
+  if (statsDisplayReady) return;
+  const wasDeferring = !statsDisplayReady;
+  statsDisplayReady = true;
+  if (wasDeferring && hasStoredSupabaseSession()) {
+    statsRevealPending = true;
+  }
+  if (statsDeferralTimer) {
+    clearTimeout(statsDeferralTimer);
+    statsDeferralTimer = null;
+  }
+  setStatsSyncingAttribute(false);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('lp-stats-ready', { detail: { animate: statsRevealPending } }));
+  }
+}
+
+if (shouldDeferStatsDisplay()) {
+  setStatsSyncingAttribute(true);
+  scheduleStatsDeferralTimeout();
+}
 
 function readRaw(key) {
   try {
@@ -78,6 +163,12 @@ function mergeActivities(existing, remote, app) {
   return Object.keys(right).length ? { ...left, ...right } : left;
 }
 
+function mergeLastScorePct(remote, local) {
+  if (remote == null) return local ?? null;
+  if (local == null) return remote;
+  return Math.max(remote, local);
+}
+
 // Combina una fila remota con la entrada local existente sin retroceder
 // progreso ya alcanzado (favorece completado=true, mejor puntaje, más intentos).
 function mergeContentEntry(existing, row, { app } = {}) {
@@ -96,7 +187,7 @@ function mergeContentEntry(existing, row, { app } = {}) {
       row.best_score_pct != null || existing?.bestScorePct != null
         ? Math.max(row.best_score_pct ?? 0, existing?.bestScorePct ?? 0)
         : null,
-    lastScorePct: row.last_score_pct ?? existing?.lastScorePct ?? null,
+    lastScorePct: mergeLastScorePct(row.last_score_pct, existing?.lastScorePct),
     attempts: Math.max(row.attempts ?? 0, existing?.attempts ?? 0),
     activities: mergeActivities(localActivities, remoteActivities, app),
     title: existing?.title || null,
@@ -113,6 +204,22 @@ function mergeContentEntry(existing, row, { app } = {}) {
 function notifyCloudHydrated() {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('lp-cloud-hydrated'));
+  }
+}
+
+function postSyncMessage(payload) {
+  try {
+    syncChannel?.postMessage({ ...payload, at: Date.now() });
+  } catch {
+    /* BroadcastChannel unavailable / closed */
+  }
+}
+
+/** Avisa a otras tabs del mismo origen que el progreso local cambió. */
+export function notifyProgressLocalChange(app = null) {
+  postSyncMessage({ type: 'progress-local', app });
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('lp-sync-peer', { detail: { type: 'progress-local', app } }));
   }
 }
 
@@ -244,22 +351,44 @@ async function downloadActivityApp(app) {
 export function resetDownloadState() {
   downloaded = false;
   cloudHydrated = false;
+  beginStatsDeferral();
 }
 
 export function isCloudHydrated() {
   return cloudHydrated;
 }
 
+function shouldAbortCloudHydration() {
+  return typeof window !== 'undefined' && !!window.lpGuestReset?.isExplicitLogout?.();
+}
+
+async function discardHydrationAfterLogout(perApp) {
+  // downloadApp may have rewritten local keys while signOut was in flight.
+  window.lpGuestReset?.clearGuestLocalProgress?.();
+  resetDownloadState();
+  return { downloaded: false, reason: 'aborted_logout', hydrated: false, perApp };
+}
+
 export async function downloadOnLogin({ force = false } = {}) {
   if (downloaded && !force) return { downloaded: false, reason: 'already_downloaded_this_session' };
+  if (shouldAbortCloudHydration()) {
+    return { downloaded: false, reason: 'explicit_logout', hydrated: false };
+  }
 
   const authed = await lpSupabase.isAuthenticated();
-  if (!authed) return { downloaded: false, reason: 'not_authenticated' };
+  if (!authed) {
+    markStatsDisplayReady();
+    return { downloaded: false, reason: 'not_authenticated' };
+  }
+  if (shouldAbortCloudHydration()) {
+    return { downloaded: false, reason: 'explicit_logout', hydrated: false };
+  }
 
   const perApp = {};
   let hadFetchError = false;
   let anyChanged = false;
   for (const app of APPS) {
+    if (shouldAbortCloudHydration()) return discardHydrationAfterLogout(perApp);
     const progress = await downloadApp(app);
     const activity = await downloadActivityApp(app);
     perApp[app] = { progress, activity };
@@ -267,14 +396,100 @@ export async function downloadOnLogin({ force = false } = {}) {
     if (progress.downloaded || activity.downloaded) anyChanged = true;
   }
 
+  if (shouldAbortCloudHydration() || !(await lpSupabase.isAuthenticated().catch(() => false))) {
+    return discardHydrationAfterLogout(perApp);
+  }
+
   if (!hadFetchError) {
     if (reconcileLyricflowProgressFromEvents()) anyChanged = true;
     if (reconcileHubflowProgressFromEvents()) anyChanged = true;
     downloaded = true;
     cloudHydrated = true;
+  }
+
+  markStatsDisplayReady();
+  if (cloudHydrated) {
     notifyCloudHydrated();
+    if (anyChanged) {
+      postSyncMessage({ type: 'cloud-refreshed' });
+    }
   }
   return { downloaded: anyChanged, hydrated: cloudHydrated, perApp };
+}
+
+/**
+ * Re-pull cloud when the user returns to a tab/device session.
+ * Debounced so focus thrashing doesn't spam Supabase.
+ */
+export async function refreshFromCloudIfNeeded({ force = false } = {}) {
+  if (refreshingFromCloud) return { refreshed: false, reason: 'already_refreshing' };
+  if (shouldAbortCloudHydration()) return { refreshed: false, reason: 'explicit_logout' };
+  if (!cloudHydrated && !force) return { refreshed: false, reason: 'not_hydrated' };
+  if (!force && Date.now() - lastVisibilityRefreshAt < VISIBILITY_REFRESH_MIN_MS) {
+    return { refreshed: false, reason: 'too_soon' };
+  }
+
+  const authed = await lpSupabase.isAuthenticated();
+  if (!authed) return { refreshed: false, reason: 'not_authenticated' };
+  if (shouldAbortCloudHydration()) return { refreshed: false, reason: 'explicit_logout' };
+
+  refreshingFromCloud = true;
+  lastVisibilityRefreshAt = Date.now();
+  try {
+    const result = await downloadOnLogin({ force: true });
+    if (result.hydrated) {
+      notifyCloudHydrated();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('lp-sync-peer', {
+          detail: { type: 'cloud-refreshed', changed: result.downloaded },
+        }));
+      }
+    }
+    return { refreshed: true, ...result };
+  } finally {
+    refreshingFromCloud = false;
+  }
+}
+
+/**
+ * Cross-tab + multi-device hooks:
+ * - BroadcastChannel for same-origin tabs
+ * - visibility/focus → re-download (merge-by-max)
+ */
+export function setupMultiSessionSync() {
+  if (typeof window === 'undefined' || multiSessionSetup) return;
+  multiSessionSetup = true;
+
+  if (typeof BroadcastChannel !== 'undefined') {
+    try {
+      syncChannel = new BroadcastChannel(SYNC_CHANNEL_NAME);
+      syncChannel.onmessage = (event) => {
+        const msg = event?.data;
+        if (!msg || typeof msg !== 'object') return;
+        if (msg.type !== 'progress-local' && msg.type !== 'cloud-refreshed') return;
+        window.dispatchEvent(new CustomEvent('lp-sync-peer', { detail: msg }));
+      };
+    } catch {
+      syncChannel = null;
+    }
+  }
+
+  const onVisible = () => {
+    if (document.visibilityState && document.visibilityState !== 'visible') return;
+    void refreshFromCloudIfNeeded();
+  };
+
+  document.addEventListener('visibilitychange', onVisible);
+  window.addEventListener('focus', onVisible);
+
+  // Online again after offline — pull latest before local writes race.
+  window.addEventListener('online', () => {
+    void refreshFromCloudIfNeeded({ force: true });
+  });
+
+  window.addEventListener('lp-guest-reset', () => {
+    resetDownloadState();
+  });
 }
 
 function prepareProgressDocForUpload(progressDoc, app, activityDoc) {
@@ -293,7 +508,23 @@ function prepareProgressDocForUpload(progressDoc, app, activityDoc) {
   return changed;
 }
 
+async function pullMergeLocal(app) {
+  const progress = await downloadApp(app);
+  const activity = await downloadActivityApp(app);
+  let reconciled = false;
+  if (app === 'lyricflow') reconciled = reconcileLyricflowProgressFromEvents();
+  if (app === 'hubflow') reconciled = reconcileHubflowProgressFromEvents();
+  return {
+    pulled: Boolean(progress.downloaded || activity.downloaded || reconciled),
+    progress,
+    activity,
+  };
+}
+
 async function syncApp(app) {
+  // Pull-merge-push: absorb peer/device writes before uploading local deltas.
+  await pullMergeLocal(app);
+
   const progressKey = `learnflow:progress:${app}:v1`;
   const progressDoc = readRaw(progressKey);
   const activityDoc = readRaw(`learnflow:activity:${app}:v1`);
@@ -306,6 +537,7 @@ async function syncApp(app) {
       writeRaw(progressKey, progressDoc);
     }
     results.progress = await lpSupabase.syncProgress(app, { content: progressDoc.content });
+    notifyProgressLocalChange(app);
   }
   if (activityDoc && Array.isArray(activityDoc.events) && activityDoc.events.length) {
     results.activity = await lpSupabase.syncActivityEvents(app, activityDoc.events);
@@ -314,8 +546,19 @@ async function syncApp(app) {
   return results;
 }
 
+/** Pull-merge-push for a single app (HubFlow / LyricFlow scheduleCloudSync). */
+export async function syncSingleApp(app) {
+  if (!APPS.includes(app)) return { synced: false, reason: 'unknown_app' };
+  if (shouldAbortCloudHydration()) return { synced: false, reason: 'explicit_logout' };
+  const authed = await lpSupabase.isAuthenticated();
+  if (!authed) return { synced: false, reason: 'not_authenticated' };
+  if (!cloudHydrated) return { synced: false, reason: 'not_hydrated' };
+  return syncApp(app);
+}
+
 export async function runFullSync({ force = false } = {}) {
   if (syncing) return { synced: false, reason: 'already_syncing' };
+  if (shouldAbortCloudHydration()) return { synced: false, reason: 'explicit_logout' };
   if (!force && Date.now() - lastSyncAt < SYNC_INTERVAL_MS) {
     return { synced: false, reason: 'too_soon' };
   }

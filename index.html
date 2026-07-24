@@ -22,12 +22,54 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="lp-nav-active.css">
   <link rel="stylesheet" href="lp-about.css">
+  <style>
+    #summaryModules {
+      --module-card-height: 88px;
+      --module-card-pad-block: 12px;
+      --module-card-row-gap: 8px;
+    }
+    @media (min-width: 769px) {
+      #summaryModules {
+        --module-card-height: 82px;
+        --module-card-pad-block: 10px;
+        --module-card-row-gap: 6px;
+      }
+    }
+    #summaryModules .module-card {
+      box-sizing: border-box;
+      height: var(--module-card-height);
+      min-height: var(--module-card-height);
+      max-height: var(--module-card-height);
+      padding-top: var(--module-card-pad-block);
+      padding-bottom: var(--module-card-pad-block);
+      row-gap: var(--module-card-row-gap);
+      overflow: hidden;
+      align-content: center;
+    }
+    #summaryModules .module-card__copy {
+      min-height: calc(0.92rem * 1.2 + 0.68rem * 1.3 + 0.64rem * 1.35 + 4px);
+    }
+    @media (min-width: 769px) {
+      #summaryModules .module-card__copy {
+        min-height: calc(0.9rem * 1.2 + 0.68rem * 1.3 + 0.64rem * 1.35 + 5px);
+      }
+    }
+    #summaryModules .module-card__hint,
+    #summaryModules .module-card__last-title {
+      white-space: nowrap;
+    }
+    @media (max-width: 768px) {
+      #deskTopbar[data-view="resumen"] {
+        display: none;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="grain" aria-hidden="true"></div>
   <a class="skip-link" href="#mainContent">Saltar al contenido</a>
 
-  <div class="app-shell">
+  <div class="app-shell" data-view="resumen">
     <header class="mobile-header">
       <button class="lp-icon-btn" id="menuToggle" type="button" aria-label="Abrir navegación" aria-controls="sidebar" aria-expanded="false"><span data-lp-icon="menu" aria-hidden="true"></span></button>
       <a class="mobile-header__brand" href="#resumen" data-view-link="resumen" aria-label="Ir al resumen de LearnFlow">Learn<em>Flow</em></a>
@@ -60,12 +102,12 @@
       </div>
     </aside>
 
-    <div class="topbar" id="deskTopbar">
+    <div class="topbar" id="deskTopbar" data-view="resumen">
       <button class="lp-icon-btn topbar-menu" id="topbarMenuToggle" type="button" aria-label="Abrir navegación" aria-controls="sidebar" aria-expanded="false"><span data-lp-icon="menu" aria-hidden="true"></span></button>
       <div class="topbar-greeting">
-        <p class="eyebrow topbar-eyebrow" id="topbarEyebrow" hidden></p>
-        <h1 class="topbar-title" id="summaryTitle">Tu aprendizaje, en contexto.</h1>
-        <p class="topbar-sub" id="topbarSub">Retoma el hilo sin perder de vista cómo se complementa cada módulo.</p>
+        <p class="eyebrow topbar-eyebrow" id="topbarEyebrow">Tu plataforma de aprendizaje</p>
+        <h1 class="topbar-title" id="summaryTitle">Learn<em>Flow</em></h1>
+        <p class="topbar-sub" id="topbarSub">Tres módulos, un hilo: estructura, práctica y música conectados.</p>
       </div>
       <div class="lp-header-stats" role="status" aria-label="Progreso combinado de las tres apps">
         <span class="lp-header-stats__group">
@@ -83,8 +125,9 @@
     </div>
 
     <main class="main" id="mainContent" tabindex="-1">
-      <section class="view is-active" id="view-resumen" data-view-panel="resumen" aria-labelledby="summaryTitle">
+      <section class="view is-active" id="view-resumen" data-view-panel="resumen" data-lp-home aria-labelledby="summaryTitle">
 
+        <div class="resumen-dashboard" id="resumenDashboard">
         <div class="resumen-hero">
           <section class="continue-banner" aria-labelledby="continueTitle">
             <div class="continue-banner__copy">
@@ -109,15 +152,49 @@
           <section class="context-card context-card--cefr" aria-labelledby="cefrHeading">
             <div class="context-card__copy">
               <span class="section-kicker">Lectura CEFR</span>
-              <h2 id="cefrHeading">Ruta <span id="cefrLevel">pendiente</span></h2>
-              <p id="cefrDescription">Disponible cuando FluentFlow publique información válida de su ruta.</p>
+              <h2 id="cefrHeading">Ruta <span id="cefrLevel">A1</span></h2>
+              <p id="cefrDescription">A1</p>
             </div>
           </section>
         </div>
 
         <section class="section-block" aria-labelledby="modulesTitle">
           <div class="section-heading"><h2 id="modulesTitle"><span class="section-kicker">Tus tres caminos</span><span class="section-heading__sep" aria-hidden="true">·</span>Módulos</h2></div>
-          <div class="module-grid" id="summaryModules"></div>
+          <div class="module-grid" id="summaryModules">
+            <button type="button" class="module-card module-card--purple module-card--placeholder" tabindex="-1" disabled aria-hidden="true">
+              <span class="module-card__mark" aria-hidden="true">F</span>
+              <div class="module-card__copy">
+                <strong class="module-card__label">FluentFlow</strong>
+                <span class="module-card__hint">0 de 0</span>
+                <span class="module-card__last module-card__last--reserved"><span class="module-card__last-label">&nbsp;</span><span class="module-card__last-title">&nbsp;</span></span>
+              </div>
+              <span class="module-card__pct">0%</span>
+              <span class="module-card__chevron" aria-hidden="true">→</span>
+              <div class="progress-track module-card__bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso de FluentFlow"><span class="progress-track__fill" style="width:0%"></span></div>
+            </button>
+            <button type="button" class="module-card module-card--amber module-card--placeholder" tabindex="-1" disabled aria-hidden="true">
+              <span class="module-card__mark" aria-hidden="true">H</span>
+              <div class="module-card__copy">
+                <strong class="module-card__label">HubFlow</strong>
+                <span class="module-card__hint">0 de 0</span>
+                <span class="module-card__last module-card__last--reserved"><span class="module-card__last-label">&nbsp;</span><span class="module-card__last-title">&nbsp;</span></span>
+              </div>
+              <span class="module-card__pct">0%</span>
+              <span class="module-card__chevron" aria-hidden="true">→</span>
+              <div class="progress-track module-card__bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso de HubFlow"><span class="progress-track__fill" style="width:0%"></span></div>
+            </button>
+            <button type="button" class="module-card module-card--teal module-card--placeholder" tabindex="-1" disabled aria-hidden="true">
+              <span class="module-card__mark" aria-hidden="true">L</span>
+              <div class="module-card__copy">
+                <strong class="module-card__label">LyricFlow</strong>
+                <span class="module-card__hint">0 de 0</span>
+                <span class="module-card__last module-card__last--reserved"><span class="module-card__last-label">&nbsp;</span><span class="module-card__last-title">&nbsp;</span></span>
+              </div>
+              <span class="module-card__pct">0%</span>
+              <span class="module-card__chevron" aria-hidden="true">→</span>
+              <div class="progress-track module-card__bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso de LyricFlow"><span class="progress-track__fill" style="width:0%"></span></div>
+            </button>
+          </div>
         </section>
 
         <section class="section-block resumen-recent" aria-labelledby="recentActivityTitle">
@@ -126,9 +203,16 @@
             <button class="text-action" type="button" data-view="actividad">Ver todo</button>
           </div>
           <div class="resumen-recent__card">
-            <div class="activity-list" id="recentActivity"></div>
+            <div class="activity-list" id="recentActivity">
+              <div class="empty-state" aria-hidden="true">
+                <span class="empty-state__icon" aria-hidden="true">◇</span>
+                <h3>Sin actividad reciente</h3>
+                <p>Tus sesiones recientes se mostrarán aquí al completar actividades en tus módulos.</p>
+              </div>
+            </div>
           </div>
         </section>
+        </div>
 
         <section class="data-health" id="dataHealth" aria-labelledby="dataHealthTitle" hidden>
           <div><span aria-hidden="true">◇</span><div><h2 id="dataHealthTitle">Estado de los datos</h2><p id="dataHealthDescription">Comprobando las proyecciones locales…</p></div></div>

@@ -1,7 +1,8 @@
 import { APPS, ProgressReader, STATUS } from './progress-reader.js';
 import { buildContentTitleIndex, resolveContentTitle } from './content-title.js';
 import { repairLocalProjections, auditLocalProjections, auditCloudAlignment } from './sync-engine-audit.js';
-import { runFullSync } from './sync-engine.js';
+import { runFullSync, shouldDeferStatsDisplay, consumeStatsRevealAnimation } from './sync-engine.js';
+import { animateText, animateCssVar, animateWidth } from './lp-stats-animate.js';
 import { setupSupabaseAuth } from './lp-auth-setup.js';
 
 const APP_CONFIG = Object.freeze({
@@ -100,7 +101,14 @@ function getAppResult(app) {
 }
 
 function hasValidProgress(result) {
-  return result.progress.status === STATUS.READY || result.progress.status === STATUS.EMPTY;
+  return (
+    (result.progress.status === STATUS.READY || result.progress.status === STATUS.EMPTY) &&
+    result.progress.data != null
+  );
+}
+
+function isStatsDeferred() {
+  return shouldDeferStatsDisplay();
 }
 
 /** Métrica primaria por app — FluentFlow/HubFlow: contenido; LyricFlow: actividades por canción. */
@@ -202,7 +210,7 @@ function createStatusPill(status) {
   return element('span', `status-pill status-pill--${tone}`, STATUS_COPY[status]);
 }
 
-function createProgressBar(value, label) {
+function createProgressBar(value, label, { animate = false } = {}) {
   const track = element('div', 'progress-track');
   track.setAttribute('role', 'progressbar');
   track.setAttribute('aria-label', label);
@@ -210,9 +218,20 @@ function createProgressBar(value, label) {
   track.setAttribute('aria-valuemax', '100');
   track.setAttribute('aria-valuenow', String(value));
   const fill = element('span', 'progress-track__fill');
-  fill.style.width = `${value}%`;
+  if (animate && value > 0) {
+    fill.style.width = '0%';
+    animateWidth(fill, value);
+  } else {
+    fill.style.width = `${value}%`;
+  }
   track.append(fill);
   return track;
+}
+
+function setPctText(el, value, animate) {
+  if (!el) return;
+  if (animate && value > 0) animateText(el, 0, value, (v) => `${v}%`);
+  else el.textContent = `${value}%`;
 }
 
 function createAppLink(app, label = 'Abrir módulo', primary = false) {
@@ -226,18 +245,11 @@ function createAppLink(app, label = 'Abrir módulo', primary = false) {
   return link;
 }
 
-function createModuleCardLast(last, config) {
-  const row = element('span', 'module-card__last');
-  row.append(
-    element('span', 'module-card__last-label', `${config.lastLabel} ·`),
-    element('span', 'module-card__last-title', resolveContentTitle(last, contentTitleIndex))
-  );
-  return row;
-}
 
-function renderModuleCards() {
+function renderModuleCards(animateReveal = false) {
   const container = document.getElementById('summaryModules');
   container.replaceChildren();
+  const defer = isStatsDeferred();
 
   APPS.forEach((app) => {
     const config = APP_CONFIG[app];
@@ -250,19 +262,40 @@ function renderModuleCards() {
     mark.setAttribute('aria-hidden', 'true');
 
     const copy = element('div', 'module-card__copy');
-    const hint = element('span', 'module-card__hint', appMetric(result, config));
+    const progressValue = defer ? 0 : (hasValidProgress(result) ? displayProgressPct(result) : 0);
+    const hint = element(
+      'span',
+      'module-card__hint',
+      defer ? '0 de 0' : appMetric(result, config)
+    );
     copy.append(element('strong', 'module-card__label', config.name), hint);
-    if (hasValidProgress(result) && result.progress.data.summary.lastContent) {
-      copy.append(createModuleCardLast(result.progress.data.summary.lastContent, config));
-    }
 
-    const pct = element('span', 'module-card__pct', progressLabel(result));
+    const lastRow = element('span', 'module-card__last');
+    const lastLabel = element('span', 'module-card__last-label');
+    const lastTitle = element('span', 'module-card__last-title');
+    if (!defer && hasValidProgress(result) && result.progress.data.summary.lastContent) {
+      const last = result.progress.data.summary.lastContent;
+      lastLabel.textContent = `${config.lastLabel} ·`;
+      lastTitle.textContent = resolveContentTitle(last, contentTitleIndex);
+    } else {
+      lastRow.classList.add('module-card__last--reserved');
+      lastLabel.textContent = '\u00a0';
+      lastTitle.textContent = '\u00a0';
+    }
+    lastRow.append(lastLabel, lastTitle);
+    copy.append(lastRow);
+
+    const pct = element('span', 'module-card__pct', defer ? '0%' : progressLabel(result));
+    if (animateReveal && progressValue > 0) {
+      animateText(pct, 0, progressValue, (v) => `${v}%`);
+    }
 
     const chevron = element('span', 'module-card__chevron', '→');
     chevron.setAttribute('aria-hidden', 'true');
 
-    const progressValue = hasValidProgress(result) ? displayProgressPct(result) : 0;
-    const progress = createProgressBar(progressValue, `Progreso de ${config.name}`);
+    const progress = createProgressBar(progressValue, `Progreso de ${config.name}`, {
+      animate: animateReveal && progressValue > 0,
+    });
     progress.classList.add('module-card__bar');
 
     card.append(mark, copy, pct, chevron, progress);
@@ -270,20 +303,33 @@ function renderModuleCards() {
   });
 }
 
-function renderGlobalProgress() {
-  const validResults = appData.filter(hasValidProgress);
+function renderGlobalProgress(animateReveal = false) {
   const value = document.getElementById('globalValue');
   const unit = document.getElementById('globalUnit');
   const ring = document.getElementById('globalRing');
   const status = document.getElementById('globalStatus');
   const description = document.getElementById('globalDescription');
 
+  if (isStatsDeferred()) {
+    value.textContent = '0%';
+    unit.textContent = '0/3';
+    ring.style.setProperty('--progress', '0');
+    ring.setAttribute('aria-label', 'Progreso global pendiente');
+    status.className = 'status-pill status-pill--warning';
+    status.textContent = 'Parcial';
+    description.textContent = 'Promedio equilibrado de las tres fuentes.';
+    return;
+  }
+
+  const validResults = appData.filter(hasValidProgress);
+
   if (validResults.length === APPS.length) {
     const average = validResults.reduce((total, result) => total + displayProgressPct(result), 0) / APPS.length;
     const displayValue = rounded(average);
-    value.textContent = `${displayValue}%`;
+    setPctText(value, displayValue, animateReveal);
     unit.textContent = 'prom.';
-    ring.style.setProperty('--progress', String(displayValue));
+    if (animateReveal && displayValue > 0) animateCssVar(ring, '--progress', displayValue);
+    else ring.style.setProperty('--progress', String(displayValue));
     ring.setAttribute('aria-label', `Progreso global ${displayValue} por ciento`);
     status.className = 'status-pill status-pill--success';
     status.textContent = 'Completo';
@@ -292,12 +338,14 @@ function renderGlobalProgress() {
   }
 
   const partial = validResults.length > 0;
+  let displayValue = 0;
   if (partial) {
     const average = validResults.reduce((total, result) => total + displayProgressPct(result), 0) / validResults.length;
-    const displayValue = rounded(average);
-    value.textContent = `${displayValue}%`;
+    displayValue = rounded(average);
+    setPctText(value, displayValue, animateReveal);
     unit.textContent = `${validResults.length}/3`;
-    ring.style.setProperty('--progress', String(displayValue));
+    if (animateReveal && displayValue > 0) animateCssVar(ring, '--progress', displayValue);
+    else ring.style.setProperty('--progress', String(displayValue));
     ring.setAttribute('aria-label', `Progreso parcial ${displayValue} por ciento`);
   } else {
     value.textContent = '0%';
@@ -307,13 +355,20 @@ function renderGlobalProgress() {
   }
   status.className = 'status-pill status-pill--warning';
   status.textContent = 'Parcial';
-  description.textContent = `${validResults.length} de 3 fuentes válidas.`;
+  description.textContent = partial
+    ? 'Promedio equilibrado de las tres fuentes.'
+    : `${validResults.length} de 3 fuentes válidas.`;
 }
 
-function renderHeaderStats() {
+function renderHeaderStats(animateReveal = false) {
   const completedEl = document.getElementById('headerStatsCompleted');
   const pctEl = document.getElementById('headerStatsPct');
   if (!completedEl || !pctEl) return;
+  if (isStatsDeferred()) {
+    completedEl.textContent = '0';
+    pctEl.textContent = '0%';
+    return;
+  }
   const validResults = appData.filter(hasValidProgress);
   const totalCompleted = validResults.reduce(
     (total, result) => total + progressDisplayMetrics(result).completed,
@@ -322,20 +377,28 @@ function renderHeaderStats() {
   const average = validResults.length > 0
     ? validResults.reduce((total, result) => total + displayProgressPct(result), 0) / validResults.length
     : 0;
-  completedEl.textContent = String(totalCompleted);
-  pctEl.textContent = `${rounded(average)}%`;
+  const pctValue = rounded(average);
+  if (animateReveal && totalCompleted > 0) animateText(completedEl, 0, totalCompleted);
+  else completedEl.textContent = String(totalCompleted);
+  if (animateReveal && pctValue > 0) animateText(pctEl, 0, pctValue, (v) => `${v}%`);
+  else pctEl.textContent = `${pctValue}%`;
 }
 
 function renderCefr() {
   const level = document.getElementById('cefrLevel');
   const description = document.getElementById('cefrDescription');
   if (!level || !description) return;
+  if (isStatsDeferred()) {
+    level.textContent = 'A1';
+    description.textContent = 'A1';
+    return;
+  }
   const result = getAppResult('fluentflow');
   const cefr = hasValidProgress(result) ? result.progress.data.cefr : null;
 
   if (!cefr) {
-    level.textContent = 'pendiente';
-    description.textContent = 'Disponible cuando FluentFlow publique información válida de su ruta.';
+    level.textContent = 'A1';
+    description.textContent = 'A1';
     return;
   }
 
@@ -499,6 +562,12 @@ function renderActivity() {
 }
 
 function renderRecentActivity() {
+  if (isStatsDeferred()) {
+    renderActivityList(document.getElementById('recentActivity'), [], 3, {
+      emptyDescription: 'Tus sesiones recientes se mostrarán aquí al completar actividades en tus módulos.'
+    });
+    return;
+  }
   renderActivityList(document.getElementById('recentActivity'), latestValidEvents(3), 3, {
     emptyDescription: 'Tus sesiones recientes se mostrarán aquí al completar actividades en tus módulos.'
   });
@@ -663,17 +732,32 @@ function renderDataHealth() {
 }
 
 function renderPrimaryContinue() {
+  const link = document.getElementById('primaryContinueLink');
+  const bannerTitle = document.getElementById('continueTitle');
+  const bannerDesc = document.getElementById('continueDescription');
+  const defaultApp = 'fluentflow';
+  const defaultConfig = APP_CONFIG[defaultApp];
+
+  if (isStatsDeferred()) {
+    link.href = defaultConfig.url;
+    link.dataset.appLink = defaultApp;
+    bannerTitle.textContent = 'Retoma donde lo dejaste';
+    bannerDesc.textContent = 'Continuar aprendiendo';
+    link.textContent = '';
+    link.append(document.createTextNode('Continuar '));
+    const arrow = element('span', '', '→');
+    arrow.setAttribute('aria-hidden', 'true');
+    link.append(arrow);
+    return;
+  }
+
   const candidates = appData
     .filter((result) => hasValidProgress(result) && result.progress.data.summary.lastContent)
     .sort((a, b) => new Date(b.progress.data.summary.lastContent.occurredAt || 0) - new Date(a.progress.data.summary.lastContent.occurredAt || 0));
-  const selectedApp = candidates[0]?.app || 'fluentflow';
+  const selectedApp = candidates[0]?.app || defaultApp;
   const config = APP_CONFIG[selectedApp];
-  const link = document.getElementById('primaryContinueLink');
   link.href = config.url;
   link.dataset.appLink = selectedApp;
-
-  const bannerTitle = document.getElementById('continueTitle');
-  const bannerDesc = document.getElementById('continueDescription');
 
   if (candidates.length && candidates[0].progress.data.summary.lastContent) {
     const last = candidates[0].progress.data.summary.lastContent;
@@ -715,13 +799,14 @@ function prepareAppLinks() {
 }
 
 function renderAll() {
+  const animateReveal = consumeStatsRevealAnimation();
   repairLocalProjections();
   appData = reader.readAll();
   contentTitleIndex = buildContentTitleIndex(appData);
-  renderGlobalProgress();
-  renderHeaderStats();
+  renderGlobalProgress(animateReveal);
+  renderHeaderStats(animateReveal);
   renderCefr();
-  renderModuleCards();
+  renderModuleCards(animateReveal);
   renderRecentActivity();
   renderContinue();
   APPS.forEach(renderModuleDetail);
@@ -729,6 +814,16 @@ function renderAll() {
   renderDataHealth();
   renderPrimaryContinue();
   prepareAppLinks();
+}
+
+let renderAllScheduled = false;
+function scheduleRenderAll() {
+  if (renderAllScheduled) return;
+  renderAllScheduled = true;
+  requestAnimationFrame(() => {
+    renderAllScheduled = false;
+    renderAll();
+  });
 }
 
 const NAVIGATION_MODE_KEY = 'lp-navigation-mode';
@@ -775,6 +870,10 @@ function setSidebarOpen(open) {
   scrim.classList.toggle('is-visible', open);
   scrim.setAttribute('aria-hidden', String(!open));
   document.body.classList.toggle('sidebar-open', open);
+
+  if (open && typeof lpLogin !== 'undefined' && lpLogin.refreshNavLabels) {
+    lpLogin.refreshNavLabels();
+  }
 
   toggles.forEach((toggle) => {
     toggle.setAttribute('aria-expanded', String(open));
@@ -1038,12 +1137,15 @@ MOBILE_SIDEBAR_MQ.addEventListener('change', syncSidebarMount);
 setupNavigation();
 setupActivityFilters();
 renderAll();
+window.addEventListener('lp-stats-ready', () => scheduleRenderAll());
 setupSupabaseAuth({
-  onAfterLogin: () => renderAll(),
-  onAfterLogout: () => renderAll(),
+  onAfterLogin: () => scheduleRenderAll(),
+  onAfterLogout: () => scheduleRenderAll(),
 });
+window.addEventListener('lp-cloud-hydrated', () => scheduleRenderAll());
+window.addEventListener('lp-sync-peer', () => scheduleRenderAll());
 window.addEventListener('lp-guest-reset', () => {
-  renderAll();
+  scheduleRenderAll();
 });
 
 if (new URLSearchParams(location.search).has('debug')) {
@@ -1055,13 +1157,13 @@ if (new URLSearchParams(location.search).has('debug')) {
     fullSync: () => runFullSync({ force: true }),
   };
 }
-document.getElementById('refreshData').addEventListener('click', renderAll);
+document.getElementById('refreshData').addEventListener('click', scheduleRenderAll);
 window.addEventListener('storage', (event) => {
   if (event.key === NAVIGATION_MODE_KEY) {
     setNavigationMode(NAVIGATION_MODES.has(event.newValue) ? event.newValue : 'sidebar');
     return;
   }
-  if (/^learnflow:(progress|activity):(fluentflow|hubflow|lyricflow):v1$/.test(event.key || '')) renderAll();
+  if (/^learnflow:(progress|activity):(fluentflow|hubflow|lyricflow):v1$/.test(event.key || '')) scheduleRenderAll();
 });
 
 (function rotateHints() {

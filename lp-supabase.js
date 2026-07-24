@@ -11,6 +11,32 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL = 'https://dfbokwebquvgsjgpnikw.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_rhGQoQfqjBsBR6fg9RLMig_fnDDP3Rx';
 
+/** True when the URL still carries OAuth callback params (hash or query). */
+export function isOAuthReturnUrl(urlLike) {
+  const href = typeof urlLike === 'string' ? urlLike : window.location.href;
+  return /(^|[#?&])(access_token|refresh_token|code|error_description)=/.test(href);
+}
+
+/** Strip OAuth tokens from the address bar after Supabase consumes them. */
+export function cleanAuthParamsFromUrl() {
+  if (typeof window === 'undefined') return false;
+  const url = new URL(window.location.href);
+  const hadHashAuth = /(^|&)(access_token|refresh_token|type)=/.test(url.hash.replace(/^#/, ''));
+  const hadQueryAuth =
+    url.searchParams.has('code') ||
+    url.searchParams.has('error') ||
+    url.searchParams.has('error_description');
+  if (!hadHashAuth && !hadQueryAuth) return false;
+
+  if (hadHashAuth) url.hash = '';
+  url.searchParams.delete('code');
+  url.searchParams.delete('error');
+  url.searchParams.delete('error_description');
+  const next = url.pathname + url.search + url.hash;
+  window.history.replaceState(window.history.state, '', next);
+  return true;
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
@@ -45,7 +71,10 @@ export async function isAuthenticated() {
 export function signInWithGoogle() {
   return supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin + window.location.pathname },
+    options: {
+      redirectTo: window.location.origin + window.location.pathname + window.location.search,
+      skipBrowserRedirect: false,
+    },
   });
 }
 
@@ -66,33 +95,81 @@ export function onAuthStateChange(callback) {
 
 // === PROGRESS ===
 
+/** True if the entry carries real progress (safe to upload). */
+export function hasProgressSignal(item) {
+  if (!item || typeof item !== 'object') return false;
+  if (item.completed) return true;
+  if ((item.attempts ?? 0) > 0) return true;
+  if ((item.progressPct ?? 0) > 0) return true;
+  if ((item.bestScorePct ?? 0) > 0) return true;
+  const activities = item.activities;
+  if (activities && typeof activities === 'object') {
+    for (const activity of Object.values(activities)) {
+      if (!activity || typeof activity !== 'object') continue;
+      if (activity.completed) return true;
+      if ((activity.attempts ?? 0) > 0) return true;
+      if ((activity.completedKeys ?? 0) > 0) return true;
+      if ((activity.bestScorePct ?? 0) > 0) return true;
+    }
+  }
+  return false;
+}
+
+function toProgressRows(userId, app, content) {
+  return Object.entries(content || {})
+    .filter(([, item]) => hasProgressSignal(item))
+    .map(([contentId, item]) => ({
+      user_id: userId,
+      app,
+      content_id: contentId,
+      content_type: item.contentType || 'module',
+      progress_pct: item.progressPct || 0,
+      completed: item.completed || false,
+      completed_at: item.completedAt || null,
+      best_score_pct: item.bestScorePct ?? null,
+      last_score_pct: item.lastScorePct ?? null,
+      attempts: item.attempts || 0,
+      activities: item.activities || {},
+      synced_at: new Date().toISOString(),
+    }));
+}
+
+async function upsertProgressBlind(rows) {
+  const { error } = await supabase
+    .from('progress')
+    .upsert(rows, { onConflict: 'user_id,app,content_id' });
+  return error;
+}
+
+/**
+ * Sube progreso con merge monotónico en servidor (RPC upsert_progress_merge).
+ * Si el RPC aún no está aplicado, cae a upsert clásico (el cliente ya hace
+ * pull-merge-push y filtra filas vacías).
+ */
 export async function syncProgress(app, localProgress) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { synced: false, reason: 'not_authenticated' };
 
-  const localEntries = Object.entries(localProgress.content || {});
+  const rows = toProgressRows(user.id, app, localProgress.content);
+  if (!rows.length) return { synced: true, count: 0, reason: 'nothing_to_sync' };
 
-  const rows = localEntries.map(([contentId, item]) => ({
-    user_id: user.id,
-    app,
-    content_id: contentId,
-    content_type: item.contentType || 'module',
-    progress_pct: item.progressPct || 0,
-    completed: item.completed || false,
-    completed_at: item.completedAt || null,
-    best_score_pct: item.bestScorePct || null,
-    last_score_pct: item.lastScorePct || null,
-    attempts: item.attempts || 0,
-    activities: item.activities || {},
-    synced_at: new Date().toISOString(),
-  }));
+  const { data, error: rpcError } = await supabase.rpc('upsert_progress_merge', {
+    p_rows: rows,
+  });
 
-  const { error } = await supabase
-    .from('progress')
-    .upsert(rows, { onConflict: 'user_id,app,content_id' });
+  if (!rpcError) {
+    return { synced: true, count: typeof data === 'number' ? data : rows.length, via: 'merge_rpc' };
+  }
 
-  if (error) return { synced: false, reason: error.message };
-  return { synced: true, count: rows.length };
+  // RPC missing / not yet migrated → blind upsert (still filtered empty rows)
+  const message = rpcError.message || '';
+  const rpcMissing =
+    /could not find the function|function .* does not exist|PGRST202|404/i.test(message);
+  if (!rpcMissing) return { synced: false, reason: message };
+
+  const fallbackError = await upsertProgressBlind(rows);
+  if (fallbackError) return { synced: false, reason: fallbackError.message };
+  return { synced: true, count: rows.length, via: 'upsert_fallback' };
 }
 
 export async function fetchProgress(app) {
@@ -238,8 +315,7 @@ export async function updateProfile(updates) {
 
   const { error } = await supabase
     .from('profiles')
-    .update(updates)
-    .eq('id', user.id);
+    .upsert({ id: user.id, ...updates }, { onConflict: 'id' });
 
   return { error: error?.message || null };
 }

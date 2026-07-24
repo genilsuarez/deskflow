@@ -37,3 +37,26 @@ html.dark .header-side-menu__item--active {
 html.dark .header-side-menu__footer .header-side-menu__icon {
   color: var(--lp-accent-text);
 }
+
+/* Stat reveal — count-up / bar fill after cloud sync (zeros paint immediately). */
+.lp-stat-fill--animate {
+  transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-stats-syncing] .progress-track__fill,
+html[data-stats-syncing] .progress-snapshot__fill,
+html[data-stats-syncing] .context-card__visual {
+  opacity: 0.72;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-stat-fill--animate {
+    transition: none;
+  }
+
+  html[data-stats-syncing] .progress-track__fill,
+  html[data-stats-syncing] .progress-snapshot__fill,
+  html[data-stats-syncing] .context-card__visual {
+    opacity: 1;
+  }
+}

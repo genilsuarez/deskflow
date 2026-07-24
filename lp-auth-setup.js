@@ -1,9 +1,17 @@
 import * as lpSupabase from './lp-supabase.js';
-import { downloadOnLogin, runFullSync, resetDownloadState } from './sync-engine.js';
+import {
+  downloadOnLogin,
+  runFullSync,
+  resetDownloadState,
+  setupMultiSessionSync,
+  markStatsDisplayReady,
+} from './sync-engine.js';
 
 window.lpSupabase = lpSupabase;
 
 let authListenerRegistered = false;
+let authHandlerInFlight = null;
+let lastHandledUserId = null;
 
 async function hydrateFromCloud(onAfterLogin, { forceDownload = false } = {}) {
   const result = await downloadOnLogin({ force: forceDownload });
@@ -23,17 +31,61 @@ async function clearOrphanSupabaseSession() {
 
 async function handleLogin(session, onAfterLogin, { forceDownload = false } = {}) {
   if (!session?.user) return;
+  while (authHandlerInFlight) {
+    await authHandlerInFlight;
+  }
 
-  let profile = null;
+  authHandlerInFlight = (async () => {
+    let profile = null;
+    try {
+      profile = await lpSupabase.fetchProfile();
+    } catch {
+      profile = null;
+    }
+    if (typeof lpLogin !== 'undefined' && !window.lpGuestReset?.hasLocalSupabaseIdentity?.()) {
+      lpLogin.setUserFromSupabase(session.user, profile);
+    }
+    await hydrateFromCloud(onAfterLogin, { forceDownload });
+    lastHandledUserId = session.user.id;
+    lpSupabase.cleanAuthParamsFromUrl?.();
+  })();
+
   try {
-    profile = await lpSupabase.fetchProfile();
-  } catch {
-    profile = null;
+    return await authHandlerInFlight;
+  } finally {
+    authHandlerInFlight = null;
   }
-  if (typeof lpLogin !== 'undefined' && !window.lpGuestReset?.hasLocalSupabaseIdentity?.()) {
-    lpLogin.setUserFromSupabase(session.user, profile);
+}
+
+async function processAuthSession(session, onAfterLogin, onAfterLogout, event) {
+  if (!session?.user) return;
+
+  if (window.lpGuestReset?.shouldRejectSession?.()) {
+    await clearOrphanSupabaseSession();
+    window.lpGuestReset?.clearExplicitLogout?.();
+    return;
   }
-  await hydrateFromCloud(onAfterLogin, { forceDownload });
+
+  const oauthReturn = !!lpSupabase.isOAuthReturnUrl?.();
+  const forceDownload =
+    event === 'SIGNED_IN' ||
+    (event === 'INITIAL_SESSION' && oauthReturn) ||
+    (event === 'INITIAL_SESSION' && !!window.lpGuestReset?.shouldForceCloudDownload?.());
+
+  if (event === 'SIGNED_IN' || forceDownload) {
+    resetDownloadState();
+  }
+
+  if (
+    event === 'INITIAL_SESSION' &&
+    !forceDownload &&
+    lastHandledUserId === session.user.id
+  ) {
+    lpSupabase.cleanAuthParamsFromUrl?.();
+    return;
+  }
+
+  await handleLogin(session, onAfterLogin, { forceDownload });
 }
 
 function setupCrossTabLogoutListener() {
@@ -46,58 +98,31 @@ export function setupSupabaseAuth({ onAfterLogin, onAfterLogout } = {}) {
   if (authListenerRegistered) return;
   authListenerRegistered = true;
   setupCrossTabLogoutListener();
+  setupMultiSessionSync();
 
   lpSupabase.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_OUT' || !session?.user) {
+      lastHandledUserId = null;
       resetDownloadState();
-      window.lpGuestReset?.clearExplicitLogout?.();
-      if (typeof lpLogin !== 'undefined' && lpLogin.getUser()?.isSupabaseUser) {
-        if (window.lpGuestReset?.clearGuestLocalProgress) {
-          window.lpGuestReset.clearGuestLocalProgress();
-        }
-        lpLogin.setUser(null);
+      markStatsDisplayReady();
+      // logout() clears lp-user before signOut resolves, so getUser() is often
+      // already null here. Honor the explicit-logout flag set in logout().
+      const explicitLogout = !!window.lpGuestReset?.isExplicitLogout?.();
+      const cloudUserStillPresent =
+        typeof lpLogin !== 'undefined' && !!lpLogin.getUser()?.isSupabaseUser;
+      if (explicitLogout || cloudUserStillPresent) {
+        window.lpGuestReset?.clearGuestLocalProgress?.();
+        if (typeof lpLogin !== 'undefined') lpLogin.setUser(null);
         onAfterLogout?.();
       }
-      return;
-    }
-
-    if (window.lpGuestReset?.shouldRejectSession?.()) {
-      await clearOrphanSupabaseSession();
       window.lpGuestReset?.clearExplicitLogout?.();
       return;
     }
 
-    const forceDownload =
-      event === 'SIGNED_IN' || !!window.lpGuestReset?.shouldForceCloudDownload?.();
-
-    if (event === 'SIGNED_IN' || forceDownload) {
-      resetDownloadState();
-    }
-
-    await handleLogin(session, onAfterLogin, { forceDownload });
-  });
-
-  lpSupabase.isAuthenticated().then(async (authed) => {
-    if (!authed) return;
-
-    if (window.lpGuestReset?.shouldRejectSession?.()) {
-      await clearOrphanSupabaseSession();
-      window.lpGuestReset?.clearExplicitLogout?.();
+    if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
       return;
     }
 
-    const forceDownload = !!window.lpGuestReset?.shouldForceCloudDownload?.();
-    if (forceDownload) {
-      resetDownloadState();
-      const {
-        data: { session },
-      } = await lpSupabase.getSession();
-      if (session?.user) {
-        await handleLogin(session, onAfterLogin, { forceDownload: true });
-        return;
-      }
-    }
-
-    await hydrateFromCloud(onAfterLogin);
+    await processAuthSession(session, onAfterLogin, onAfterLogout, event);
   });
 }

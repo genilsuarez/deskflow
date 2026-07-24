@@ -12,8 +12,12 @@ var lpLogin = (function () {
 
   var STORAGE_KEY = 'lp-user';
   var listeners = [];
+  var navLabelSyncs = [];
   var modalEl = null;
-  var stylesInjected = false;
+
+  var GOOGLE_ICON = '<svg class="lp-login__provider-icon" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.71v2.26h2.92a8.78 8.78 0 0 0 2.68-6.61z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.55-1.85.87-3.04.87-2.34 0-4.32-1.58-5.03-3.71H.96v2.33A8.99 8.99 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.41 5.41 0 0 1 3.68 9c0-.6.1-1.17.29-1.72V4.95H.96a8.99 8.99 0 0 0 0 8.1l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.33l2.58-2.58C13.46.89 11.43 0 9 0A8.99 8.99 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg>';
+  var MAIL_ICON = '<svg class="lp-login__inline-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>';
+  var CHECK_ICON = '<svg class="lp-login__success-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>';
 
   function getUser() {
     try {
@@ -75,8 +79,14 @@ var lpLogin = (function () {
     document.body.appendChild(modalEl);
     document.body.style.overflow = 'hidden';
     setTimeout(function () {
-      var input = modalEl.querySelector('.lp-login__input');
-      if (input) input.focus();
+      var isEditing = !!getUser();
+      if (!isEditing) {
+        var focusTarget = modalEl.querySelector('.lp-login__magic-input');
+        if (focusTarget) focusTarget.focus();
+        return;
+      }
+      var editBtn = modalEl.querySelector('.lp-login__edit-btn');
+      if (editBtn && !editBtn.hidden) editBtn.focus();
     }, 80);
   }
 
@@ -89,6 +99,185 @@ var lpLogin = (function () {
 
   function notify(user) {
     listeners.forEach(function (fn) { fn(user); });
+    refreshNavLabels();
+  }
+
+  function refreshNavLabels() {
+    var user = getUser();
+    navLabelSyncs.forEach(function (fn) { fn(user); });
+  }
+
+  function switchTab(overlay, tabName) {
+    overlay.querySelectorAll('[role="tab"]').forEach(function (tab) {
+      var active = tab.getAttribute('data-tab') === tabName;
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      tab.classList.toggle('is-active', active);
+    });
+    overlay.querySelectorAll('[data-panel]').forEach(function (panel) {
+      var active = panel.getAttribute('data-panel') === tabName;
+      panel.hidden = !active;
+      panel.classList.toggle('is-active', active);
+    });
+    var profileFooter = overlay.querySelector('.lp-login__footer--profile');
+    if (profileFooter) {
+      profileFooter.classList.toggle('lp-login__footer--cloud-tab', tabName === 'cloud');
+      if (tabName === 'cloud') setProfileState(overlay, 'view');
+    }
+    var focusTarget = overlay.querySelector('[data-panel="' + tabName + '"] .lp-login__magic-input, [data-panel="' + tabName + '"] .lp-login__name-input');
+    if (focusTarget) focusTarget.focus();
+  }
+
+  function showMagicSuccess(overlay) {
+    var formWrap = overlay.querySelector('.lp-login__magic-wrap');
+    var success = overlay.querySelector('.lp-login__magic-success');
+    if (!formWrap || !success) return;
+    formWrap.hidden = true;
+    success.hidden = false;
+  }
+
+  function buildCloudAuthBlock() {
+    return [
+      '      <button type="button" class="lp-btn lp-btn--provider lp-login__google">' + GOOGLE_ICON + '<span>Continuar con Google</span></button>',
+      '      <div class="lp-login__divider"><span>o con tu correo</span></div>',
+      '      <div class="lp-login__magic-wrap">',
+      '        <form class="lp-login__magic-form">',
+      '          <label class="lp-login__label" for="lp-login-email">Correo electrónico</label>',
+      '          <input class="lp-login__input lp-login__magic-input" id="lp-login-email" type="email" inputmode="email" autocomplete="email" spellcheck="false" placeholder="tu@email.com">',
+      '          <p class="lp-login__magic-status" hidden></p>',
+      '          <button type="submit" class="lp-btn lp-btn--primary lp-login__magic-submit">Enviar enlace mágico</button>',
+      '        </form>',
+      '      </div>',
+      '      <div class="lp-login__magic-success" hidden>',
+      '        ' + CHECK_ICON,
+      '        <h3 class="lp-login__success-title">Revisa tu correo</h3>',
+      '      </div>'
+    ].join('\n');
+  }
+
+  function buildSignupBody() {
+    return [
+      '    <div class="lp-login__tabs" role="tablist" aria-label="Tipo de acceso">',
+      '      <button type="button" class="lp-login__tab is-active" role="tab" aria-selected="true" data-tab="cloud" id="lp-login-tab-cloud" aria-controls="lp-login-panel-cloud">Cuenta</button>',
+      '      <button type="button" class="lp-login__tab" role="tab" aria-selected="false" data-tab="guest" id="lp-login-tab-guest" aria-controls="lp-login-panel-guest">Invitado</button>',
+      '    </div>',
+      '    <div class="lp-login__panel is-active" role="tabpanel" id="lp-login-panel-cloud" data-panel="cloud" aria-labelledby="lp-login-tab-cloud">',
+      buildCloudAuthBlock(),
+      '    </div>',
+      '    <div class="lp-login__panel" role="tabpanel" id="lp-login-panel-guest" data-panel="guest" aria-labelledby="lp-login-tab-guest" hidden>',
+      '      <form class="lp-login__form lp-login__guest-form" id="lp-login-form">',
+      '        <label class="lp-login__label" for="lp-login-name">¿Cómo te llamamos?</label>',
+      '        <input class="lp-login__input lp-login__name-input" id="lp-login-name" type="text" autocomplete="name" spellcheck="false" placeholder="Tu nombre" maxlength="40">',
+      '        <p class="lp-login__hint" hidden></p>',
+      '        <button type="submit" class="lp-btn lp-btn--primary lp-login__guest-submit">Empezar como invitado</button>',
+      '      </form>',
+      '    </div>'
+    ].join('\n');
+  }
+
+  function buildProfileNameForm(user) {
+    return [
+      '      <form class="lp-login__form lp-login__profile-form" id="lp-login-form">',
+      '        <label class="lp-login__label" for="lp-login-name">Nombre</label>',
+      '        <input class="lp-login__input lp-login__name-input" id="lp-login-name" type="text" autocomplete="name" spellcheck="false" placeholder="¿Cómo te llamas?" value="' + escapeAttr(user ? user.name : '') + '" maxlength="40">',
+      '        <p class="lp-login__hint" hidden></p>',
+      '      </form>'
+    ].join('\n');
+  }
+
+  function buildProfileView(user) {
+    return [
+      '      <div class="lp-login__profile-view">',
+      '        <div class="lp-login__field-display">',
+      '          <span class="lp-login__label">Nombre</span>',
+      '          <p class="lp-login__value lp-login__name-display">' + escapeAttr(user.name || '') + '</p>',
+      '        </div>',
+      (user.isSupabaseUser
+        ? '        <div class="lp-login__account-card">' + MAIL_ICON + '<div><p class="lp-login__account-label">Cuenta conectada</p><p class="lp-login__account-email">' + escapeAttr(user.email || '') + '</p></div></div>'
+        : '        <p class="lp-login__guest-note">Progreso solo en este dispositivo.</p>'),
+      '      </div>'
+    ].join('\n');
+  }
+
+  function buildGuestProfileBody(user) {
+    return [
+      '    <div class="lp-login__tabs" role="tablist" aria-label="Perfil invitado">',
+      '      <button type="button" class="lp-login__tab is-active" role="tab" aria-selected="true" data-tab="profile" id="lp-login-tab-profile" aria-controls="lp-login-panel-profile">Perfil</button>',
+      '      <button type="button" class="lp-login__tab" role="tab" aria-selected="false" data-tab="cloud" id="lp-login-tab-profile-cloud" aria-controls="lp-login-panel-profile-cloud">Cuenta</button>',
+      '    </div>',
+      '    <div class="lp-login__panel is-active" role="tabpanel" id="lp-login-panel-profile" data-panel="profile" aria-labelledby="lp-login-tab-profile">',
+      '      <div class="lp-login__profile-shell">',
+      buildProfileView(user),
+      buildProfileNameForm(user),
+      '      </div>',
+      '    </div>',
+      '    <div class="lp-login__panel" role="tabpanel" id="lp-login-panel-profile-cloud" data-panel="cloud" aria-labelledby="lp-login-tab-profile-cloud" hidden>',
+      buildCloudAuthBlock(),
+      '    </div>'
+    ].join('\n');
+  }
+
+  function buildProfileBody(user) {
+    if (user.isSupabaseUser) {
+      return [
+        '    <div class="lp-login__profile-shell">',
+        buildProfileView(user),
+        buildProfileNameForm(user),
+        '    </div>'
+      ].join('\n');
+    }
+    return buildGuestProfileBody(user);
+  }
+
+  function getProfileSavedName() {
+    var u = getUser();
+    return (u && u.name) ? String(u.name).trim() : '';
+  }
+
+  function isProfileDirty(overlay) {
+    var input = overlay.querySelector('.lp-login__name-input');
+    if (!input) return false;
+    return input.value.trim() !== getProfileSavedName();
+  }
+
+  function syncProfileFooter(overlay) {
+    var footer = overlay.querySelector('.lp-login__footer--profile');
+    if (!footer) return;
+    var dirty = isProfileDirty(overlay);
+    footer.classList.toggle('is-dirty', dirty);
+    var submitBtn = overlay.querySelector('.lp-login__submit');
+    if (submitBtn) submitBtn.disabled = !dirty;
+  }
+
+  function setProfileState(overlay, state) {
+    var editing = state === 'edit';
+    var card = overlay.querySelector('.lp-login__card');
+    var footer = overlay.querySelector('.lp-login__footer--profile');
+    var nameInput = overlay.querySelector('.lp-login__name-input');
+
+    if (card) card.classList.toggle('lp-login--profile-editing', editing);
+    if (footer) footer.setAttribute('data-state', state);
+    if (!editing && nameInput) nameInput.value = getProfileSavedName();
+    syncProfileFooter(overlay);
+  }
+
+  function finishProfileSave(overlay, trimmed) {
+    updateProfileDisplay(overlay, trimmed);
+    setProfileState(overlay, 'view');
+    var editBtnRef = overlay.querySelector('.lp-login__edit-btn');
+    if (editBtnRef) editBtnRef.focus();
+  }
+
+  function resetProfileSubmitBtn(overlay, submitBtn) {
+    if (!submitBtn) return;
+    submitBtn.disabled = !isProfileDirty(overlay);
+    submitBtn.textContent = 'Guardar cambios';
+  }
+
+  function updateProfileDisplay(overlay, name) {
+    var display = overlay.querySelector('.lp-login__name-display');
+    var avatarLetter = overlay.querySelector('.lp-login__avatar-letter');
+    if (display) display.textContent = name;
+    if (avatarLetter) avatarLetter.textContent = name ? name[0].toUpperCase() : '?';
   }
 
   function buildModal() {
@@ -105,80 +294,120 @@ var lpLogin = (function () {
       '  <header class="lp-login__header">',
       '    <div class="lp-login__identity" aria-hidden="true"><span class="lp-login__avatar-letter">' + initial + '</span></div>',
       '    <div class="lp-login__header-text">',
-      '      <p class="lp-login__eyebrow">' + (isEdit ? 'LearnFlow · Plataforma' : 'Primera vez aquí') + '</p>',
-      '      <h2 class="lp-login__title" id="lp-login-title">' + (isEdit ? 'Tu perfil' : 'Bienvenido') + '</h2>',
+      '      <p class="lp-login__eyebrow">' + (isEdit ? (user.isSupabaseUser ? 'LearnFlow · Plataforma' : 'Modo invitado') : 'Acceso a LearnFlow') + '</p>',
+      '      <h2 class="lp-login__title" id="lp-login-title">' + (isEdit ? 'Tu perfil' : 'Iniciar sesión') + '</h2>',
       '    </div>',
       '    <button type="button" class="lp-login__close" aria-label="Cerrar"><span aria-hidden="true">✕</span></button>',
       '  </header>',
       '  <div class="lp-login__body">',
-      '    <p class="lp-login__lede">' + (isEdit ? 'Actualiza cómo te verán las apps.' : 'Elige un nombre para personalizar tu experiencia.') + '</p>',
-      '    <form class="lp-login__form">',
-      '      <label class="lp-login__label" for="lp-login-name">Nombre</label>',
-      '      <input class="lp-login__input" id="lp-login-name" type="text" autocomplete="name" spellcheck="false" placeholder="¿Cómo te llamas?" value="' + escapeAttr(user ? user.name : '') + '">',
-      '      <p class="lp-login__hint" hidden></p>',
-      '      <p class="lp-login__note">' + (isEdit ? 'Se muestra en DeskFlow, FluentFlow, HubFlow y LyricFlow.' : 'Se sincroniza en todas las apps de LearnFlow.') + '</p>',
-      '    </form>',
-      (user && user.isSupabaseUser)
-        ? '    <p class="lp-login__note lp-login__account">Progreso conectado a la nube como <strong>' + escapeAttr(user.email || '') + '</strong>.</p>'
-        : [
-          '    <div class="lp-login__divider"><span>o</span></div>',
-          '    <div class="lp-login__cloud">',
-          '      <button type="button" class="lp-btn lp-btn--ghost lp-login__google">Continuar con Google</button>',
-          '      <form class="lp-login__magic-form">',
-          '        <input class="lp-login__input lp-login__magic-input" type="email" inputmode="email" autocomplete="email" spellcheck="false" placeholder="tu@email.com">',
-          '        <button type="submit" class="lp-btn lp-btn--ghost lp-login__magic-submit">Enviar enlace mágico</button>',
-          '      </form>',
-          '      <p class="lp-login__magic-status" hidden></p>',
-          '      <p class="lp-login__note">Guarda tu progreso en la nube y accede desde cualquier dispositivo.</p>',
-          '    </div>'
-        ].join('\n'),
+      isEdit ? buildProfileBody(user) : buildSignupBody(),
       '  </div>',
-      '  <footer class="lp-login__footer">',
-      '    <button type="submit" form="lp-login-form" class="lp-btn lp-btn--primary lp-login__submit">' + (isEdit ? 'Guardar cambios' : 'Continuar') + '</button>',
       isEdit
-        ? '    <button type="button" class="lp-btn lp-btn--ghost lp-login__logout">' + (user && user.isSupabaseUser ? 'Cerrar sesión' : 'Quitar nombre') + '</button>'
-        : '',
-      '  </footer>',
+        ? [
+          '  <footer class="lp-login__footer lp-login__footer--profile" data-state="view">',
+          '    <div class="lp-login__footer-view">',
+          '      <button type="button" class="lp-btn lp-btn--ghost lp-login__edit-btn">Editar</button>',
+          user.isSupabaseUser ? '      <button type="button" class="lp-btn lp-btn--ghost lp-login__logout">Cerrar sesión</button>' : '',
+          '    </div>',
+          '    <div class="lp-login__footer-edit">',
+          '      <button type="submit" form="lp-login-form" class="lp-btn lp-btn--primary lp-login__submit">Guardar cambios</button>',
+          '    </div>',
+          '  </footer>'
+        ].join('\n')
+        : '  <footer class="lp-login__footer" hidden></footer>',
       '</section>'
     ].join('\n');
-
-    var form = overlay.querySelector('.lp-login__form');
-    form.id = 'lp-login-form';
 
     overlay.querySelector('.lp-login__close').addEventListener('click', close);
     overlay.addEventListener('mousedown', function (e) {
       if (e.target === overlay) close();
     });
 
-    var input = overlay.querySelector('.lp-login__input');
+    var nameInput = overlay.querySelector('.lp-login__name-input');
     var hint = overlay.querySelector('.lp-login__hint');
     var avatarLetter = overlay.querySelector('.lp-login__avatar-letter');
 
-    input.addEventListener('input', function () {
-      var val = input.value.trim();
-      avatarLetter.textContent = val ? val[0].toUpperCase() : '?';
-      if (val.length >= 2) { hint.hidden = true; input.classList.remove('lp-login__input--error'); }
-    });
+    if (nameInput) {
+      nameInput.addEventListener('input', function () {
+        var val = nameInput.value.trim();
+        if (avatarLetter) avatarLetter.textContent = val ? val[0].toUpperCase() : '?';
+        if (val.length >= 2) {
+          if (hint) hint.hidden = true;
+          nameInput.classList.remove('lp-login__input--error');
+        }
+        syncProfileFooter(overlay);
+      });
+    }
 
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var trimmed = input.value.trim();
-      if (trimmed.length < 2) {
-        hint.textContent = 'Mínimo 2 caracteres';
-        hint.hidden = false;
-        input.classList.add('lp-login__input--error');
-        input.focus();
-        return;
+    var form = overlay.querySelector('.lp-login__profile-form, .lp-login__guest-form');
+    if (form && form.classList.contains('lp-login__profile-form')) {
+      setProfileState(overlay, 'view');
+
+      var editBtn = overlay.querySelector('.lp-login__edit-btn');
+      if (editBtn) {
+        editBtn.addEventListener('click', function () {
+          setProfileState(overlay, 'edit');
+          if (nameInput) {
+            nameInput.focus();
+            nameInput.select();
+          }
+        });
       }
-      var u = getUser();
-      var nextUser = { id: (u && u.id) || String(Date.now()), name: trimmed };
-      if (u && u.isSupabaseUser) {
-        nextUser.isSupabaseUser = true;
-        if (u.email) nextUser.email = u.email;
-      }
-      setUser(nextUser);
-      close();
-    });
+    }
+
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!nameInput) return;
+        var trimmed = nameInput.value.trim();
+        if (trimmed.length < 2) {
+          if (hint) {
+            hint.textContent = 'Mínimo 2 caracteres';
+            hint.hidden = false;
+          }
+          nameInput.classList.add('lp-login__input--error');
+          nameInput.focus();
+          return;
+        }
+        var u = getUser();
+        var nextUser = { id: (u && u.id) || String(Date.now()), name: trimmed };
+        if (u && u.isSupabaseUser) {
+          nextUser.isSupabaseUser = true;
+          if (u.email) nextUser.email = u.email;
+        }
+
+        if (form.classList.contains('lp-login__profile-form')) {
+          var submitBtn = overlay.querySelector('.lp-login__submit');
+          if (u && u.isSupabaseUser && window.lpSupabase && window.lpSupabase.updateProfile) {
+            if (submitBtn) {
+              submitBtn.disabled = true;
+              submitBtn.textContent = 'Guardando…';
+            }
+            window.lpSupabase.updateProfile({ name: trimmed }).then(function (res) {
+              resetProfileSubmitBtn(overlay, submitBtn);
+              if (res.error) {
+                if (hint) {
+                  hint.textContent = 'No se pudo guardar: ' + res.error;
+                  hint.hidden = false;
+                }
+                nameInput.classList.add('lp-login__input--error');
+                nameInput.focus();
+                return;
+              }
+              setUser(nextUser);
+              finishProfileSave(overlay, trimmed);
+            });
+            return;
+          }
+          setUser(nextUser);
+          finishProfileSave(overlay, trimmed);
+          return;
+        }
+
+        setUser(nextUser);
+        close();
+      });
+    }
 
     var logoutBtn = overlay.querySelector('.lp-login__logout');
     if (logoutBtn) {
@@ -188,13 +417,23 @@ var lpLogin = (function () {
       });
     }
 
+    overlay.querySelectorAll('[role="tab"]').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        switchTab(overlay, tab.getAttribute('data-tab'));
+      });
+    });
+
     var googleBtn = overlay.querySelector('.lp-login__google');
     if (googleBtn) {
       googleBtn.addEventListener('click', function () {
         if (!(window.lpSupabase && window.lpSupabase.signInWithGoogle)) return;
         googleBtn.disabled = true;
+        googleBtn.querySelector('span').textContent = 'Redirigiendo…';
+        document.body.style.overflow = '';
+        overlay.classList.add('lp-login--closing');
         window.lpSupabase.signInWithGoogle().catch(function () {
           googleBtn.disabled = false;
+          googleBtn.querySelector('span').textContent = 'Continuar con Google';
         });
       });
     }
@@ -207,21 +446,61 @@ var lpLogin = (function () {
         var magicInput = magicForm.querySelector('.lp-login__magic-input');
         var status = overlay.querySelector('.lp-login__magic-status');
         var email = magicInput.value.trim();
-        if (!email) return;
+        if (!email) {
+          status.hidden = false;
+          status.textContent = 'Escribe tu correo para recibir el enlace.';
+          magicInput.classList.add('lp-login__input--error');
+          magicInput.focus();
+          return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          status.hidden = false;
+          status.textContent = 'Correo no válido.';
+          magicInput.classList.add('lp-login__input--error');
+          magicInput.focus();
+          return;
+        }
+        magicInput.classList.remove('lp-login__input--error');
+        status.hidden = true;
         var submitBtn = magicForm.querySelector('.lp-login__magic-submit');
         submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando…';
         window.lpSupabase.signInWithMagicLink(email).then(function (res) {
           submitBtn.disabled = false;
-          status.hidden = false;
-          status.textContent = res.error
-            ? 'No se pudo enviar el enlace: ' + res.error.message
-            : 'Revisa tu correo — te enviamos un enlace para entrar.';
+          submitBtn.textContent = 'Enviar enlace mágico';
+          if (res.error) {
+            status.hidden = false;
+            status.textContent = 'No se pudo enviar: ' + res.error.message;
+            return;
+          }
+          showMagicSuccess(overlay);
         });
       });
+
+      var magicInput = magicForm.querySelector('.lp-login__magic-input');
+      if (magicInput) {
+        magicInput.addEventListener('input', function () {
+          magicInput.classList.remove('lp-login__input--error');
+          var status = overlay.querySelector('.lp-login__magic-status');
+          if (status) status.hidden = true;
+        });
+      }
     }
 
     var escHandler = function (e) {
-      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); }
+      if (e.key === 'Escape') {
+        var profileFooter = overlay.querySelector('.lp-login__footer--profile');
+        if (profileFooter && profileFooter.getAttribute('data-state') === 'edit') {
+          if (hint) hint.hidden = true;
+          if (nameInput) nameInput.classList.remove('lp-login__input--error');
+          setProfileState(overlay, 'view');
+          var editBtnRef = overlay.querySelector('.lp-login__edit-btn');
+          if (editBtnRef) editBtnRef.focus();
+          return;
+        }
+        close();
+        document.removeEventListener('keydown', escHandler);
+      }
     };
     document.addEventListener('keydown', escHandler);
 
@@ -229,12 +508,12 @@ var lpLogin = (function () {
   }
 
   function escapeAttr(str) {
-    return str.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    return String(str || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   }
 
   function injectStyles() {
     var css = `
-/* LP Login — profile modal (Learn Platform design system v2) */
+/* LP Login — unified auth modal (Learn Platform v3) */
 .lp-login {
   position: fixed;
   inset: 0;
@@ -244,8 +523,8 @@ var lpLogin = (function () {
   justify-content: center;
   padding: 20px;
   background: color-mix(in srgb, var(--lp-ink, #2c2418) 45%, transparent);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   animation: lp-login-in 0.2s ease-out both;
   pointer-events: auto;
 }
@@ -253,13 +532,13 @@ var lpLogin = (function () {
 
 [data-theme="dark"] .lp-login,
 html.dark .lp-login {
-  background: color-mix(in srgb, #14171c 55%, transparent);
+  background: color-mix(in srgb, #14171c 58%, transparent);
 }
 
 .lp-login__card {
   position: relative;
-  width: min(100%, 420px);
-  max-height: min(680px, calc(100svh - 40px));
+  width: min(100%, 440px);
+  max-height: min(720px, calc(100svh - 40px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -267,10 +546,10 @@ html.dark .lp-login {
   border-radius: var(--lp-radius-lg, 16px);
   background: var(--lp-bg-paper, var(--lp-surface, #fff));
   box-shadow:
-    0 24px 48px color-mix(in srgb, var(--lp-ink, #2c2418) 18%, transparent),
-    0 4px 12px color-mix(in srgb, var(--lp-ink, #2c2418) 8%, transparent);
+    0 28px 56px color-mix(in srgb, var(--lp-ink, #2c2418) 16%, transparent),
+    0 4px 14px color-mix(in srgb, var(--lp-ink, #2c2418) 6%, transparent);
   color: var(--lp-ink-soft, #5e5041);
-  animation: lp-login-card-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: lp-login-card-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .lp-login--closing .lp-login__card {
   animation: lp-login-card-out 0.18s ease-in forwards;
@@ -280,30 +559,27 @@ html.dark .lp-login {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 14px 12px;
+  padding: 16px 16px 14px;
   border-bottom: 1px solid var(--lp-border, #e8e0d4);
   flex-shrink: 0;
 }
 
-.lp-login__header-text {
-  flex: 1;
-  min-width: 0;
-}
+.lp-login__header-text { flex: 1; min-width: 0; }
 
 .lp-login__identity {
-  width: 40px;
-  height: 40px;
-  flex: 0 0 40px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--lp-accent, #2563eb);
+  background: linear-gradient(145deg, var(--lp-accent, #2563eb), color-mix(in srgb, var(--lp-accent, #2563eb) 72%, #1e3a8a));
   color: var(--lp-ink-inverse, #fff);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--lp-accent, #2563eb) 22%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--lp-accent, #2563eb) 24%, transparent);
 }
 
 .lp-login__avatar-letter {
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: -0.03em;
   text-transform: uppercase;
@@ -322,9 +598,9 @@ html.dark .lp-login {
 .lp-login__title {
   margin: 0;
   font-family: var(--lp-font-display, Georgia, serif);
-  font-size: 18px;
+  font-size: 1.2rem;
   font-weight: 500;
-  line-height: 1.1;
+  line-height: 1.15;
   color: var(--lp-ink, #2c2418);
 }
 
@@ -356,20 +632,97 @@ html.dark .lp-login {
 }
 
 .lp-login__body {
-  padding: 12px 16px 14px;
+  padding: 14px 18px 18px;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
 }
 
+/* Segmented tabs */
+.lp-login__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 16px;
+  border-radius: var(--lp-radius-md, 10px);
+  background: var(--lp-surface-sunken, #f0ede7);
+  border: 1px solid var(--lp-border, #e8e0d4);
+}
+
+.lp-login__tab {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: calc(var(--lp-radius-md, 10px) - 2px);
+  background: transparent;
+  color: var(--lp-muted, #9c8e7c);
+  font-family: var(--lp-font-body, system-ui, sans-serif);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+.lp-login__tab.is-active {
+  background: var(--lp-surface, #fff);
+  color: var(--lp-ink, #2c2418);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--lp-ink, #2c2418) 8%, transparent);
+}
+.lp-login__tab:focus-visible {
+  outline: 2px solid var(--lp-accent, #2563eb);
+  outline-offset: 1px;
+}
+
+.lp-login__panel { display: block; }
+.lp-login__panel[hidden] { display: none !important; }
+
 .lp-login__lede {
   margin: 0 0 14px;
-  font-size: 0.82rem;
-  line-height: 1.6;
+  font-size: 0.84rem;
+  line-height: 1.55;
   color: var(--lp-muted, #9c8e7c);
 }
 
-.lp-login__form { display: block; }
+.lp-login__profile-form[hidden],
+.lp-login__magic-wrap[hidden] { display: none !important; }
+
+.lp-login__profile-shell {
+  display: block;
+  min-height: 8rem;
+}
+.lp-login__profile-view,
+.lp-login__form,
+.lp-login__magic-form { display: block; }
+
+.lp-login__card:not(.lp-login--profile-editing) .lp-login__profile-form { display: none !important; }
+.lp-login__card.lp-login--profile-editing .lp-login__profile-view { display: none !important; }
+
+.lp-login__field-display {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: var(--lp-radius-md, 10px);
+  background: var(--lp-surface-sunken, #f0ede7);
+  border: 1px solid var(--lp-border, #e8e0d4);
+}
+.lp-login__value {
+  margin: 6px 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--lp-ink, #2c2418);
+  word-break: break-word;
+}
+.lp-login__guest-note {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--lp-radius-md, 10px);
+  background: var(--lp-surface-sunken, #f0ede7);
+  border: 1px dashed var(--lp-border, #e8e0d4);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--lp-muted, #9c8e7c);
+  text-align: center;
+}
 
 .lp-login__label {
   display: block;
@@ -422,11 +775,10 @@ html.dark .lp-login {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 16px 0 14px;
+  margin: 18px 0 16px;
   color: var(--lp-muted, #9c8e7c);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
 }
 .lp-login__divider::before,
 .lp-login__divider::after {
@@ -436,46 +788,116 @@ html.dark .lp-login {
   background: var(--lp-border, #e8e0d4);
 }
 
-.lp-login__cloud { display: flex; flex-direction: column; gap: 10px; }
-
-.lp-login__google { width: 100%; }
-
-.lp-login__magic-form {
-  display: flex;
-  gap: 8px;
+.lp-login__magic-submit,
+.lp-login__guest-submit {
+  width: 100%;
+  margin-top: 12px;
 }
-.lp-login__magic-form .lp-login__input { flex: 1; }
-.lp-login__magic-submit { flex: 0 0 auto; white-space: nowrap; }
 
 .lp-login__magic-status {
-  margin: 0;
+  margin: 8px 0 0;
   font-size: 0.75rem;
   line-height: 1.5;
-  color: var(--lp-muted, #9c8e7c);
+  font-weight: 600;
+  color: var(--lp-error, #c0392b);
 }
 
-@media (max-width: 420px) {
-  .lp-login__magic-form { flex-direction: column; }
+.lp-login__magic-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 4px 4px;
+  animation: lp-login-fade-in 0.25s ease both;
+}
+.lp-login__magic-success[hidden] { display: none !important; }
+.lp-login__success-icon {
+  color: var(--lp-success, #2d8a4e);
+  margin-bottom: 10px;
+}
+.lp-login__success-title {
+  margin: 0;
+  font-family: var(--lp-font-display, Georgia, serif);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--lp-ink, #2c2418);
+}
+
+.lp-login__account-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: var(--lp-radius-md, 10px);
+  background: color-mix(in srgb, var(--lp-accent, #2563eb) 6%, var(--lp-surface-sunken, #f0ede7));
+  border: 1px solid color-mix(in srgb, var(--lp-accent, #2563eb) 12%, var(--lp-border, #e8e0d4));
+}
+.lp-login__inline-icon {
+  flex: 0 0 16px;
+  color: var(--lp-accent, #2563eb);
+}
+.lp-login__account-label {
+  margin: 0 0 2px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lp-muted, #9c8e7c);
+}
+.lp-login__account-email {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--lp-ink, #2c2418);
+  word-break: break-all;
 }
 
 .lp-login__footer {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px 16px 16px;
+  padding: 12px 18px 18px;
   border-top: 1px solid var(--lp-border, #e8e0d4);
   flex-shrink: 0;
 }
+.lp-login__footer[hidden] { display: none !important; }
+.lp-login__footer--profile.lp-login__footer--cloud-tab { display: none !important; }
+.lp-login__footer--profile[data-state="view"] .lp-login__footer-edit { display: none !important; }
+.lp-login__footer--profile[data-state="edit"] .lp-login__footer-view { display: none !important; }
+.lp-login__footer-view,
+.lp-login__footer-edit {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+}
 
-.lp-login__submit,
-.lp-login__logout { width: 100%; }
+.lp-login__footer-view .lp-login__edit-btn,
+.lp-login__footer-view .lp-login__logout {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+}
+.lp-login__footer-view:not(:has(.lp-login__logout)) .lp-login__edit-btn {
+  flex-basis: 100%;
+}
+.lp-login__footer-edit .lp-login__submit {
+  width: 100%;
+  flex: 1 1 100%;
+}
 
+.lp-login__logout {
+  color: var(--lp-muted, #9c8e7c);
+}
 .lp-login__logout:hover {
   color: var(--lp-error, #c0392b);
   border-color: color-mix(in srgb, var(--lp-error, #c0392b) 28%, transparent);
+  background: color-mix(in srgb, var(--lp-error, #c0392b) 6%, var(--lp-surface, #fff));
 }
 
-/* LP button primitives (self-contained when buttons.css is absent) */
+/* LP button primitives */
 .lp-login .lp-btn {
   font-family: var(--lp-font-body, system-ui, sans-serif);
   font-weight: 700;
@@ -488,11 +910,16 @@ html.dark .lp-login {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  transition: transform 0.2s cubic-bezier(0.22, 0.9, 0.36, 1), box-shadow 0.2s, border-color 0.2s, color 0.2s;
+  gap: 8px;
+  transition: transform 0.2s cubic-bezier(0.22, 0.9, 0.36, 1), box-shadow 0.2s, border-color 0.2s, color 0.2s, background 0.2s;
 }
-.lp-login .lp-btn:hover { transform: translateY(-2px); }
-.lp-login .lp-btn:active { transform: translateY(0) scale(0.97); }
+.lp-login .lp-btn:hover:not(:disabled) { transform: translateY(-2px); }
+.lp-login .lp-btn:active:not(:disabled) { transform: translateY(0) scale(0.97); }
+.lp-login .lp-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
 .lp-login .lp-btn--primary {
   background: var(--lp-accent, #2563eb);
   color: var(--lp-ink-inverse, #fff);
@@ -504,16 +931,38 @@ html.dark .lp-login {
   border: 1.5px solid var(--lp-border, #e8e0d4);
   box-shadow: none;
 }
+.lp-login .lp-btn--provider {
+  width: 100%;
+  background: var(--lp-surface, #fff);
+  color: var(--lp-ink, #2c2418);
+  border: 1.5px solid var(--lp-border, #e8e0d4);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--lp-ink, #2c2418) 6%, transparent);
+}
+.lp-login .lp-btn--provider:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--lp-ink, #2c2418) 18%, var(--lp-border, #e8e0d4));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--lp-ink, #2c2418) 8%, transparent);
+}
 .lp-login .lp-btn:focus-visible {
   outline: 2px solid var(--lp-accent, #2563eb);
   outline-offset: 2px;
 }
+.lp-login__provider-icon { flex: 0 0 18px; }
 
 /* Dark mode */
 [data-theme="dark"] .lp-login__card,
 html.dark .lp-login__card {
   background: var(--lp-bg-paper, var(--lp-surface, #252930));
   border-color: var(--lp-border, #353b45);
+}
+[data-theme="dark"] .lp-login__tabs,
+html.dark .lp-login__tabs {
+  background: var(--lp-surface-sunken, #14171c);
+  border-color: var(--lp-border, #353b45);
+}
+[data-theme="dark"] .lp-login__tab.is-active,
+html.dark .lp-login__tab.is-active {
+  background: var(--lp-surface-raised, #2b3038);
+  color: var(--lp-ink, #e8eaed);
 }
 [data-theme="dark"] .lp-login__input,
 html.dark .lp-login__input {
@@ -528,19 +977,48 @@ html.dark .lp-login__input:focus {
   box-shadow: 0 0 0 3px color-mix(in srgb, #60a5fa 16%, transparent);
 }
 [data-theme="dark"] .lp-login .lp-btn--ghost,
-html.dark .lp-login .lp-btn--ghost {
+[data-theme="dark"] .lp-login .lp-btn--provider,
+html.dark .lp-login .lp-btn--ghost,
+html.dark .lp-login .lp-btn--provider {
   background: var(--lp-surface-raised, #2b3038);
   border-color: var(--lp-border, #353b45);
   color: var(--lp-ink-soft, #a8b0bc);
 }
 
 @media (max-width: 580px) {
-  .lp-login { padding: 16px; }
-  .lp-login__footer { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+  .lp-login { padding: 16px; align-items: flex-end; }
+  .lp-login__card {
+    width: 100%;
+    max-height: min(92svh, 720px);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .lp-login__body { padding: 12px 14px 16px; }
+  .lp-login__footer { padding: 12px 14px max(16px, env(safe-area-inset-bottom)); }
+  .lp-login__field-display,
+  .lp-login__account-card {
+    padding: 12px;
+  }
+  .lp-login__footer-view {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .lp-login__footer-view .lp-login__edit-btn,
+  .lp-login__footer-view .lp-login__logout {
+    flex-basis: auto;
+    width: 100%;
+  }
+}
+
+@media (min-width: 581px) {
+  .lp-login__footer--profile {
+    padding: 14px 18px 18px;
+  }
 }
 
 @keyframes lp-login-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes lp-login-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes lp-login-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes lp-login-card-in {
   from { opacity: 0; transform: translateY(12px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -551,20 +1029,21 @@ html.dark .lp-login .lp-btn--ghost {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lp-login, .lp-login__card, .lp-login--closing, .lp-login--closing .lp-login__card { animation: none !important; }
+  .lp-login, .lp-login__card, .lp-login--closing, .lp-login--closing .lp-login__card,
+  .lp-login__magic-success { animation: none !important; }
   .lp-login .lp-btn:hover { transform: none; }
 }
 `;
     var legacy = document.getElementById('lp-login-styles');
     if (legacy) legacy.remove();
-    var style = document.getElementById('lp-login-styles-v2');
+    var style = document.getElementById('lp-login-styles-v3');
     if (!style) {
       style = document.createElement('style');
-      style.id = 'lp-login-styles-v2';
+      style.id = 'lp-login-styles-v3';
       document.head.appendChild(style);
     }
     style.textContent = css;
-    stylesInjected = true;
+    document.getElementById('lp-login-styles-v2')?.remove();
   }
 
   window.addEventListener('storage', function (e) {
@@ -602,6 +1081,7 @@ html.dark .lp-login .lp-btn--ghost {
       open();
     });
     onUpdate(syncLabel);
+    navLabelSyncs.push(syncLabel);
     syncLabel(getUser());
     return syncLabel;
   }
@@ -614,6 +1094,7 @@ html.dark .lp-login .lp-btn--ghost {
     open: open,
     close: close,
     onUpdate: onUpdate,
-    bindNavButton: bindNavButton
+    bindNavButton: bindNavButton,
+    refreshNavLabels: refreshNavLabels
   };
 })();
