@@ -724,6 +724,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  --module-card-height: 88px;
+  --module-card-pad-block: 12px;
+  --module-card-row-gap: 8px;
 }
 
 .resumen-dashboard .resumen-hero {
@@ -893,6 +896,10 @@ body {
 .context-card--cefr #cefrLevel {
   color: var(--lp-cat-purple);
   font-weight: 600;
+}
+
+.context-card__meta {
+  display: none;
 }
 
 /* ─── STATUS PILL ─── */
@@ -2266,7 +2273,7 @@ a:focus-visible,
     top: 0;
     z-index: 5;
     margin: 0;
-    padding: 9px 15px;
+    padding: 9px 15px 9px 13px;
     background: color-mix(in srgb, var(--lp-surface) 94%, transparent);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -2277,7 +2284,7 @@ a:focus-visible,
     top: 0;
     z-index: 5;
     margin: 0 -16px;
-    padding: 0;
+    padding: 0 0 0 16px;
     border-bottom: 1px solid var(--lp-border);
     background: color-mix(in srgb, var(--lp-bg) 94%, transparent);
     backdrop-filter: blur(10px);
@@ -2334,8 +2341,14 @@ a:focus-visible,
   }
 
   .context-row { grid-template-columns: 1fr; }
-  .resumen-dashboard { gap: 10px; }
-  .resumen-hero { gap: 8px; margin-bottom: 0; }
+
+  /* Inicio — espaciado homologado con FluentFlow home-dash / HubFlow resumen (mobile) */
+  .app-shell[data-view="resumen"] .main {
+    padding: 8px 12px 20px;
+  }
+
+  .resumen-dashboard { gap: 8px; }
+  .resumen-hero { gap: 10px; margin-bottom: 0; }
 
   .continue-banner {
     display: none;
@@ -2359,27 +2372,163 @@ a:focus-visible,
   }
   .module-card__label { font-size: 0.92rem; }
 
-  /* Progreso global — card más legible en mobile */
-  .hero-row { margin-bottom: 10px; }
-  .context-card {
-    padding: 14px 16px;
-    gap: 14px;
+  /* Context cards — misma caja interna que module-card (fila + barra reservada) */
+  #view-resumen .resumen-hero {
+    gap: 8px;
+    margin-bottom: 0;
   }
-  .context-card__visual {
-    width: 52px;
-    height: 52px;
-    flex: 0 0 52px;
+
+  #view-resumen .context-card--progress,
+  #view-resumen .context-card--cefr {
+    box-sizing: border-box;
+    height: var(--module-card-height, 88px);
+    min-height: var(--module-card-height, 88px);
+    max-height: var(--module-card-height, 88px);
+    margin: 0;
+    padding: var(--module-card-pad-block, 12px) 14px;
+    column-gap: 10px;
+    overflow: hidden;
+    box-shadow: none;
   }
-  .context-card__visual > div {
+
+  #view-resumen .context-card--progress {
+    position: relative;
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-areas: "visual copy";
+    grid-template-rows: 1fr;
+    align-items: center;
+    padding-bottom: calc(var(--module-card-pad-block, 12px) + var(--module-card-row-gap, 8px) + var(--lp-progress-height));
+  }
+
+  #view-resumen .context-card--cefr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+      "copy"
+      "track";
+    row-gap: var(--module-card-row-gap, 8px);
+    align-content: stretch;
+    align-items: center;
+  }
+
+  #view-resumen .context-card--cefr::after {
+    content: "";
+    grid-area: track;
+    display: block;
+    height: var(--lp-progress-height);
+    border-radius: var(--lp-radius-full);
+    background: var(--lp-surface-sunken);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #view-resumen .context-card__track {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: var(--module-card-pad-block, 12px);
+  }
+
+  #view-resumen .context-card--progress .context-card__visual {
+    grid-area: visual;
     width: 40px;
     height: 40px;
+    flex: none;
+    align-self: start;
   }
-  .context-card__visual strong { font-size: 0.92rem; }
-  .context-card__visual span { font-size: 0.48rem; }
-  .context-card__copy h2 { font-size: 0.92rem; margin-bottom: 3px; }
-  .context-card__copy p { font-size: 0.72rem; line-height: 1.45; }
+
+  #view-resumen .context-card--progress .context-card__visual > div {
+    width: 30px;
+    height: 30px;
+  }
+
+  #view-resumen .context-card--progress .context-card__visual strong {
+    font-size: 0.78rem;
+  }
+
+  #view-resumen .context-card--progress #globalUnit:empty {
+    display: none;
+  }
+
+  #view-resumen .context-card--progress .context-card__copy {
+    grid-area: copy;
+    align-self: start;
+  }
+
+  #view-resumen .context-card--cefr .context-card__copy {
+    grid-area: copy;
+    align-self: start;
+  }
+
+  #view-resumen .context-card__copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 2px;
+    min-width: 0;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  #view-resumen .context-card--cefr .context-card__copy {
+    min-height: calc(0.68rem * 1.2 + 0.92rem * 1.2 + 0.68rem * 1.3 + 4px);
+  }
+
+  #view-resumen .context-card--progress .context-card__copy {
+    min-height: calc(0.92rem * 1.2 + 0.68rem * 1.3 + 0.64rem * 1.35 + 4px);
+  }
+
+  #view-resumen .context-card__meta {
+    display: block;
+    font-size: 0.64rem;
+    line-height: 1.35;
+    color: var(--lp-muted);
+    min-height: calc(0.64rem * 1.35);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #view-resumen .context-card__copy h2,
+  #view-resumen .context-card--cefr .context-card__copy h2 {
+    font-family: var(--lp-font-body);
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  #view-resumen .context-card__copy p {
+    font-size: 0.68rem;
+    line-height: 1.3;
+    margin: 0;
+    color: var(--lp-muted);
+  }
+
+  #view-resumen .context-card--cefr .context-card__copy p {
+    min-height: 0;
+    color: var(--lp-ink-soft);
+  }
+
+  #view-resumen .context-card--cefr .section-kicker {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+    margin: 0;
+  }
 
   #view-resumen .section-heading h2 { font-size: 0.88rem; }
+
+  #view-resumen .section-heading {
+    margin-bottom: 4px;
+  }
+
+  #view-resumen .section-block {
+    margin-bottom: 0;
+  }
 
   #view-resumen .resumen-recent {
     display: none;
@@ -2388,7 +2537,6 @@ a:focus-visible,
   @media (max-width: 380px) {
     .mobile-header__brand { font-size: 1.1rem; }
   }
-  #view-resumen .section-block { margin-bottom: 0; }
 
   /* Pills de integración ("Datos disponibles", etc.) — ruido en mobile */
   .detail-stat .status-pill,
@@ -2412,7 +2560,7 @@ a:focus-visible,
     font-size: 0.68rem;
   }
 
-  /* Métricas de módulo — una sola card con barra + 3 columnas */
+  /* Métricas de módulo — una sola card con barra + 2 columnas */
   .detail-metrics__card {
     padding: 8px 10px;
     border: 1px solid var(--lp-border);
@@ -2420,9 +2568,7 @@ a:focus-visible,
     background: var(--lp-surface);
   }
   .detail-metrics__header {
-    margin-bottom: 4px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid var(--lp-border);
+    margin-bottom: 6px;
   }
   .detail-metrics__title { font-size: 0.72rem; line-height: 1.15; }
   .detail-metrics__title .section-kicker { font-size: 0.48rem; }
@@ -2431,7 +2577,7 @@ a:focus-visible,
     margin-bottom: 5px;
   }
   .detail-metrics .detail-stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0;
     margin: 0;
   }

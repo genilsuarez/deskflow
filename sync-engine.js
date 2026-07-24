@@ -44,6 +44,61 @@ const STATS_DEFERRAL_TIMEOUT_MS = 8000;
 let statsDisplayReady = !hasStoredSupabaseSession();
 let statsDeferralTimer = null;
 let statsRevealPending = false;
+/** Activity ledger fetched from Supabase once per browser session (per app). */
+const activityFetchedThisSession = new Set();
+/** In-flight activity downloads — dedupe parallel hydrate + downloadOnLogin. */
+const activityFetchInFlight = new Map();
+
+function activityFetchedStorageKey(app) {
+  return `lp-activity-fetched:${app}`;
+}
+
+function wasActivityFetched(app) {
+  if (activityFetchedThisSession.has(app)) return true;
+  if (typeof sessionStorage === 'undefined') return false;
+  try {
+    return sessionStorage.getItem(activityFetchedStorageKey(app)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function markActivityFetched(app) {
+  activityFetchedThisSession.add(app);
+  if (typeof sessionStorage === 'undefined') return;
+  try {
+    sessionStorage.setItem(activityFetchedStorageKey(app), '1');
+  } catch {
+    /* noop */
+  }
+}
+
+function clearActivityFetched(app) {
+  activityFetchedThisSession.delete(app);
+  if (typeof sessionStorage === 'undefined') return;
+  try {
+    sessionStorage.removeItem(activityFetchedStorageKey(app));
+  } catch {
+    /* noop */
+  }
+}
+
+function clearActivityFetchedFlags() {
+  activityFetchedThisSession.clear();
+  if (typeof sessionStorage === 'undefined') return;
+  try {
+    for (const app of APPS) {
+      sessionStorage.removeItem(activityFetchedStorageKey(app));
+    }
+  } catch {
+    /* noop */
+  }
+}
+
+function notifyActivityReady(app) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('lp-activity-ready', { detail: { app } }));
+}
 
 function hasStoredSupabaseSession() {
   if (typeof localStorage === 'undefined') return false;
@@ -84,6 +139,56 @@ function beginStatsDeferral() {
 /** True while home/header stats should render zeros (logged-in, cloud not ready). */
 export function shouldDeferStatsDisplay() {
   return !statsDisplayReady;
+}
+
+function activityStorageKey(app) {
+  return `learnflow:activity:${app}:v1`;
+}
+
+/** True when the activity ledger is already in localStorage (any events). */
+export function hasLocalActivityLedger(app) {
+  if (!APPS.includes(app)) return false;
+  const doc = readRaw(activityStorageKey(app));
+  return Boolean(doc && Array.isArray(doc.events) && doc.events.length > 0);
+}
+
+/**
+ * True while recent-activity UI should wait for the first cloud fetch.
+ * If localStorage already has events, show them immediately (no Supabase round-trip).
+ */
+export function shouldDeferActivityDisplay(app) {
+  if (!APPS.includes(app)) return false;
+  return shouldDeferStatsDisplay() && !hasLocalActivityLedger(app);
+}
+
+/** Read cached activity events for UI — skips deferral when local ledger exists. */
+export function readLocalActivityEvents(app) {
+  if (shouldDeferActivityDisplay(app)) return [];
+  const doc = readRaw(activityStorageKey(app));
+  return Array.isArray(doc?.events) ? doc.events : [];
+}
+
+/**
+ * Fetch activity from Supabase only when localStorage has no ledger yet.
+ * Safe to call on app boot — no-op when cache or session flag exists.
+ */
+export async function hydrateActivityFromCloud(app) {
+  if (!APPS.includes(app)) return { hydrated: false, reason: 'unknown_app' };
+  if (!hasStoredSupabaseSession()) return { hydrated: false, reason: 'guest' };
+  if (hasLocalActivityLedger(app)) {
+    markActivityFetched(app);
+    notifyActivityReady(app);
+    return { hydrated: true, reason: 'local_cache' };
+  }
+  if (wasActivityFetched(app)) {
+    if (hasLocalActivityLedger(app)) {
+      notifyActivityReady(app);
+      return { hydrated: true, reason: 'session_cached' };
+    }
+    clearActivityFetched(app);
+  }
+  const result = await downloadActivityApp(app);
+  return { hydrated: hasLocalActivityLedger(app), ...result };
 }
 
 /** One-shot: true on the first render after cloud hydration (enables count-up / bar fill). */
@@ -329,21 +434,58 @@ function mergeActivityEvents(localEvents, remoteRows, app) {
 }
 
 async function downloadActivityApp(app) {
+  if (activityFetchInFlight.has(app)) {
+    return activityFetchInFlight.get(app);
+  }
+
+  const fetchPromise = downloadActivityAppOnce(app).finally(() => {
+    activityFetchInFlight.delete(app);
+  });
+  activityFetchInFlight.set(app, fetchPromise);
+  return fetchPromise;
+}
+
+async function downloadActivityAppOnce(app) {
+  if (wasActivityFetched(app)) {
+    if (hasLocalActivityLedger(app)) {
+      notifyActivityReady(app);
+      return { downloaded: false, reason: 'session_cached' };
+    }
+    clearActivityFetched(app);
+  }
+  if (hasLocalActivityLedger(app)) {
+    markActivityFetched(app);
+    notifyActivityReady(app);
+    return { downloaded: false, reason: 'local_cache' };
+  }
+
   const remoteRows = await lpSupabase.fetchActivityEvents(app);
   if (remoteRows === null) return { downloaded: false, reason: 'fetch_error' };
-  if (!remoteRows.length) return { downloaded: false, reason: 'no_remote_data' };
 
-  const key = `learnflow:activity:${app}:v1`;
+  const key = activityStorageKey(app);
   const doc = readRaw(key) || emptyActivityDoc(app);
+
+  if (!remoteRows.length) {
+    markActivityFetched(app);
+    notifyActivityReady(app);
+    return { downloaded: false, reason: 'no_remote_data' };
+  }
+
   const merged = mergeActivityEvents(doc.events, remoteRows, app);
   const unchanged =
     merged.length === (doc.events?.length || 0) &&
     merged.every((event, index) => event.eventId === doc.events?.[index]?.eventId);
-  if (unchanged) return { downloaded: false, reason: 'unchanged', count: remoteRows.length };
+  if (unchanged) {
+    markActivityFetched(app);
+    notifyActivityReady(app);
+    return { downloaded: false, reason: 'unchanged', count: remoteRows.length };
+  }
 
   doc.events = merged;
   doc.updatedAt = new Date().toISOString();
   writeRaw(key, doc);
+  markActivityFetched(app);
+  notifyActivityReady(app);
   return { downloaded: true, count: remoteRows.length };
 }
 
@@ -351,6 +493,7 @@ async function downloadActivityApp(app) {
 export function resetDownloadState() {
   downloaded = false;
   cloudHydrated = false;
+  clearActivityFetchedFlags();
   beginStatsDeferral();
 }
 

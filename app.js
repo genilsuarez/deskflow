@@ -1,7 +1,7 @@
 import { APPS, ProgressReader, STATUS } from './progress-reader.js';
 import { buildContentTitleIndex, resolveContentTitle } from './content-title.js';
 import { repairLocalProjections, auditLocalProjections, auditCloudAlignment } from './sync-engine-audit.js';
-import { runFullSync, shouldDeferStatsDisplay, consumeStatsRevealAnimation } from './sync-engine.js';
+import { runFullSync, shouldDeferStatsDisplay, shouldDeferActivityDisplay, consumeStatsRevealAnimation, hydrateActivityFromCloud } from './sync-engine.js';
 import { animateText, animateCssVar, animateWidth } from './lp-stats-animate.js';
 import { setupSupabaseAuth } from './lp-auth-setup.js';
 
@@ -190,21 +190,6 @@ function completedMetric(result) {
   return '0';
 }
 
-function attemptedMetric(result) {
-  if (!hasValidProgress(result)) return '0';
-  const summary = result.progress.data.summary;
-  if (result.app === 'lyricflow' && summary.attemptedActivities != null) {
-    return String(summary.attemptedActivities);
-  }
-  return String(summary.attemptedContent);
-}
-
-function attemptedTotalLabel(result) {
-  if (!hasValidProgress(result)) return 'de 0';
-  const { total } = progressDisplayMetrics(result);
-  return `de ${total}`;
-}
-
 function createStatusPill(status) {
   const tone = status === STATUS.READY ? 'success' : status === STATUS.EMPTY ? 'neutral' : 'warning';
   return element('span', `status-pill status-pill--${tone}`, STATUS_COPY[status]);
@@ -303,6 +288,27 @@ function renderModuleCards(animateReveal = false) {
   });
 }
 
+function updateGlobalProgressTrack(value, label, animate = false) {
+  const track = document.getElementById('globalProgressTrack');
+  if (!track) return;
+  track.setAttribute('aria-label', label);
+  track.setAttribute('aria-valuenow', String(value));
+  const fill = track.querySelector('.progress-track__fill');
+  if (!fill) return;
+  if (animate && value > 0) {
+    fill.style.width = '0%';
+    animateWidth(fill, value);
+  } else {
+    fill.style.width = `${value}%`;
+  }
+}
+
+function updateGlobalProgressMeta(text) {
+  const meta = document.getElementById('globalMeta');
+  if (!meta) return;
+  meta.textContent = text || '\u00a0';
+}
+
 function renderGlobalProgress(animateReveal = false) {
   const value = document.getElementById('globalValue');
   const unit = document.getElementById('globalUnit');
@@ -313,11 +319,13 @@ function renderGlobalProgress(animateReveal = false) {
   if (isStatsDeferred()) {
     value.textContent = '0%';
     unit.textContent = '0/3';
+    updateGlobalProgressMeta('0 de 3 fuentes');
     ring.style.setProperty('--progress', '0');
     ring.setAttribute('aria-label', 'Progreso global pendiente');
     status.className = 'status-pill status-pill--warning';
     status.textContent = 'Parcial';
     description.textContent = 'Promedio equilibrado de las tres fuentes.';
+    updateGlobalProgressTrack(0, 'Progreso global pendiente');
     return;
   }
 
@@ -327,13 +335,15 @@ function renderGlobalProgress(animateReveal = false) {
     const average = validResults.reduce((total, result) => total + displayProgressPct(result), 0) / APPS.length;
     const displayValue = rounded(average);
     setPctText(value, displayValue, animateReveal);
-    unit.textContent = 'prom.';
+    unit.textContent = '';
+    updateGlobalProgressMeta('3 de 3 fuentes');
     if (animateReveal && displayValue > 0) animateCssVar(ring, '--progress', displayValue);
     else ring.style.setProperty('--progress', String(displayValue));
     ring.setAttribute('aria-label', `Progreso global ${displayValue} por ciento`);
     status.className = 'status-pill status-pill--success';
     status.textContent = 'Completo';
     description.textContent = 'Promedio equilibrado de las tres fuentes.';
+    updateGlobalProgressTrack(displayValue, `Progreso global ${displayValue} por ciento`, animateReveal);
     return;
   }
 
@@ -344,14 +354,18 @@ function renderGlobalProgress(animateReveal = false) {
     displayValue = rounded(average);
     setPctText(value, displayValue, animateReveal);
     unit.textContent = `${validResults.length}/3`;
+    updateGlobalProgressMeta(`${validResults.length} de 3 fuentes`);
     if (animateReveal && displayValue > 0) animateCssVar(ring, '--progress', displayValue);
     else ring.style.setProperty('--progress', String(displayValue));
     ring.setAttribute('aria-label', `Progreso parcial ${displayValue} por ciento`);
+    updateGlobalProgressTrack(displayValue, `Progreso parcial ${displayValue} por ciento`, animateReveal);
   } else {
     value.textContent = '0%';
     unit.textContent = '0/3';
+    updateGlobalProgressMeta('0 de 3 fuentes');
     ring.style.setProperty('--progress', '0');
     ring.setAttribute('aria-label', 'Progreso global pendiente');
+    updateGlobalProgressTrack(0, 'Progreso global pendiente');
   }
   status.className = 'status-pill status-pill--warning';
   status.textContent = 'Parcial';
@@ -415,6 +429,7 @@ function renderCefr() {
 const RECENT_ACTIVITY_PER_APP = 4;
 
 function recentEventsForApp(result) {
+  if (shouldDeferActivityDisplay(result.app)) return [];
   if (result.activity.status !== STATUS.READY) return [];
   return [...result.activity.data.events]
     .map((event) => ({ ...event, app: event.app || result.app }))
@@ -429,9 +444,11 @@ function allValidEvents() {
 
 function latestValidEvents(limit = 3) {
   return appData.flatMap((result) => (
-    result.activity.status === STATUS.READY
-      ? result.activity.data.events.map((event) => ({ ...event, app: event.app || result.app }))
-      : []
+    shouldDeferActivityDisplay(result.app)
+      ? []
+      : result.activity.status === STATUS.READY
+        ? result.activity.data.events.map((event) => ({ ...event, app: event.app || result.app }))
+        : []
   ))
     .sort((first, second) => new Date(second.occurredAt) - new Date(first.occurredAt))
     .slice(0, limit);
@@ -562,7 +579,8 @@ function renderActivity() {
 }
 
 function renderRecentActivity() {
-  if (isStatsDeferred()) {
+  const allDeferred = APPS.every((app) => shouldDeferActivityDisplay(app));
+  if (allDeferred) {
     renderActivityList(document.getElementById('recentActivity'), [], 3, {
       emptyDescription: 'Tus sesiones recientes se mostrarán aquí al completar actividades en tus módulos.'
     });
@@ -688,9 +706,7 @@ function renderModuleDetail(app) {
   progressStat.append(element('span', '', 'Progreso'), element('strong', '', progressLabel(result)), createStatusPill(result.progress.status));
   const contentStat = element('article', 'detail-stat');
   contentStat.append(element('span', '', 'Completado'), element('strong', '', completedMetric(result)), element('p', '', progressDisplayMetrics(result).unit));
-  const attemptedStat = element('article', 'detail-stat');
-  attemptedStat.append(element('span', '', 'Iniciado'), element('strong', '', attemptedMetric(result)), element('p', '', attemptedTotalLabel(result)));
-  stats.append(progressStat, contentStat, attemptedStat);
+  stats.append(progressStat, contentStat);
   statsCard.append(stats);
   statsSection.append(statsCard);
 
@@ -1137,7 +1153,13 @@ MOBILE_SIDEBAR_MQ.addEventListener('change', syncSidebarMount);
 setupNavigation();
 setupActivityFilters();
 renderAll();
+void Promise.all([
+  hydrateActivityFromCloud('fluentflow'),
+  hydrateActivityFromCloud('hubflow'),
+  hydrateActivityFromCloud('lyricflow'),
+]);
 window.addEventListener('lp-stats-ready', () => scheduleRenderAll());
+window.addEventListener('lp-activity-ready', () => scheduleRenderAll());
 setupSupabaseAuth({
   onAfterLogin: () => scheduleRenderAll(),
   onAfterLogout: () => scheduleRenderAll(),
