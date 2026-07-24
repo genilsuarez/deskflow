@@ -122,6 +122,223 @@ function emptyLyricflowActivity(activityId) {
   return base;
 }
 
+function pickLaterIso(first, second) {
+  if (!first) return second || null;
+  if (!second) return first || null;
+  return new Date(first).getTime() >= new Date(second).getTime() ? first : second;
+}
+
+function mergeNumericMax(a, b) {
+  const values = [a, b].filter((value) => Number.isFinite(value));
+  return values.length ? Math.max(...values) : null;
+}
+
+/** Fusiona dos entradas de actividad LyricFlow sin retroceder progreso. */
+export function mergeLyricflowActivityEntry(existing, remote, activityId) {
+  const base = emptyLyricflowActivity(activityId);
+  const left = isRecord(existing) ? existing : {};
+  const right = isRecord(remote) ? remote : {};
+  const completed = Boolean(left.completed) || Boolean(right.completed);
+  const attempts = Math.max(left.attempts ?? 0, right.attempts ?? 0);
+  const bestScorePct = mergeNumericMax(left.bestScorePct, right.bestScorePct);
+  const lastAttemptAt = pickLaterIso(left.lastAttemptAt, right.lastAttemptAt);
+  const leftIsNewer = lastAttemptAt && left.lastAttemptAt === lastAttemptAt;
+  const lastScorePct = leftIsNewer
+    ? (left.lastScorePct ?? bestScorePct)
+    : (right.lastScorePct ?? bestScorePct);
+  const completedAt = completed ? pickLaterIso(left.completedAt, right.completedAt) : null;
+  const lastRunId = leftIsNewer ? (left.lastRunId || right.lastRunId) : (right.lastRunId || left.lastRunId);
+
+  const merged = {
+    ...base,
+    completed,
+    attempts,
+    bestScorePct,
+    lastScorePct,
+    lastAttemptAt,
+    completedAt,
+    lastRunId,
+  };
+
+  if (activityId === 'listen') {
+    merged.coveragePct = Math.max(left.coveragePct ?? 0, right.coveragePct ?? 0);
+    merged.eligibleDurationSec = Math.max(left.eligibleDurationSec ?? 0, right.eligibleDurationSec ?? 0);
+    merged.coveredDurationSec = Math.max(left.coveredDurationSec ?? 0, right.coveredDurationSec ?? 0);
+    merged.coverageRanges = (left.coveredDurationSec ?? 0) >= (right.coveredDurationSec ?? 0)
+      ? (left.coverageRanges || [])
+      : (right.coverageRanges || []);
+  }
+
+  return merged;
+}
+
+/** Fusiona mapas activities de LyricFlow actividad por actividad. */
+export function mergeLyricflowActivities(existing, remote) {
+  const left = isRecord(existing) ? existing : {};
+  const right = isRecord(remote) ? remote : {};
+  return Object.fromEntries(
+    LYRICFLOW_ACTIVITY_IDS.map((activityId) => [
+      activityId,
+      mergeLyricflowActivityEntry(left[activityId], right[activityId], activityId),
+    ]),
+  );
+}
+
+function mergeHubflowActivityEntry(existing, remote) {
+  const left = isRecord(existing) ? existing : {};
+  const right = isRecord(remote) ? remote : {};
+  return {
+    ...left,
+    ...right,
+    completed: Boolean(left.completed) || Boolean(right.completed),
+    completedKeys: Math.max(left.completedKeys ?? 0, right.completedKeys ?? 0),
+    totalKeys: Math.max(left.totalKeys ?? 0, right.totalKeys ?? 0),
+    bestScorePct: mergeNumericMax(left.bestScorePct, right.bestScorePct),
+    attempts: Math.max(left.attempts ?? 0, right.attempts ?? 0),
+    completedAt: pickLaterIso(left.completedAt, right.completedAt),
+    lastAttemptAt: pickLaterIso(left.lastAttemptAt, right.lastAttemptAt),
+  };
+}
+
+/** Fusiona mapas activities de HubFlow por clave de modo. */
+export function mergeHubflowActivities(existing, remote) {
+  const left = isRecord(existing) ? existing : {};
+  const right = isRecord(remote) ? remote : {};
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  const merged = {};
+  keys.forEach((key) => {
+    merged[key] = mergeHubflowActivityEntry(left[key], right[key]);
+  });
+  return merged;
+}
+
+/** Snapshot estable para detectar cambios en activities de LyricFlow. */
+export function lyricflowActivitiesSnapshot(activities) {
+  if (!isRecord(activities)) return '';
+  return LYRICFLOW_ACTIVITY_IDS.map((activityId) => {
+    const activity = activities[activityId];
+    if (!isRecord(activity)) return `${activityId}:0`;
+    return [
+      activityId,
+      activity.completed ? 1 : 0,
+      activity.attempts ?? 0,
+      activity.bestScorePct ?? '',
+      activity.coveredDurationSec ?? 0,
+    ].join(':');
+  }).join('|');
+}
+
+/** Indica si una fusión local/remota cambió datos relevantes. */
+export function contentEntryMergeChanged(existing, merged, app) {
+  if (!existing) return true;
+  if (merged.completed !== existing.completed) return true;
+  if (merged.bestScorePct !== existing.bestScorePct) return true;
+  if (merged.attempts !== existing.attempts) return true;
+  if (merged.progressPct !== existing.progressPct) return true;
+  if (app === 'lyricflow') {
+    return lyricflowActivitiesSnapshot(merged.activities)
+      !== lyricflowActivitiesSnapshot(existing.activities);
+  }
+  if (app === 'hubflow') {
+    return JSON.stringify(merged.activities || {}) !== JSON.stringify(existing.activities || {});
+  }
+  return false;
+}
+
+function lyricflowActivityFromEvents(events, activityId) {
+  if (!Array.isArray(events) || !events.length) return null;
+  const passed = events.some((event) => event.passed === true);
+  const scores = events.map((event) => event.scorePct).filter((value) => Number.isFinite(value));
+  const bestScorePct = scores.length ? Math.max(...scores) : null;
+  const lastEvent = events.reduce((latest, event) => {
+    if (!event?.occurredAt) return latest;
+    if (!latest?.occurredAt) return event;
+    return new Date(event.occurredAt) > new Date(latest.occurredAt) ? event : latest;
+  }, null);
+  const completed = passed || (activityId === 'listen' && events.some((event) => event.passed === true));
+  const derived = {
+    ...emptyLyricflowActivity(activityId),
+    completed,
+    attempts: events.length,
+    bestScorePct,
+    lastScorePct: lastEvent?.scorePct ?? bestScorePct,
+    lastAttemptAt: lastEvent?.occurredAt ?? null,
+    completedAt: completed ? (lastEvent?.occurredAt ?? null) : null,
+    lastRunId: lastEvent?.runId ?? null,
+  };
+  if (activityId === 'listen' && completed) {
+    derived.coveragePct = 100;
+    derived.coveredDurationSec = Math.max(derived.coveredDurationSec, 1);
+  }
+  return derived;
+}
+
+/**
+ * Refuerza progress.activities desde el ledger de eventos cuando el JSON en
+ * Supabase quedó vacío o incompleto (events sí sincronizan).
+ */
+export function applyLyricflowActivityEvents(content, events) {
+  if (!isRecord(content) || !Array.isArray(events) || !events.length) return false;
+
+  const grouped = new Map();
+  for (const event of events) {
+    if (!event?.contentId || !event?.activity) continue;
+    if (!grouped.has(event.contentId)) grouped.set(event.contentId, new Map());
+    const byActivity = grouped.get(event.contentId);
+    if (!byActivity.has(event.activity)) byActivity.set(event.activity, []);
+    byActivity.get(event.activity).push(event);
+  }
+
+  let changed = false;
+  for (const [contentId, byActivity] of grouped.entries()) {
+    if (!isRecord(content[contentId])) {
+      content[contentId] = {
+        contentId,
+        contentType: 'song',
+        progressPct: 0,
+        completed: false,
+        completedAt: null,
+        bestScorePct: null,
+        lastScorePct: null,
+        attempts: 0,
+        activities: {},
+      };
+      changed = true;
+    }
+
+    const song = content[contentId];
+    const before = lyricflowActivitiesSnapshot(song.activities);
+    enrichLyricflowSongEntry(contentId, song);
+
+    for (const [activityId, activityEvents] of byActivity.entries()) {
+      if (!LYRICFLOW_ACTIVITY_IDS.includes(activityId)) continue;
+      const fromEvents = lyricflowActivityFromEvents(activityEvents, activityId);
+      if (!fromEvents) continue;
+      song.activities[activityId] = mergeLyricflowActivityEntry(
+        song.activities[activityId],
+        fromEvents,
+        activityId,
+      );
+    }
+
+    enrichLyricflowSongEntry(contentId, song);
+    if (lyricflowActivitiesSnapshot(song.activities) !== before) changed = true;
+  }
+
+  return changed;
+}
+
+/** Cuenta actividades completadas en una fila LyricFlow (con enrich opcional). */
+export function countLyricflowCompletedActivities(item, { enrich = true } = {}) {
+  if (!isRecord(item)) return 0;
+  const clone = enrich
+    ? JSON.parse(JSON.stringify(item))
+    : item;
+  if (enrich) enrichLyricflowSongEntry(item.contentId || clone.contentId || '', clone);
+  const activities = isRecord(clone.activities) ? clone.activities : {};
+  return LYRICFLOW_ACTIVITY_IDS.filter((activityId) => activities[activityId]?.completed).length;
+}
+
 /** Rellena activities cuando la fila remota solo trae flags agregados (sin detalle por modo). */
 export function enrichLyricflowSongEntry(contentId, item) {
   if (!isRecord(item)) return;

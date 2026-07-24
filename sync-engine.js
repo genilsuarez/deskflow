@@ -12,7 +12,14 @@
 // hydrateHubFlowFromCloud(); FluentFlow importa la proyección en syncEngine.ts.
 
 import * as lpSupabase from './lp-supabase.js';
-import { recomputeProgressDocumentSummary, inferFluentflowCefrLevel } from './lp-progress-summary.js';
+import {
+  applyLyricflowActivityEvents,
+  contentEntryMergeChanged,
+  inferFluentflowCefrLevel,
+  mergeHubflowActivities,
+  mergeLyricflowActivities,
+  recomputeProgressDocumentSummary,
+} from './lp-progress-summary.js';
 
 const APPS = ['fluentflow', 'hubflow', 'lyricflow'];
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
@@ -62,12 +69,25 @@ function normalizeIsoDate(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
+function mergeActivities(existing, remote, app) {
+  if (app === 'lyricflow') return mergeLyricflowActivities(existing, remote);
+  if (app === 'hubflow') return mergeHubflowActivities(existing, remote);
+  const left = existing && typeof existing === 'object' ? existing : {};
+  const right = remote && typeof remote === 'object' ? remote : {};
+  return Object.keys(right).length ? { ...left, ...right } : left;
+}
+
 // Combina una fila remota con la entrada local existente sin retroceder
 // progreso ya alcanzado (favorece completado=true, mejor puntaje, más intentos).
 function mergeContentEntry(existing, row, { app } = {}) {
+  const remoteActivities = row.activities && typeof row.activities === 'object' ? row.activities : {};
+  const localActivities = existing?.activities && typeof existing.activities === 'object'
+    ? existing.activities
+    : {};
+
   const merged = {
     contentId: row.content_id,
-    contentType: row.content_type || existing?.contentType || 'module',
+    contentType: row.content_type || existing?.contentType || (app === 'lyricflow' ? 'song' : 'module'),
     progressPct: Math.max(row.progress_pct ?? 0, existing?.progressPct ?? 0),
     completed: Boolean(row.completed) || Boolean(existing?.completed),
     completedAt: normalizeIsoDate(row.completed_at) || existing?.completedAt || null,
@@ -77,7 +97,7 @@ function mergeContentEntry(existing, row, { app } = {}) {
         : null,
     lastScorePct: row.last_score_pct ?? existing?.lastScorePct ?? null,
     attempts: Math.max(row.attempts ?? 0, existing?.attempts ?? 0),
-    activities: existing?.activities || row.activities || {},
+    activities: mergeActivities(localActivities, remoteActivities, app),
     title: existing?.title || null,
     cefrLevel: existing?.cefrLevel || null,
   };
@@ -87,6 +107,30 @@ function mergeContentEntry(existing, row, { app } = {}) {
   }
 
   return merged;
+}
+
+function notifyCloudHydrated() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('lp-cloud-hydrated'));
+  }
+}
+
+/** Reconstruye activities de LyricFlow desde el ledger local de eventos. */
+export function reconcileLyricflowProgressFromEvents() {
+  const progressKey = 'learnflow:progress:lyricflow:v1';
+  const activityKey = 'learnflow:activity:lyricflow:v1';
+  const doc = readRaw(progressKey);
+  const activityDoc = readRaw(activityKey);
+  if (!doc || !activityDoc?.events?.length) return false;
+
+  doc.content = doc.content || {};
+  const changed = applyLyricflowActivityEvents(doc.content, activityDoc.events);
+  if (!changed) return false;
+
+  recomputeProgressDocumentSummary(doc, 'lyricflow');
+  doc.updatedAt = new Date().toISOString();
+  writeRaw(progressKey, doc);
+  return true;
 }
 
 async function downloadApp(app) {
@@ -102,12 +146,7 @@ async function downloadApp(app) {
   for (const row of remoteRows) {
     const existing = doc.content[row.content_id];
     const merged = mergeContentEntry(existing, row, { app });
-    if (
-      !existing ||
-      merged.completed !== existing.completed ||
-      merged.bestScorePct !== existing.bestScorePct ||
-      merged.attempts !== existing.attempts
-    ) {
+    if (contentEntryMergeChanged(existing, merged, app)) {
       doc.content[row.content_id] = merged;
       changed = true;
     }
@@ -155,7 +194,7 @@ function mergeActivityEvents(localEvents, remoteRows, app) {
   }
   for (const row of remoteRows) {
     const event = rowToActivityEvent(row, app);
-    if (!event?.eventId || !event.occurredAt || byId.has(event.eventId)) continue;
+    if (!event?.eventId || !event?.occurredAt || byId.has(event.eventId)) continue;
     byId.set(event.eventId, event);
   }
   return [...byId.values()]
@@ -210,10 +249,24 @@ export async function downloadOnLogin({ force = false } = {}) {
   }
 
   if (!hadFetchError) {
+    if (reconcileLyricflowProgressFromEvents()) anyChanged = true;
     downloaded = true;
     cloudHydrated = true;
+    notifyCloudHydrated();
   }
   return { downloaded: anyChanged, hydrated: cloudHydrated, perApp };
+}
+
+function prepareProgressDocForUpload(progressDoc, app, activityDoc) {
+  if (!progressDoc?.content) return false;
+  let changed = false;
+
+  if (app === 'lyricflow' && activityDoc?.events?.length) {
+    if (applyLyricflowActivityEvents(progressDoc.content, activityDoc.events)) changed = true;
+  }
+
+  if (recomputeProgressDocumentSummary(progressDoc, app)) changed = true;
+  return changed;
 }
 
 async function syncApp(app) {
@@ -224,7 +277,7 @@ async function syncApp(app) {
   const results = {};
 
   if (progressDoc && progressDoc.content && Object.keys(progressDoc.content).length) {
-    if (recomputeProgressDocumentSummary(progressDoc, app)) {
+    if (prepareProgressDocForUpload(progressDoc, app, activityDoc)) {
       progressDoc.updatedAt = new Date().toISOString();
       writeRaw(progressKey, progressDoc);
     }

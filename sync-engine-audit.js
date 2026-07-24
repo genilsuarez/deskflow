@@ -1,5 +1,9 @@
 // DeskFlow-only audit/repair helpers — not part of the shared sync-engine base.
-import { recomputeProgressDocumentSummary } from './lp-progress-summary.js';
+import {
+  computeLyricflowActivitySummary,
+  enrichLyricflowSongEntry,
+  recomputeProgressDocumentSummary,
+} from './lp-progress-summary.js';
 import * as lpSupabase from './lp-supabase.js';
 
 const APPS = ['fluentflow', 'hubflow', 'lyricflow'];
@@ -83,12 +87,42 @@ export async function auditCloudAlignment() {
     const localCompleted = [...localIds].filter((id) => doc.content[id]?.completed).length;
     const remoteCompleted = remoteRows.filter((row) => row.completed).length;
 
+    let localCompletedActivities = null;
+    let remoteCompletedActivities = null;
+    if (app === 'lyricflow') {
+      const catalogTotal = doc?.summary?.totalContent || localIds.size;
+      localCompletedActivities = computeLyricflowActivitySummary(doc.content, catalogTotal).completedActivities;
+      const remoteContent = Object.fromEntries(
+        remoteRows.map((row) => {
+          const item = {
+            contentId: row.content_id,
+            contentType: row.content_type,
+            progressPct: row.progress_pct,
+            completed: row.completed,
+            completedAt: row.completed_at,
+            bestScorePct: row.best_score_pct,
+            lastScorePct: row.last_score_pct,
+            attempts: row.attempts,
+            activities: row.activities || {},
+          };
+          enrichLyricflowSongEntry(row.content_id, item);
+          return [row.content_id, item];
+        }),
+      );
+      remoteCompletedActivities = computeLyricflowActivitySummary(
+        remoteContent,
+        catalogTotal || remoteRows.length,
+      ).completedActivities;
+    }
+
     report[app] = {
       status: 'ok',
       localEntries: localIds.size,
       remoteEntries: remoteIds.size,
       localCompleted,
       remoteCompleted,
+      localCompletedActivities,
+      remoteCompletedActivities,
       onlyLocal: onlyLocal.slice(0, 10),
       onlyRemote: onlyRemote.slice(0, 10),
       onlyLocalCount: onlyLocal.length,
