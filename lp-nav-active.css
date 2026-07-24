@@ -7,6 +7,34 @@
  *   dark  { --lp-accent-text: #93c5fd; }
  */
 
+/* Nav launcher (hamburger) — same SVG in all apps; larger glyph on compact header, 44px hit target unchanged. */
+:root {
+  --lp-navbtn-icon-size: 20px;
+  --lp-navbtn-icon-size-compact: 26px;
+}
+
+.navigation-launcher .lp-nav-svg,
+.topbar-menu .lp-nav-svg,
+#menuToggle .lp-nav-svg,
+#topbarMenuToggle .lp-nav-svg,
+.unified-nav-trigger .lp-nav-svg,
+.header-redesigned__menu-icon.lp-nav-svg {
+  width: var(--lp-navbtn-icon-size);
+  height: var(--lp-navbtn-icon-size);
+}
+
+@media (max-width: 860px) {
+  .navigation-launcher .lp-nav-svg,
+  .topbar-menu .lp-nav-svg,
+  #menuToggle .lp-nav-svg,
+  #topbarMenuToggle .lp-nav-svg,
+  .unified-nav-trigger .lp-nav-svg,
+  .header-redesigned__menu-icon.lp-nav-svg {
+    width: var(--lp-navbtn-icon-size-compact);
+    height: var(--lp-navbtn-icon-size-compact);
+  }
+}
+
 /* Light */
 .lp-nav-item.is-active,
 .nav-item.is-active,
