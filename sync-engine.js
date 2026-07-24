@@ -147,9 +147,42 @@ function hasLocalProgressDoc(app) {
   return Boolean(doc?.content && Object.keys(doc.content).length > 0);
 }
 
+/** HubFlow sets this when score/projection data is published to localStorage. */
+export const HUBFLOW_LOCAL_READY_KEY = 'learnflow:hubflow:local-ready:v1';
+
+function hasHubflowLocalReadyFlag() {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    return localStorage.getItem(HUBFLOW_LOCAL_READY_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 /** True when progress or activity is already in localStorage (skip Supabase wait). */
-function hasLocalStatsCache() {
-  return APPS.some((app) => hasLocalProgressDoc(app) || hasLocalActivityLedger(app));
+export function hasLocalStatsCache() {
+  return hasHubflowLocalReadyFlag()
+    || APPS.some((app) => hasLocalProgressDoc(app) || hasLocalActivityLedger(app));
+}
+
+/** Unblock stats UI + sync when localStorage already holds progress (skip cloud wait). */
+export function markLocalCacheBootstrapped() {
+  if (!hasStoredSupabaseSession() && !hasLocalStatsCache()) return;
+  downloaded = true;
+  cloudHydrated = true;
+  markStatsDisplayReady();
+}
+
+function bootstrapStatsFromLocalCache() {
+  if (!hasStoredSupabaseSession() || !hasLocalStatsCache()) return;
+  downloaded = true;
+  cloudHydrated = true;
+  statsDisplayReady = true;
+  if (statsDeferralTimer) {
+    clearTimeout(statsDeferralTimer);
+    statsDeferralTimer = null;
+  }
+  setStatsSyncingAttribute(false);
 }
 
 /** True while home/header stats should render zeros (logged-in, cloud not ready). */
@@ -231,6 +264,8 @@ export function markStatsDisplayReady() {
     window.dispatchEvent(new CustomEvent('lp-stats-ready', { detail: { animate: statsRevealPending } }));
   }
 }
+
+bootstrapStatsFromLocalCache();
 
 if (shouldDeferStatsDisplay()) {
   setStatsSyncingAttribute(true);

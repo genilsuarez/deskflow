@@ -1,0 +1,30 @@
+/**
+ * Learn Platform — Canonical Breakpoint System
+ *
+ * Copied to vanilla apps via scripts/copy-shared.sh → css/breakpoints.css
+ * FluentFlow keeps a parallel copy in src/styles/design-system/breakpoints.css
+ *
+ * Vanilla apps ship CSS without PostCSS — use the literal @media queries below,
+ * not @custom-media aliases (browsers ignore @media (--lp-*) without a build step).
+ *
+ * Reference mapping:
+ *   --lp-mobile-sm      → @media (max-width: 639px)
+ *   --lp-from-sm        → @media (min-width: 640px)
+ *   --lp-mobile-md      → @media (max-width: 767px)
+ *   --lp-from-md        → @media (min-width: 768px)
+ *   --lp-below-lg       → @media (max-width: 1023px)
+ *   --lp-from-lg        → @media (min-width: 1024px)
+ *   --lp-nav-compact    → @media (max-width: 860px)
+ *   --lp-from-nav       → @media (min-width: 861px)
+ *   --lp-touch          → @media (hover: none) and (pointer: coarse)
+ *   --lp-from-sm-to-lg  → @media (min-width: 640px) and (max-width: 1023px)
+ *   --lp-sm-only        → @media (min-width: 640px) and (max-width: 767px)
+ *   --lp-from-modal     → @media (min-width: 401px)
+ */
+
+:root {
+  --lp-bp-sm: 640px;
+  --lp-bp-md: 768px;
+  --lp-bp-lg: 1024px;
+  --lp-bp-nav: 860px;
+}

@@ -4,6 +4,8 @@
    Token prefix: --lp- (Learn Platform)
    ═══════════════════════════════════════════════════════ */
 
+@import './breakpoints.css';
+
 /* Font loaded via <link> in index.html — no @import needed */
 
 /* ─── TOKENS ─── */
@@ -2247,7 +2249,11 @@ a:focus-visible,
   .topbar.topbar--module .topbar-sub { display: none; }
   .topbar.topbar--module .lp-header-stats,
   .topbar.topbar--module .topbar-date { display: none; }
-  .topbar.topbar--module .topbar-greeting { min-width: 0; }
+  .topbar.topbar--module .topbar-greeting {
+    min-width: 0;
+    flex: 1;
+    text-align: center;
+  }
   /* El mobile-header sticky ya da la marca; el eyebrow, el copy largo del
      saludo y la fecha son ruido secundario que en mobile desbordaba el
      topbar hasta ocupar ~25% de pantalla. Se deja solo el título (identifica

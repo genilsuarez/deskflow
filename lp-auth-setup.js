@@ -5,6 +5,8 @@ import {
   resetDownloadState,
   setupMultiSessionSync,
   markStatsDisplayReady,
+  markLocalCacheBootstrapped,
+  hasLocalStatsCache,
 } from './sync-engine.js';
 
 window.lpSupabase = lpSupabase;
@@ -93,8 +95,10 @@ async function processAuthSession(session, onAfterLogin, onAfterLogout, event) {
   if (
     event === 'INITIAL_SESSION' &&
     !forceDownload &&
-    lastHandledUserId === session.user.id
+    (lastHandledUserId === session.user.id || hasLocalStatsCache())
   ) {
+    markLocalCacheBootstrapped();
+    lastHandledUserId = session.user.id;
     lpSupabase.cleanAuthParamsFromUrl?.();
     return;
   }
