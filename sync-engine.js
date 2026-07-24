@@ -41,7 +41,7 @@ let syncChannel = null;
 let refreshingFromCloud = false;
 
 const STATS_DEFERRAL_TIMEOUT_MS = 8000;
-let statsDisplayReady = !hasStoredSupabaseSession();
+let statsDisplayReady = !hasStoredSupabaseSession() || hasLocalStatsCache();
 let statsDeferralTimer = null;
 let statsRevealPending = false;
 /** Activity ledger fetched from Supabase once per browser session (per app). */
@@ -131,14 +131,30 @@ function scheduleStatsDeferralTimeout() {
 
 function beginStatsDeferral() {
   if (!hasStoredSupabaseSession()) return;
+  if (hasLocalStatsCache()) {
+    statsDisplayReady = true;
+    setStatsSyncingAttribute(false);
+    return;
+  }
   statsDisplayReady = false;
   setStatsSyncingAttribute(true);
   scheduleStatsDeferralTimeout();
 }
 
+function hasLocalProgressDoc(app) {
+  if (!APPS.includes(app)) return false;
+  const doc = readRaw(`learnflow:progress:${app}:v1`);
+  return Boolean(doc?.content && Object.keys(doc.content).length > 0);
+}
+
+/** True when progress or activity is already in localStorage (skip Supabase wait). */
+function hasLocalStatsCache() {
+  return APPS.some((app) => hasLocalProgressDoc(app) || hasLocalActivityLedger(app));
+}
+
 /** True while home/header stats should render zeros (logged-in, cloud not ready). */
 export function shouldDeferStatsDisplay() {
-  return !statsDisplayReady;
+  return !statsDisplayReady && !hasLocalStatsCache();
 }
 
 function activityStorageKey(app) {
