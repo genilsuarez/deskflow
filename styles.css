@@ -721,6 +721,12 @@ body {
 .text-action:hover { color: var(--lp-accent-dark); }
 .text-action--sm { font-size: 0.6rem; margin-top: 6px; display: inline-block; }
 
+/* Mobile resumen: historial completo vive en vista Actividad */
+.resumen-history-cta {
+  display: none;
+  margin: 0;
+}
+
 /* ─── CONTINUE BANNER (Inicio) ─── */
 .resumen-dashboard {
   display: flex;
@@ -1979,6 +1985,11 @@ body {
   border: 1.5px solid var(--lp-border); box-shadow: none; }
 .lp-btn--ghost:hover { border-color: var(--lp-accent); color: var(--lp-accent); }
 
+.lp-icon-btn[hidden],
+.topbar-back[hidden] {
+  display: none !important;
+}
+
 .lp-icon-btn {
   width: var(--lp-navbtn-size);
   height: var(--lp-navbtn-size);
@@ -2175,7 +2186,7 @@ a:focus-visible,
   }
   .app-shell[data-view="resumen"] .main { grid-row: 2; }
 
-  /* Actividad / Continuar: una sola barra (☰ + título), sin mobile-header encima */
+  /* Actividad / Continuar: header L2 [←] título [☰] — mismo grid que módulos */
   .app-shell[data-view="actividad"],
   .app-shell[data-view="continuar"] {
     grid-template-rows: auto 1fr;
@@ -2185,34 +2196,11 @@ a:focus-visible,
   .app-shell[data-view="actividad"] .topbar,
   .app-shell[data-view="continuar"] .topbar {
     grid-row: 1;
-    height: calc(var(--lp-header-height-compact) + env(safe-area-inset-top, 0px));
-    min-height: calc(var(--lp-header-height-compact) + env(safe-area-inset-top, 0px));
-    padding: calc(var(--lp-header-pad-y-compact) + env(safe-area-inset-top, 0px)) var(--lp-header-pad-x-compact) var(--lp-header-pad-y-compact);
-    padding-left: var(--lp-header-floating-pad-left-compact);
-    position: relative;
-    align-items: center;
   }
   .app-shell[data-view="actividad"] .main,
   .app-shell[data-view="continuar"] .main { grid-row: 2; }
-  .app-shell[data-view="actividad"] .topbar .topbar-menu,
-  .app-shell[data-view="continuar"] .topbar .topbar-menu {
-    display: flex;
-    position: absolute;
-    left: var(--lp-navbtn-offset-left);
-    top: calc(var(--lp-navbtn-offset-top-compact) + env(safe-area-inset-top, 0px));
-  }
   .app-shell[data-view="actividad"] .topbar .lp-header-stats,
   .app-shell[data-view="continuar"] .topbar .lp-header-stats { display: none; }
-  .app-shell[data-view="actividad"] .topbar .topbar-greeting,
-  .app-shell[data-view="continuar"] .topbar .topbar-greeting {
-    flex: 1;
-    min-width: 0;
-    text-align: center;
-  }
-  .app-shell[data-view="actividad"] .topbar .topbar-title,
-  .app-shell[data-view="continuar"] .topbar .topbar-title {
-    font-size: 1.05rem;
-  }
 
   /* Módulos: el topbar compacto sustituye al mobile-header */
   .app-shell[data-view="fluentflow"],
@@ -2231,29 +2219,73 @@ a:focus-visible,
   .app-shell[data-view="hubflow"] .mobile-header,
   .app-shell[data-view="lyricflow"] .mobile-header { display: none; }
   .topbar.topbar--module {
-    display: flex;
+    display: grid;
+    grid-template-columns: var(--lp-navbtn-size, 44px) minmax(0, 1fr) var(--lp-navbtn-size, 44px);
+    align-items: center;
+    gap: 0;
     height: var(--lp-header-height-compact);
     min-height: var(--lp-header-height-compact);
-    padding: var(--lp-header-pad-y-compact) var(--lp-header-pad-x);
-    padding-left: var(--lp-header-floating-pad-left-compact);
-    align-items: center;
+    padding: var(--lp-header-pad-y-compact) var(--lp-header-pad-x-compact);
     position: relative;
+  }
+  .topbar.topbar--module .topbar-back {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    align-self: center;
+  }
+  .topbar.topbar--module .topbar-greeting {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    flex: unset;
+    text-align: center;
   }
   .topbar.topbar--module .topbar-menu {
     display: flex;
-    position: absolute;
-    left: var(--lp-navbtn-offset-left);
-    top: var(--lp-navbtn-offset-top-compact);
+    grid-column: 3;
+    grid-row: 1;
+    position: static;
+    top: auto;
+    left: auto;
+    justify-self: end;
+    align-self: center;
   }
-  .topbar.topbar--module .topbar-eyebrow { display: block; }
+  /* L2 toolbar — ghost cuadrado homologado (HubFlow exercises / FluentFlow learning) */
+  .topbar.topbar--module .topbar-back,
+  .topbar.topbar--module .topbar-menu {
+    border: none;
+    border-radius: var(--lp-radius-md);
+    background: transparent;
+    box-shadow: none;
+    color: var(--lp-ink-soft);
+    font-size: 1.0625rem;
+    font-weight: 400;
+  }
+  .topbar.topbar--module .topbar-back:hover,
+  .topbar.topbar--module .topbar-menu:hover {
+    background: color-mix(in srgb, var(--lp-ink) 5%, transparent);
+    border-color: transparent;
+    box-shadow: none;
+    transform: none;
+    color: var(--lp-ink);
+  }
+  .topbar.topbar--module .topbar-back:active,
+  .topbar.topbar--module .topbar-menu:active {
+    background: color-mix(in srgb, var(--lp-ink) 9%, transparent);
+    transform: scale(0.97);
+  }
+  .topbar.topbar--module .topbar-eyebrow { display: none; }
   .topbar.topbar--module .topbar-sub { display: none; }
+  .topbar.topbar--module .topbar-title {
+    font-family: var(--lp-font-display);
+    font-size: var(--lp-header-title-size);
+    font-weight: var(--lp-header-title-weight);
+    letter-spacing: var(--lp-header-title-tracking);
+    line-height: var(--lp-header-title-line-height);
+  }
   .topbar.topbar--module .lp-header-stats,
   .topbar.topbar--module .topbar-date { display: none; }
-  .topbar.topbar--module .topbar-greeting {
-    min-width: 0;
-    flex: 1;
-    text-align: center;
-  }
   /* El mobile-header sticky ya da la marca; el eyebrow, el copy largo del
      saludo y la fecha son ruido secundario que en mobile desbordaba el
      topbar hasta ocupar ~25% de pantalla. Se deja solo el título (identifica
@@ -2538,6 +2570,22 @@ a:focus-visible,
 
   #view-resumen .resumen-recent {
     display: none;
+  }
+
+  #view-resumen .resumen-history-cta {
+    display: flex;
+    justify-content: flex-end;
+    margin: -2px 0 4px;
+    padding: 0 2px;
+  }
+
+  #view-resumen .resumen-history-cta .text-action {
+    font-size: 0.72rem;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 4px;
   }
 
   @media (max-width: 380px) {

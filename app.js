@@ -954,6 +954,8 @@ const RESUMEN_HINTS = [
 ];
 
 const MODULE_VIEWS = new Set(['fluentflow', 'hubflow', 'lyricflow']);
+/** Vistas con header secundario mobile: [←] título [☰] */
+const SECONDARY_TOPBAR_VIEWS = new Set(['actividad', 'continuar', ...MODULE_VIEWS]);
 
 function setTopbarTitle(titleEl, title) {
   titleEl.replaceChildren();
@@ -966,14 +968,16 @@ function setTopbarTitle(titleEl, title) {
 
 function updateTopbar(viewName) {
   const topbar = document.getElementById('deskTopbar');
+  const backBtn = document.getElementById('topbarBackBtn');
   const eyebrowEl = document.getElementById('topbarEyebrow');
   const titleEl = document.getElementById('summaryTitle');
   const subEl = document.getElementById('topbarSub');
   const resolvedView = viewName || 'resumen';
-  const isModuleView = MODULE_VIEWS.has(resolvedView);
+  const isSecondaryTopbar = SECONDARY_TOPBAR_VIEWS.has(resolvedView);
   topbar.dataset.view = resolvedView;
-  topbar.classList.toggle('topbar--module', isModuleView);
+  topbar.classList.toggle('topbar--module', isSecondaryTopbar);
   topbar.classList.remove('topbar--compact');
+  if (backBtn) backBtn.hidden = !isSecondaryTopbar;
   const content = TOPBAR_CONTENT[resolvedView];
   if (!content) {
     topbar.classList.add('topbar--compact');
@@ -1037,6 +1041,9 @@ function setupNavigation() {
       // Links handled by isLocalEnvironment() URL resolution only
     }
   });
+
+  const backBtn = document.getElementById('topbarBackBtn');
+  if (backBtn) backBtn.addEventListener('click', () => showView('resumen'));
 
   const sidebar = document.getElementById('sidebar');
   const scrim = document.getElementById('sidebarScrim');
