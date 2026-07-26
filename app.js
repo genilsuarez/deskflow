@@ -672,23 +672,21 @@ function renderModuleDetail(app) {
   const container = document.querySelector(`[data-app-detail="${app}"]`);
   container.replaceChildren();
 
-  const actionBar = element('a', `module-detail__action module-detail__action--${config.color} app-link`);
+  const actionBar = element('a', `lp-btn lp-btn--${config.color} module-detail__action app-link`);
   actionBar.href = config.url;
   actionBar.dataset.appLink = app;
   actionBar.rel = 'noopener';
-
-  const mark = element('span', 'module-detail__mark', config.name.charAt(0));
-  mark.setAttribute('aria-hidden', 'true');
 
   const copy = element('div', 'module-detail__copy');
   const actionLabel = hasValidProgress(result) ? `Continuar en ${config.name}` : `Explorar ${config.name}`;
   const actionHint = hasValidProgress(result) ? progressLabel(result) : config.eyebrow;
   copy.append(element('strong', 'module-detail__label', actionLabel), element('span', 'module-detail__hint', actionHint));
 
-  const chevron = element('span', 'module-detail__chevron', '→');
-  chevron.setAttribute('aria-hidden', 'true');
+  actionBar.append(copy);
 
-  actionBar.append(mark, copy, chevron);
+  const insight = buildModuleInsight(app, result, config);
+  const hero = element('div', 'module-detail__hero');
+  hero.append(actionBar, insight);
 
   const statsSection = element('section', 'section-block detail-metrics');
   const statsCard = element('div', `detail-metrics__card detail-metrics__card--${config.color}`);
@@ -710,8 +708,6 @@ function renderModuleDetail(app) {
   statsCard.append(stats);
   statsSection.append(statsCard);
 
-  const insight = buildModuleInsight(app, result, config);
-
   const activity = element('section', 'section-block detail-activity');
   const activityCard = element('div', `detail-activity__card detail-activity__card--${config.color}`);
   const activityHeader = element('header', 'detail-activity__header');
@@ -726,7 +722,7 @@ function renderModuleDetail(app) {
   activityCard.append(activityHeader, list);
   activity.append(activityCard);
 
-  container.append(actionBar, insight, statsSection, activity);
+  container.append(hero, statsSection, activity);
 }
 
 function renderDataHealth() {
