@@ -21,6 +21,7 @@
   <script>var n=localStorage.getItem('lp-navigation-mode');document.documentElement.dataset.navigationMode=n==='floating'?'floating':'sidebar'</script>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="lp-nav-active.css">
+  <link rel="stylesheet" href="lp-drawer.css">
   <link rel="stylesheet" href="lp-about.css">
   <style>
     #summaryModules {
@@ -77,8 +78,8 @@
 
     <button class="lp-icon-btn navigation-launcher" id="navigationLauncher" type="button" aria-label="Abrir navegación flotante" aria-controls="sidebar" aria-expanded="false"><span data-lp-icon="menu" aria-hidden="true"></span></button>
 
-    <div class="sidebar-scrim" id="sidebarScrim" aria-hidden="true"></div>
-    <aside class="sidebar" id="sidebar" aria-label="Navegación principal">
+    <div class="lp-drawer-scrim" id="sidebarScrim" aria-hidden="true"></div>
+    <aside class="sidebar lp-drawer" id="sidebar" aria-label="Navegación principal">
       <div class="sidebar__brand">
         <a href="#resumen" data-view-link="resumen" aria-label="LearnFlow, ir al resumen">
           <span class="sidebar__mark" aria-hidden="true">L</span>

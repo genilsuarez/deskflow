@@ -870,6 +870,13 @@ function syncSidebarMount() {
   scrim.insertAdjacentElement('afterend', sidebar);
 }
 
+function syncDrawerPersistent() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  const persistent = !MOBILE_SIDEBAR_MQ.matches && document.documentElement.dataset.navigationMode === 'sidebar';
+  sidebar.classList.toggle('is-persistent', persistent);
+}
+
 function setSidebarOpen(open) {
   const sidebar = document.getElementById('sidebar');
   const scrim = document.getElementById('sidebarScrim');
@@ -879,9 +886,9 @@ function setSidebarOpen(open) {
   if (mobile) syncSidebarMount();
 
   sidebar.classList.toggle('is-open', open);
-  scrim.classList.toggle('is-visible', open);
+  scrim.classList.toggle('is-open', open);
   scrim.setAttribute('aria-hidden', String(!open));
-  document.body.classList.toggle('sidebar-open', open);
+  document.body.classList.toggle('lp-drawer-open', open);
 
   if (open && typeof lpLogin !== 'undefined' && lpLogin.refreshNavLabels) {
     lpLogin.refreshNavLabels();
@@ -910,12 +917,15 @@ function setNavigationMode(mode, persist = false) {
     if (icon) icon.textContent = isFloating ? '▣' : '◫';
   }
   if (persist) localStorage.setItem(NAVIGATION_MODE_KEY, resolvedMode);
+  syncDrawerPersistent();
   closeSidebar();
 }
 
 function setupNavigationMode() {
   const savedMode = localStorage.getItem(NAVIGATION_MODE_KEY);
   setNavigationMode(NAVIGATION_MODES.has(savedMode) ? savedMode : 'sidebar');
+  syncDrawerPersistent();
+  MOBILE_SIDEBAR_MQ.addEventListener('change', syncDrawerPersistent);
   document.getElementById('navigationModeToggle').addEventListener('click', () => {
     const nextMode = document.documentElement.dataset.navigationMode === 'floating' ? 'sidebar' : 'floating';
     setNavigationMode(nextMode, true);

@@ -355,17 +355,15 @@ body {
   font-size: 1rem;
 }
 [data-navigation-mode="floating"] .navigation-launcher { display: flex; }
-[data-navigation-mode="floating"] .sidebar {
+[data-navigation-mode="floating"] .sidebar.lp-drawer {
   position: fixed;
   inset: 0 auto 0 0;
   z-index: 40;
   width: 232px;
-  transform: translate3d(-100%, 0, 0);
-  transition: transform 320ms cubic-bezier(0.22, 0.9, 0.36, 1);
-  box-shadow: var(--lp-shadow-md);
-  backface-visibility: hidden;
 }
-[data-navigation-mode="floating"] .sidebar.is-open { transform: translate3d(0, 0, 0); }
+[data-navigation-mode="floating"] .sidebar.lp-drawer.is-open {
+  transform: translate3d(0, 0, 0);
+}
 [data-navigation-mode="floating"] .app-shell { grid-template-columns: 1fr; }
 [data-navigation-mode="floating"] .main { grid-column: 1; }
 [data-navigation-mode="floating"] .main-footer { grid-column: 1; }
@@ -374,7 +372,7 @@ body {
    necesita su scrim para cerrar al tocar afuera — por eso esta regla se
    limita a desktop, donde "sidebar" significa panel fijo sin overlay. */
 @media (min-width: 769px) {
-  [data-navigation-mode="sidebar"] .sidebar-scrim { display: none !important; }
+  [data-navigation-mode="sidebar"] .lp-drawer-scrim { display: none !important; }
 
   /* Vistas secundarias (módulo / actividad / continuar): solo ← en la barra;
      el launcher flotante duplicaría el ☰ junto al back y rompe el patrón L2. */
@@ -414,6 +412,22 @@ body {
   .topbar.topbar--module .topbar-date {
     right: calc(var(--lp-header-pad-x) + var(--lp-navbtn-size) + 12px);
   }
+
+  /* Drawer flotante: el header no debe quedar por encima del scrim durante la transición */
+  [data-navigation-mode="floating"] body.lp-drawer-open .app-shell .main,
+  [data-navigation-mode="floating"] body.lp-drawer-open .app-shell .topbar,
+  [data-navigation-mode="floating"] body.lp-drawer-open .app-shell .main-footer {
+    pointer-events: none;
+  }
+
+  [data-navigation-mode="floating"] body.lp-drawer-open .sidebar,
+  [data-navigation-mode="floating"] body.lp-drawer-open .lp-drawer-scrim {
+    pointer-events: auto;
+  }
+
+  [data-navigation-mode="floating"] body.lp-drawer-open .topbar {
+    z-index: 1;
+  }
 }
 [data-navigation-mode="sidebar"] .navigation-launcher { display: none !important; }
 
@@ -427,9 +441,6 @@ body {
   border-right: 1.5px solid var(--lp-border);
   overflow-y: auto;
   z-index: 300;
-  transform: translate3d(0, 0, 0);
-  transition: transform 320ms cubic-bezier(0.22, 0.9, 0.36, 1);
-  backface-visibility: hidden;
   isolation: isolate;
 }
 
@@ -578,22 +589,6 @@ body {
   gap: 2px;
 }
 
-.sidebar-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 39;
-  background: color-mix(in srgb, var(--lp-ink) 45%, transparent);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 320ms cubic-bezier(0.22, 0.9, 0.36, 1), visibility 320ms;
-}
-.sidebar-scrim.is-visible {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
 /* ─── TOPBAR ─── */
 .topbar {
   grid-column: 2;
@@ -663,6 +658,10 @@ body {
 }
 
 @media (min-width: 769px) {
+  .app-shell {
+    --desk-content-max: 960px;
+  }
+
   .topbar:not(.topbar--module) {
     padding-right: calc(var(--lp-header-pad-x) + 8.75rem);
   }
@@ -766,8 +765,10 @@ body {
 /* ─── MAIN CONTENT ─── */
 .main {
   grid-column: 2;
-  padding: 18px 20px 16px;
-  max-width: 960px;
+  padding: 18px clamp(20px, 3vw, 34px) 16px;
+  width: 100%;
+  max-width: var(--desk-content-max, 960px);
+  margin-inline: auto;
   min-height: 0;
   overflow-y: auto;
   outline: none;
@@ -1533,6 +1534,87 @@ body {
 .module-detail__hero + .section-block { margin-top: 0; }
 .module-detail .section-block + .section-block { margin-top: 12px; }
 
+@media (min-width: 769px) {
+  .detail-metrics__card {
+    padding: 16px 20px;
+    border: 1px solid var(--lp-border);
+    border-radius: var(--lp-radius-lg);
+    background: var(--lp-surface);
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    --desk-content-max: 1040px;
+  }
+
+  .app-shell[data-view="fluentflow"],
+  .app-shell[data-view="hubflow"],
+  .app-shell[data-view="lyricflow"] {
+    --desk-content-max: 1120px;
+  }
+
+  .app-shell[data-view="actividad"] {
+    --desk-content-max: 1180px;
+  }
+
+  .module-detail {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    grid-template-areas:
+      "hero hero"
+      "metrics activity";
+    gap: 14px 16px;
+    align-items: start;
+  }
+
+  .module-detail__hero {
+    grid-area: hero;
+    margin-bottom: 0;
+  }
+
+  .module-detail .detail-metrics {
+    grid-area: metrics;
+    margin: 0;
+  }
+
+  .module-detail .detail-activity {
+    grid-area: activity;
+    margin: 0;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .module-detail .detail-activity__card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .module-detail .detail-activity .activity-list {
+    flex: 1;
+  }
+
+  .module-detail .section-block + .section-block {
+    margin-top: 0;
+  }
+
+  #view-resumen .resumen-hero {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: 14px;
+  }
+
+  #view-resumen .continue-banner {
+    padding: 18px 20px;
+  }
+
+  #view-resumen .continue-banner h2 {
+    font-size: 1.28rem;
+  }
+}
+
 .detail-activity__card {
   --detail-color: var(--lp-accent);
 }
@@ -2002,18 +2084,16 @@ body {
   }
 }
 
-@media (min-width: 1024px) {
-  #view-resumen .resumen-hero {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-    gap: 14px;
+@media (min-width: 1280px) {
+  .app-shell {
+    --desk-content-max: 1100px;
   }
 
-  #view-resumen .continue-banner {
-    padding: 18px 20px;
-  }
-
-  #view-resumen .continue-banner h2 {
-    font-size: 1.28rem;
+  .app-shell[data-view="fluentflow"],
+  .app-shell[data-view="hubflow"],
+  .app-shell[data-view="lyricflow"],
+  .app-shell[data-view="actividad"] {
+    --desk-content-max: 1180px;
   }
 }
 
@@ -2158,8 +2238,9 @@ a:focus-visible,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sidebar,
-  .sidebar-scrim { transition: none !important; }
+  .sidebar {
+    transition: none !important;
+  }
 }
 
 /* ─── ANIMATIONS ─── */
@@ -2237,41 +2318,31 @@ a:focus-visible,
     left: 0;
     bottom: 0;
     width: min(232px, 86vw);
-    transform: translate3d(-100%, 0, 0);
     z-index: 10001;
-    box-shadow: var(--lp-shadow-lg);
     pointer-events: auto;
     touch-action: manipulation;
-    backface-visibility: hidden;
   }
-  .sidebar.is-open { transform: translate3d(0, 0, 0); }
 
-  .sidebar-scrim {
+  .lp-drawer-scrim {
     z-index: 10000;
   }
 
-  /* Exclude drawer from scrim — visual dim AND pointer capture (iOS Safari) */
-  body.sidebar-open .sidebar-scrim {
-    clip-path: inset(0 0 0 min(232px, 86vw));
-    -webkit-clip-path: inset(0 0 0 min(232px, 86vw));
-  }
-
-  body.sidebar-open .app-shell .main,
-  body.sidebar-open .app-shell .topbar,
-  body.sidebar-open .app-shell .main-footer {
+  body.lp-drawer-open .app-shell .main,
+  body.lp-drawer-open .app-shell .topbar,
+  body.lp-drawer-open .app-shell .main-footer {
     pointer-events: none;
   }
 
-  body.sidebar-open .sidebar,
-  body.sidebar-open .sidebar-scrim,
-  body.sidebar-open .app-shell .mobile-header {
+  body.lp-drawer-open .sidebar,
+  body.lp-drawer-open .lp-drawer-scrim,
+  body.lp-drawer-open .app-shell .mobile-header {
     pointer-events: auto;
   }
 
   /* iOS Chrome/Safari: header sticky + backdrop-filter paints above fixed
      siblings unless explicitly lowered while the drawer is open */
-  body.sidebar-open .mobile-header,
-  body.sidebar-open .topbar {
+  body.lp-drawer-open .mobile-header,
+  body.lp-drawer-open .topbar {
     z-index: 1;
   }
 
