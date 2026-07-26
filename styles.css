@@ -124,6 +124,9 @@
      Tokens dedicados, no reutilizan --lp-border/--lp-ink/etc. directamente para que
      el pill nunca se desvíe si esos tokens generales cambian en una sola app. */
   --lp-score-height: 44px;
+  --lp-score-min-width: 180px;
+  --lp-score-pill-half-min: calc(var(--lp-score-min-width) / 2);
+  --lp-topbar-score-clearance: 1.25rem;
   --lp-score-radius: 9999px;
   --lp-score-border-width: 1.5px;
   --lp-score-padding-x: 20px;
@@ -372,6 +375,45 @@ body {
    limita a desktop, donde "sidebar" significa panel fijo sin overlay. */
 @media (min-width: 769px) {
   [data-navigation-mode="sidebar"] .sidebar-scrim { display: none !important; }
+
+  /* Vistas secundarias (módulo / actividad / continuar): solo ← en la barra;
+     el launcher flotante duplicaría el ☰ junto al back y rompe el patrón L2. */
+  [data-navigation-mode="floating"] .app-shell:has(.topbar.topbar--module) .navigation-launcher {
+    display: none !important;
+  }
+
+  [data-navigation-mode="floating"] .topbar.topbar--module {
+    padding-left: var(--lp-header-pad-x);
+    --topbar-leading-inset: var(--lp-header-pad-x);
+  }
+
+  /* L2 web: [←] saludo … [☰] — menú anclado a la derecha (el launcher flotante sigue oculto arriba) */
+  .topbar.topbar--module {
+    padding-right: calc(var(--lp-header-pad-x) + var(--lp-navbtn-size) + 10px);
+  }
+
+  .topbar.topbar--module .topbar-back {
+    order: 1;
+  }
+
+  .topbar.topbar--module .topbar-greeting {
+    order: 2;
+  }
+
+  .topbar.topbar--module .topbar-menu {
+    display: flex;
+    position: absolute;
+    right: var(--lp-header-pad-x);
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 0;
+    flex-shrink: 0;
+    z-index: 4;
+  }
+
+  .topbar.topbar--module .topbar-date {
+    right: calc(var(--lp-header-pad-x) + var(--lp-navbtn-size) + 12px);
+  }
 }
 [data-navigation-mode="sidebar"] .navigation-launcher { display: none !important; }
 
@@ -601,6 +643,10 @@ body {
   color: var(--lp-ink-soft);
   letter-spacing: 0;
   transition: opacity 0.3s ease;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 @media (prefers-reduced-motion: reduce) {
   .topbar-sub { transition: none; }
@@ -627,7 +673,9 @@ body {
     align-items: flex-start;
     min-width: 0;
     flex: 0 1 auto;
-    max-width: calc(50% - 5.625rem);
+    max-width: calc(
+      50% - var(--lp-score-pill-half-min) - var(--lp-topbar-score-clearance) - var(--lp-header-pad-x)
+    );
   }
 
   .topbar-date {
@@ -642,19 +690,27 @@ body {
   .topbar.topbar--module {
     justify-content: flex-start;
     gap: 16px;
+    --topbar-leading-inset: var(--lp-header-pad-x);
+  }
+
+  [data-navigation-mode='floating'] .topbar.topbar--module {
+    --topbar-leading-inset: var(--lp-header-pad-x);
   }
 
   .topbar.topbar--module .topbar-greeting {
     text-align: left;
     min-width: 0;
     flex: 0 1 auto;
-    max-width: calc(50% - var(--lp-score-height) - 2rem);
+    max-width: calc(
+      50% - var(--lp-score-pill-half-min) - var(--lp-topbar-score-clearance) - var(--lp-navbtn-size) -
+        1rem - var(--topbar-leading-inset, var(--lp-header-pad-x))
+    );
   }
 }
 
-/* Pill visible ≥861px — ocultar subtítulo si el topbar es estrecho y chocaría con el centro */
+/* Pill visible ≥861px — ocultar subtítulo solo si el topbar queda demasiado estrecho */
 @media (min-width: 861px) {
-  @container desk-topbar (max-width: 58rem) {
+  @container desk-topbar (max-width: 52rem) {
     .topbar .topbar-sub {
       display: none;
     }
@@ -680,7 +736,7 @@ body {
   align-items: center;
   gap: 0;
   height: var(--lp-score-height);
-  min-width: 180px;
+  min-width: var(--lp-score-min-width);
   padding: 0 var(--lp-score-padding-x);
   border: var(--lp-score-border-width) solid var(--lp-score-border);
   border-radius: var(--lp-score-radius);
