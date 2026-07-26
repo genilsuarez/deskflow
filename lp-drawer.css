@@ -71,6 +71,13 @@
   box-shadow: none;
 }
 
+/* Launcher shares top-left coords with drawer header — hide while open */
+body.lp-drawer-open .navigation-launcher,
+body.lp-drawer-open .topbar-menu {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* Barra lateral fija: el scrim solo envuelve el panel, nunca dimmea el contenido */
 .lp-drawer-scrim:has(.lp-drawer.is-persistent)::before {
   display: none;

@@ -455,15 +455,16 @@ var lpLogin = (function () {
     var googleBtn = overlay.querySelector('.lp-login__google');
     if (googleBtn) {
       googleBtn.addEventListener('click', function () {
-        if (!(window.lpSupabase && window.lpSupabase.signInWithGoogle)) return;
+        if (!(window.lpSupabase && window.lpSupabase.beginGoogleOAuthRedirect)) return;
         googleBtn.disabled = true;
         googleBtn.querySelector('span').textContent = 'Redirigiendo…';
-        document.body.style.overflow = '';
-        overlay.classList.add('lp-login--closing');
-        window.lpSupabase.signInWithGoogle().catch(function () {
+        try {
+          // Sync redirect in the tap call stack — async signInWithOAuth breaks iOS WebKit.
+          window.lpSupabase.beginGoogleOAuthRedirect();
+        } catch (err) {
           googleBtn.disabled = false;
           googleBtn.querySelector('span').textContent = 'Continuar con Google';
-        });
+        }
       });
     }
 

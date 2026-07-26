@@ -68,14 +68,24 @@ export async function isAuthenticated() {
   return !!session?.user;
 }
 
+export function buildGoogleOAuthUrl(redirectTo) {
+  const target =
+    redirectTo || window.location.origin + window.location.pathname + window.location.search;
+  return `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(target)}`;
+}
+
+/**
+ * Synchronous redirect to Google OAuth. Must run in the same call stack as the
+ * user tap — signInWithOAuth() awaits internally before location.assign(), which
+ * breaks the user-gesture chain on iOS Safari/Chrome (WebKit).
+ */
+export function beginGoogleOAuthRedirect(redirectTo) {
+  window.location.assign(buildGoogleOAuthUrl(redirectTo));
+}
+
 export function signInWithGoogle() {
-  return supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin + window.location.pathname + window.location.search,
-      skipBrowserRedirect: false,
-    },
-  });
+  beginGoogleOAuthRedirect();
+  return Promise.resolve({ data: { provider: 'google' }, error: null });
 }
 
 export function signInWithMagicLink(email) {

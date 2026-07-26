@@ -136,26 +136,6 @@ function progressDisplayMetrics(result) {
   };
 }
 
-/** Métrica secundaria en vistas de detalle (modos HubFlow, canciones LyricFlow). */
-function secondaryProgressMetrics(result) {
-  const summary = result.progress.data.summary;
-  if (result.app === 'hubflow') {
-    const total = summary.totalActivities ?? 0;
-    const completed = summary.completedActivities ?? 0;
-    if (total > 0) {
-      return { completed, total, unit: 'modos' };
-    }
-  }
-  if (result.app === 'lyricflow') {
-    const total = summary.totalContent ?? 0;
-    const completed = summary.completedContent ?? 0;
-    if (total > 0) {
-      return { completed, total, unit: 'canciones' };
-    }
-  }
-  return null;
-}
-
 function rounded(value) {
   return Math.round(value);
 }
@@ -221,7 +201,7 @@ function setPctText(el, value, animate) {
 
 function createAppLink(app, label = 'Abrir módulo', primary = false) {
   const config = APP_CONFIG[app];
-  const link = element('a', primary ? 'lp-btn lp-btn--primary app-link' : 'text-action app-link');
+  const link = element('a', primary ? `lp-btn lp-btn--${config.color} app-link` : 'text-action app-link');
   link.href = config.url;
   link.dataset.appLink = app;
   link.rel = 'noopener';
@@ -313,7 +293,6 @@ function renderGlobalProgress(animateReveal = false) {
   const value = document.getElementById('globalValue');
   const unit = document.getElementById('globalUnit');
   const ring = document.getElementById('globalRing');
-  const status = document.getElementById('globalStatus');
   const description = document.getElementById('globalDescription');
 
   if (isStatsDeferred()) {
@@ -322,8 +301,6 @@ function renderGlobalProgress(animateReveal = false) {
     updateGlobalProgressMeta('0 de 3 fuentes');
     ring.style.setProperty('--progress', '0');
     ring.setAttribute('aria-label', 'Progreso global pendiente');
-    status.className = 'status-pill status-pill--warning';
-    status.textContent = 'Parcial';
     description.textContent = 'Promedio equilibrado de las tres fuentes.';
     updateGlobalProgressTrack(0, 'Progreso global pendiente');
     return;
@@ -340,8 +317,6 @@ function renderGlobalProgress(animateReveal = false) {
     if (animateReveal && displayValue > 0) animateCssVar(ring, '--progress', displayValue);
     else ring.style.setProperty('--progress', String(displayValue));
     ring.setAttribute('aria-label', `Progreso global ${displayValue} por ciento`);
-    status.className = 'status-pill status-pill--success';
-    status.textContent = 'Completo';
     description.textContent = 'Promedio equilibrado de las tres fuentes.';
     updateGlobalProgressTrack(displayValue, `Progreso global ${displayValue} por ciento`, animateReveal);
     return;
@@ -367,8 +342,6 @@ function renderGlobalProgress(animateReveal = false) {
     ring.setAttribute('aria-label', 'Progreso global pendiente');
     updateGlobalProgressTrack(0, 'Progreso global pendiente');
   }
-  status.className = 'status-pill status-pill--warning';
-  status.textContent = 'Parcial';
   description.textContent = partial
     ? 'Promedio equilibrado de las tres fuentes.'
     : `${validResults.length} de 3 fuentes válidas.`;
@@ -477,7 +450,7 @@ function readablePassStatus(passed) {
   return passed ? 'Superado' : 'Por repetir';
 }
 
-function createActivityItem(event, { tabular = false, showApp = false } = {}) {
+function createActivityItem(event, { tabular = false, showApp = false, showTime = true } = {}) {
   const config = APP_CONFIG[event.app] ?? null;
   const item = element('article', tabular ? 'activity-item activity-item--compact' : 'activity-item');
 
@@ -516,13 +489,15 @@ function createActivityItem(event, { tabular = false, showApp = false } = {}) {
     }
   }
 
-  const time = element('time', 'activity-item__time', formatDate(event.occurredAt, { compact: tabular }));
-  time.dateTime = event.occurredAt;
-  item.append(time);
+  if (!tabular || showTime) {
+    const time = element('time', 'activity-item__time', formatDate(event.occurredAt, { compact: tabular }));
+    time.dateTime = event.occurredAt;
+    item.append(time);
+  }
   return item;
 }
 
-function createActivityTableHeader({ showApp = false } = {}) {
+function createActivityTableHeader({ showApp = false, showTime = true } = {}) {
   const header = element('div', 'activity-table-header');
   header.setAttribute('aria-hidden', 'true');
   const columns = [];
@@ -531,9 +506,9 @@ function createActivityTableHeader({ showApp = false } = {}) {
     ['--title', 'Contenido'],
     ['--type', 'Tipo'],
     ['--score', 'Puntuación'],
-    ['--status', 'Estado'],
-    ['--time', 'Fecha']
+    ['--status', 'Estado']
   );
+  if (showTime) columns.push(['--time', 'Fecha']);
   columns.forEach(([modifier, label]) => {
     header.append(element('span', `activity-table-header__col activity-table-header__col${modifier}`, label));
   });
@@ -548,21 +523,22 @@ function createEmptyState(title, description) {
   return state;
 }
 
-function renderActivityList(container, events, limit, { tabular = false, showApp = false, emptyDescription } = {}) {
+function renderActivityList(container, events, limit, { tabular = false, showApp = false, showTime = true, emptyDescription } = {}) {
   if (!container) return;
   container.replaceChildren();
   container.classList.toggle('activity-list--compact', tabular);
   container.classList.toggle('activity-list--with-app', tabular && showApp);
+  container.classList.toggle('activity-list--no-time', tabular && !showTime);
   const visible = typeof limit === 'number' ? events.slice(0, limit) : events;
   if (visible.length === 0) {
     const description = emptyDescription ?? 'Tus sesiones recientes se mostrarán aquí al completar actividades en tus módulos.';
     container.append(createEmptyState('Sin actividad reciente', description));
     return;
   }
-  if (tabular) container.append(createActivityTableHeader({ showApp }));
+  if (tabular) container.append(createActivityTableHeader({ showApp, showTime }));
   visible.forEach((event) => {
     try {
-      container.append(createActivityItem(event, { tabular, showApp }));
+      container.append(createActivityItem(event, { tabular, showApp, showTime }));
     } catch (error) {
       console.error('No se pudo renderizar un evento de actividad', event, error);
     }
@@ -635,32 +611,15 @@ function buildModuleInsight(app, result, config) {
   if (app === 'fluentflow') {
     const cefr = hasValidProgress(result) ? result.progress.data.cefr : null;
     const headline = cefr ? `Ruta ${cefr.level}` : 'Sin nivel CEFR';
-    const detail = cefr
-      ? `${cefr.completedModules} de ${cefr.totalModules} módulos en el nivel`
-      : 'Completa módulos para ver tu nivel.';
-    insight.append(element('h2', 'detail-insight__title', headline), element('p', 'detail-insight__detail', detail));
+    insight.append(element('h2', 'detail-insight__title', headline));
   } else if (app === 'hubflow') {
     const metrics = hasValidProgress(result) ? progressDisplayMetrics(result) : null;
-    const secondary = hasValidProgress(result) ? secondaryProgressMetrics(result) : null;
     const headline = metrics?.total ? `${metrics.total} ejercicios` : 'Práctica temática';
-    let detail = metrics?.total
-      ? `${metrics.completed} de ${metrics.total} ejercicios completados`
-      : 'El desglose aparece al completar ejercicios.';
-    if (secondary) {
-      detail += ` · ${secondary.completed} de ${secondary.total} ${secondary.unit}`;
-    }
-    insight.append(element('h2', 'detail-insight__title', headline), element('p', 'detail-insight__detail', detail));
+    insight.append(element('h2', 'detail-insight__title', headline));
   } else {
     const metrics = hasValidProgress(result) ? progressDisplayMetrics(result) : null;
-    const secondary = hasValidProgress(result) ? secondaryProgressMetrics(result) : null;
     const headline = metrics?.total ? `${metrics.total} actividades` : 'Catálogo musical';
-    let detail = metrics?.total
-      ? `${metrics.completed} de ${metrics.total} actividades completadas`
-      : 'El desglose aparece al completar actividades.';
-    if (secondary) {
-      detail += ` · ${secondary.completed} de ${secondary.total} ${secondary.unit}`;
-    }
-    insight.append(element('h2', 'detail-insight__title', headline), element('p', 'detail-insight__detail', detail));
+    insight.append(element('h2', 'detail-insight__title', headline));
   }
 
   return insight;
@@ -677,16 +636,14 @@ function renderModuleDetail(app) {
   actionBar.dataset.appLink = app;
   actionBar.rel = 'noopener';
 
-  const copy = element('div', 'module-detail__copy');
   const actionLabel = hasValidProgress(result) ? `Continuar en ${config.name}` : `Explorar ${config.name}`;
-  const actionHint = hasValidProgress(result) ? progressLabel(result) : config.eyebrow;
-  copy.append(element('strong', 'module-detail__label', actionLabel), element('span', 'module-detail__hint', actionHint));
-
-  actionBar.append(copy);
+  actionBar.append(element('span', 'module-detail__label', actionLabel));
 
   const insight = buildModuleInsight(app, result, config);
-  const hero = element('div', 'module-detail__hero');
-  hero.append(actionBar, insight);
+  const hero = element('div', `module-detail__hero module-detail__hero--${config.color}`);
+  const mark = element('span', 'module-detail__mark', config.name.charAt(0));
+  mark.setAttribute('aria-hidden', 'true');
+  hero.append(mark, insight, actionBar);
 
   const statsSection = element('section', 'section-block detail-metrics');
   const statsCard = element('div', `detail-metrics__card detail-metrics__card--${config.color}`);
@@ -717,12 +674,15 @@ function renderModuleDetail(app) {
   const events = result.activity.status === STATUS.READY ? [...result.activity.data.events].sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt)) : [];
   renderActivityList(list, events, 3, {
     tabular: true,
+    showTime: false,
     emptyDescription: `Completa una sesión en ${config.name} y aparecerá en esta lista.`
   });
   activityCard.append(activityHeader, list);
   activity.append(activityCard);
 
-  container.append(hero, statsSection, activity);
+  const overview = element('div', 'module-detail__overview');
+  overview.append(hero, statsSection);
+  container.append(overview, activity);
 }
 
 function renderDataHealth() {
@@ -746,7 +706,6 @@ function renderDataHealth() {
 function renderPrimaryContinue() {
   const link = document.getElementById('primaryContinueLink');
   const bannerTitle = document.getElementById('continueTitle');
-  const bannerDesc = document.getElementById('continueDescription');
   const defaultApp = 'fluentflow';
   const defaultConfig = APP_CONFIG[defaultApp];
 
@@ -754,7 +713,6 @@ function renderPrimaryContinue() {
     link.href = defaultConfig.url;
     link.dataset.appLink = defaultApp;
     bannerTitle.textContent = 'Retoma donde lo dejaste';
-    bannerDesc.textContent = 'Continuar aprendiendo';
     link.textContent = '';
     link.append(document.createTextNode('Continuar '));
     const arrow = element('span', '', '→');
@@ -774,7 +732,6 @@ function renderPrimaryContinue() {
   if (candidates.length && candidates[0].progress.data.summary.lastContent) {
     const last = candidates[0].progress.data.summary.lastContent;
     bannerTitle.textContent = resolveContentTitle(last, contentTitleIndex) || `Continuar en ${config.name}`;
-    bannerDesc.textContent = `${config.name} · ${readableActivity(last.activity || '')}`;
     link.textContent = '';
     link.append(document.createTextNode(`Continuar `));
     const arrow = element('span', '', '→');
@@ -782,7 +739,6 @@ function renderPrimaryContinue() {
     link.append(arrow);
   } else {
     bannerTitle.textContent = 'Empieza a aprender';
-    bannerDesc.textContent = 'Elige un módulo y comienza tu primera sesión.';
     link.textContent = '';
     link.append(element('span', 'lp-btn__verb', 'Abrir '), document.createTextNode(`${config.name} `));
     const arrow = element('span', '', '→');
@@ -1153,12 +1109,6 @@ function setupActivityFilters() {
   });
 }
 
-function setupPageContext() {
-  const now = new Date();
-  document.getElementById('currentDate').textContent = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' }).format(now);
-}
-
-setupPageContext();
 setupTheme();
 setupNavigationMode();
 syncSidebarMount();
