@@ -18,7 +18,7 @@ const APP_CONFIG = Object.freeze({
   hubflow: {
     name: 'HubFlow',
     eyebrow: 'Práctica temática',
-    description: '5 modos por ejercicio incluyendo Battle 2P.',
+    description: '80 ejercicios · 4 categorías · 5 modos incluyendo Battle 2P.',
     unit: 'ejercicios',
     lastLabel: 'Ejercicio',
     color: 'amber',
@@ -893,7 +893,7 @@ const TOPBAR_CONTENT = {
   continuar: { eyebrow: 'Retoma el hilo', title: 'Continuar aprendiendo', sub: 'Accesos directos basados en el último dato válido de cada módulo.' },
   actividad: { eyebrow: 'Historial local', title: 'Actividad', sub: 'Eventos recientes publicados por los módulos.' },
   fluentflow: { eyebrow: 'Ruta estructurada', title: 'FluentFlow', sub: 'Ruta A1–C2 con módulos secuenciales y práctica guiada.' },
-  hubflow: { eyebrow: 'Práctica temática', title: 'HubFlow', sub: '62 ejercicios · 5 modos incluyendo Battle 2P.' },
+  hubflow: { eyebrow: 'Práctica temática', title: 'HubFlow', sub: '80 ejercicios · 4 categorías · 5 modos incluyendo Battle 2P.' },
   lyricflow: {
     eyebrow: 'Aprendizaje con música',
     title: 'LyricFlow',
