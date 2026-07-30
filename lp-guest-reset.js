@@ -134,6 +134,10 @@
 
     localStorage.removeItem('progress-storage');
     localStorage.removeItem('lp-sync-pending');
+    // lp-level se DERIVA del progreso de las 3 apps (LearnFlow Progression
+    // System) — dejarlo vivo tras borrar el progreso mostraría contenido
+    // desbloqueado que el usuario ya no tiene forma de justificar.
+    localStorage.removeItem('lp-level');
 
     clearSharedUserIdentity();
 

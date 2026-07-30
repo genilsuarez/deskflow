@@ -330,4 +330,19 @@ export async function updateProfile(updates) {
   return { error: error?.message || null };
 }
 
+// === CEFR LEVEL (LearnFlow Progression System) ===
+// docs/to-do/learnflow-progression-system.md — el nivel activo vive en
+// profiles.cefr_level, igual que cualquier otro dato de perfil. Envoltorios
+// delgados sobre fetchProfile()/updateProfile() para no repetir el
+// user.id/auth check en cada caller.
+
+export async function fetchCefrLevel() {
+  const profile = await fetchProfile();
+  return profile?.cefr_level || null;
+}
+
+export async function updateCefrLevel(level) {
+  return updateProfile({ cefr_level: level });
+}
+
 export { supabase };

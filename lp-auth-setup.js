@@ -8,6 +8,7 @@ import {
   markLocalCacheBootstrapped,
   hasLocalStatsCache,
 } from './sync-engine.js';
+import { checkLevelAdvancement, LEVEL_ORDER } from './lp-progress-summary.js';
 
 window.lpSupabase = lpSupabase;
 
@@ -21,6 +22,50 @@ async function hydrateFromCloud(onAfterLogin, { forceDownload = false } = {}) {
   onAfterLogin?.();
   await runFullSync({ force: true });
   return result;
+}
+
+/**
+ * Restaura lp-level desde profiles.cefr_level. Nunca lo BAJA: si el valor
+ * en la nube está más atrás que el local (p. ej. otro dispositivo aún no
+ * sincronizó), se conserva el local — el nivel nunca retrocede (ver
+ * docs/to-do/learnflow-progression-system.md § Reset parcial).
+ */
+function restoreLevelFromProfile(profile) {
+  const cloudLevel = profile?.cefr_level;
+  if (!cloudLevel || !LEVEL_ORDER.includes(cloudLevel)) return;
+  let localLevel = 'a1';
+  try {
+    localLevel = localStorage.getItem('lp-level') || 'a1';
+  } catch {
+    return;
+  }
+  if (LEVEL_ORDER.indexOf(cloudLevel) <= LEVEL_ORDER.indexOf(localLevel)) return;
+  try {
+    localStorage.setItem('lp-level', cloudLevel);
+  } catch {
+    /* localStorage no disponible */
+  }
+}
+
+/**
+ * Reevalúa la condición combinada tras hidratar desde la nube — el progreso
+ * de otro dispositivo puede haber completado la parte que faltaba. Si
+ * avanza, persiste el nuevo nivel en profiles (best-effort: si falla, se
+ * reintenta en la próxima sesión autenticada, igual que el resto del sync).
+ */
+async function reevaluateLevelAfterSync() {
+  let result;
+  try {
+    result = checkLevelAdvancement();
+  } catch {
+    return;
+  }
+  if (!result?.advanced) return;
+  try {
+    await lpSupabase.updateCefrLevel(result.level);
+  } catch {
+    /* se reintenta en la próxima sesión autenticada */
+  }
 }
 
 async function clearOrphanSupabaseSession() {
@@ -61,7 +106,9 @@ async function handleLogin(session, onAfterLogin, { forceDownload = false } = {}
         }
       }
     }
+    restoreLevelFromProfile(profile);
     await hydrateFromCloud(onAfterLogin, { forceDownload });
+    await reevaluateLevelAfterSync();
     lastHandledUserId = session.user.id;
     lpSupabase.cleanAuthParamsFromUrl?.();
   })();

@@ -1,6 +1,11 @@
 // Canonical progress summary helpers — copy to DeskFlow/, HubFlow/js/, LyricFlow/.
 // DeskFlow imports this module directly; keep all copies in sync (no build step).
 
+import { HUBFLOW_LEVELS, LYRICFLOW_LEVELS } from './lp-level-map.js';
+
+/** Nivel CEFR compartido entre las 3 apps de contenido (minúsculas, distinto de FLUENTFLOW_LEVELS). */
+export const LEVEL_ORDER = Object.freeze(['a1', 'a2', 'b1', 'b2', 'c1', 'c2']);
+
 const FLUENTFLOW_LEVELS = Object.freeze(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
 const FLUENTFLOW_LEVEL_PATTERN = /^(a1|a2|b1|b2|c1|c2)$/i;
 const LYRICFLOW_ACTIVITY_IDS = Object.freeze(['listen', 'dictation', 'challenge', 'quiz']);
@@ -621,4 +626,169 @@ export function recomputeProgressDocumentSummary(doc, app) {
   }
 
   return false;
+}
+
+/* ═══════════════════════════════════════════════════════
+   LearnFlow Progression System — condición combinada entre 3 apps
+   docs/to-do/learnflow-progression-system.md
+   ═══════════════════════════════════════════════════════ */
+
+/**
+ * Desglosa el progreso de HubFlow por nivel CEFR, usando el campo `cefr:`
+ * (no `cefrByCategory`): el progreso se registra por módulo completo
+ * (contentId = id del módulo en progress-store.js), no por categoría
+ * interna, así que esa es la única granularidad que se puede contar.
+ * Un nivel sin módulos en el catálogo (hoy: C2) cuenta como 100% —
+ * "nivel sin contenido en una app → condición satisfecha por vacío".
+ */
+export function computeHubflowLevelSummary(content, levels = HUBFLOW_LEVELS) {
+  const byLevel = Object.fromEntries(LEVEL_ORDER.map((level) => [level, { total: 0, completed: 0 }]));
+  for (const [moduleId, level] of Object.entries(levels || {})) {
+    if (!byLevel[level]) continue;
+    byLevel[level].total++;
+    if (isRecord(content) && content[moduleId]?.completed === true) byLevel[level].completed++;
+  }
+  return Object.fromEntries(
+    LEVEL_ORDER.map((level) => {
+      const { total, completed } = byLevel[level];
+      return [level, {
+        completedModules: completed,
+        totalModules: total,
+        progressPct: total > 0 ? (completed / total) * 100 : 100,
+      }];
+    }),
+  );
+}
+
+/**
+ * Desglosa el progreso de LyricFlow por nivel CEFR. `levels` ya excluye
+ * canciones fuera de la escala CEFR (Dernière Danse, "FR") — ver
+ * scripts/generate-level-map.mjs. Un nivel sin canciones cuenta como 100%.
+ */
+export function computeLyricflowLevelSummary(content, levels = LYRICFLOW_LEVELS) {
+  const byLevel = Object.fromEntries(LEVEL_ORDER.map((level) => [level, { total: 0, completed: 0 }]));
+  for (const [songId, level] of Object.entries(levels || {})) {
+    if (!byLevel[level]) continue;
+    byLevel[level].total++;
+    if (isRecord(content) && content[songId]?.completed === true) byLevel[level].completed++;
+  }
+  return Object.fromEntries(
+    LEVEL_ORDER.map((level) => {
+      const { total, completed } = byLevel[level];
+      return [level, {
+        completedSongs: completed,
+        totalSongs: total,
+        progressPct: total > 0 ? (completed / total) * 100 : 100,
+      }];
+    }),
+  );
+}
+
+function readLocalProgressDoc(app) {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(`learnflow:progress:${app}:v1`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function readLpLevel() {
+  try {
+    if (typeof localStorage === 'undefined') return 'a1';
+    return localStorage.getItem('lp-level') || 'a1';
+  } catch {
+    return 'a1';
+  }
+}
+
+/** Nivel activo actual, con el default 'a1' ya resuelto — para filtrar catálogos en HubFlow/LyricFlow. */
+export function getActiveLevel() {
+  return readLpLevel();
+}
+
+/** `true` si un módulo de nivel `moduleLevel` está desbloqueado cuando el nivel activo es `activeLevel` (mismo nivel o anterior). */
+export function levelUnlocks(moduleLevel, activeLevel) {
+  const moduleIdx = LEVEL_ORDER.indexOf(moduleLevel);
+  const activeIdx = LEVEL_ORDER.indexOf(activeLevel);
+  if (moduleIdx === -1 || activeIdx === -1) return true;
+  return moduleIdx <= activeIdx;
+}
+
+/**
+ * Progreso combinado de las 3 apps en el nivel activo — sin decidir ni
+ * escribir nada. Lo usa DeskFlow para el widget y checkLevelAdvancement()
+ * para decidir el ascenso; separarlos permite mostrar el desglose aunque
+ * la condición no se cumpla todavía.
+ */
+export function getCombinedLevelProgress(level = readLpLevel()) {
+  const fluentflowDoc = readLocalProgressDoc('fluentflow');
+  const hubflowDoc = readLocalProgressDoc('hubflow');
+  const lyricflowDoc = readLocalProgressDoc('lyricflow');
+
+  const fluentflowSummary = computeFluentflowProgressSummary(fluentflowDoc?.content || {});
+  const hubflowSummary = computeHubflowLevelSummary(hubflowDoc?.content || {});
+  const lyricflowSummary = computeLyricflowLevelSummary(lyricflowDoc?.content || {});
+
+  const upper = level.toUpperCase();
+  return {
+    level,
+    fluentflow: fluentflowSummary.cefr[upper] ?? { progressPct: 0, completedModules: 0, totalModules: 0 },
+    hubflow: hubflowSummary[level] ?? { progressPct: 0, completedModules: 0, totalModules: 0 },
+    lyricflow: lyricflowSummary[level] ?? { progressPct: 0, completedSongs: 0, totalSongs: 0 },
+  };
+}
+
+/**
+ * Evalúa si el nivel activo (`lp-level`) debe subir al siguiente y, si
+ * corresponde, escribe el nuevo valor en localStorage. No llama a Supabase
+ * — el caller decide si persiste (`updateCefrLevel()` en lp-supabase.js),
+ * para no acoplar este módulo de cómputo puro a la capa de red.
+ *
+ * Regla: FluentFlow ≥100% AND LyricFlow ≥100% AND HubFlow ≥50% del nivel
+ * activo. C2 es terminal — no se vuelve a evaluar. El nivel nunca baja: si
+ * la condición no se cumple, `lp-level` simplemente no avanza (ver
+ * docs/to-do/learnflow-progression-system.md § Reset parcial).
+ */
+export function checkLevelAdvancement() {
+  const current = readLpLevel();
+  const idx = LEVEL_ORDER.indexOf(current);
+  if (idx === -1 || idx === LEVEL_ORDER.length - 1) {
+    return { advanced: false, level: current, terminal: idx === LEVEL_ORDER.length - 1 };
+  }
+  const nextLevel = LEVEL_ORDER[idx + 1];
+
+  const progress = getCombinedLevelProgress(current);
+  const breakdown = {
+    fluentflow: progress.fluentflow.progressPct,
+    hubflow: progress.hubflow.progressPct,
+    lyricflow: progress.lyricflow.progressPct,
+  };
+  const meetsCondition = breakdown.fluentflow >= 100 && breakdown.lyricflow >= 100 && breakdown.hubflow >= 50;
+
+  if (!meetsCondition) {
+    return { advanced: false, level: current, breakdown };
+  }
+
+  // Idempotencia: releer lp-level justo antes de escribir, por si otra
+  // pestaña/app ya disparó el ascenso mientras se calculaba esto.
+  const stillCurrent = readLpLevel();
+  if (LEVEL_ORDER.indexOf(stillCurrent) >= LEVEL_ORDER.indexOf(nextLevel)) {
+    return { advanced: false, level: stillCurrent, breakdown };
+  }
+
+  try {
+    localStorage.setItem('lp-level', nextLevel);
+  } catch {
+    return { advanced: false, level: current, breakdown, error: 'localStorage_unavailable' };
+  }
+  // 'storage' es nativo y solo llega a OTRAS pestañas; para que la propia
+  // pestaña reaccione sin recargar, se dispara un CustomEvent (mismo
+  // patrón que lp-cloud-hydrated / lp-guest-reset en este módulo canónico).
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('lp-level-changed', { detail: { level: nextLevel, previousLevel: current } }));
+  }
+
+  return { advanced: true, level: nextLevel, previousLevel: current, breakdown };
 }
