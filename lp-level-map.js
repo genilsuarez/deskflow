@@ -134,7 +134,24 @@ export const HUBFLOW_LEVELS = {
   "c1-professional-world": "c1",
   "c1-science-technology": "c1",
   "c1-law-politics-society": "c1",
-  "c1-etymology-roots": "c1"
+  "c1-etymology-roots": "c1",
+  "a1-plurals-possessives": "a1",
+  "a1-contractions": "a1",
+  "a1-imperatives": "a1",
+  "a1-some-any-quantity": "a1",
+  "a1-demonstratives": "a1",
+  "a2-past-simple-continuous": "a2",
+  "a2-adverbs-frequency-manner": "a2",
+  "b2-compound-words": "b2",
+  "b2-negative-affixes": "b2",
+  "b2-future-forms": "b2",
+  "b2-mixed-conditionals": "b2",
+  "b2-participle-clauses": "b2",
+  "c1-advanced-word-formation": "c1",
+  "c1-compounding-blends": "c1",
+  "c1-future-in-past": "c1",
+  "c1-aspect-time-nuance": "c1",
+  "c1-hedging-softening": "c1"
 };
 
 export const LYRICFLOW_LEVELS = {
