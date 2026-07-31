@@ -123,7 +123,18 @@ export const HUBFLOW_LEVELS = {
   "c1-discourse-analysis": "c1",
   "c1-argumentation": "c1",
   "c1-register-precision": "c1",
-  "c1-summarising": "c1"
+  "c1-summarising": "c1",
+  "clothing-shopping": "a1",
+  "school-classroom": "a1",
+  "social-expressions": "b1",
+  "b2-travel-culture": "b2",
+  "b2-environment-sustainability": "b2",
+  "b2-media-technology": "b2",
+  "b2-nuanced-synonyms": "b2",
+  "c1-professional-world": "c1",
+  "c1-science-technology": "c1",
+  "c1-law-politics-society": "c1",
+  "c1-etymology-roots": "c1"
 };
 
 export const LYRICFLOW_LEVELS = {
