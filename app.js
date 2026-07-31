@@ -4,6 +4,7 @@ import { repairLocalProjections, auditLocalProjections, auditCloudAlignment } fr
 import { runFullSync, shouldDeferStatsDisplay, shouldDeferActivityDisplay, consumeStatsRevealAnimation, hydrateActivityFromCloud } from './sync-engine.js';
 import { animateText, animateCssVar, animateWidth } from './lp-stats-animate.js';
 import { setupSupabaseAuth } from './lp-auth-setup.js';
+import { getActiveLevel, getCombinedLevelProgress, LEVEL_ORDER } from './lp-progress-summary.js';
 
 const APP_CONFIG = Object.freeze({
   fluentflow: {
@@ -371,32 +372,50 @@ function renderHeaderStats(animateReveal = false) {
   else pctEl.textContent = `${pctValue}%`;
 }
 
+// LearnFlow Progression System — docs/to-do/learnflow-progression-system.md.
+// lp-level es el nivel compartido entre las 3 apps (no la lectura interna
+// de FluentFlow): sube solo cuando FluentFlow ≥100%, LyricFlow ≥100% y
+// HubFlow ≥50% del nivel activo. Esta tarjeta es la "vista de estadísticas
+// globales" a la que enlazan los avisos de "nivel estancado" en HubFlow y
+// LyricFlow.
+const CEFR_APP_THRESHOLDS = Object.freeze({ fluentflow: 100, hubflow: 50, lyricflow: 100 });
+
 function renderCefr() {
   const level = document.getElementById('cefrLevel');
   const description = document.getElementById('cefrDescription');
+  const breakdown = document.getElementById('cefrBreakdown');
   if (!level || !description) return;
   if (isStatsDeferred()) {
     level.textContent = 'A1';
     description.textContent = 'A1';
-    return;
-  }
-  const result = getAppResult('fluentflow');
-  const cefr = hasValidProgress(result) ? result.progress.data.cefr : null;
-
-  if (!cefr) {
-    level.textContent = 'A1';
-    description.textContent = 'A1';
+    if (breakdown) breakdown.innerHTML = '';
     return;
   }
 
-  const statusCopy = {
-    not_started: 'sin comenzar',
-    in_progress: 'en progreso',
-    near_completion: 'cerca de completar',
-    completed: 'ruta completada'
-  };
-  level.textContent = cefr.level;
-  description.textContent = `${cefr.level} · ${statusCopy[cefr.status]}. ${cefr.completedModules} de ${cefr.totalModules} módulos del nivel completados.`;
+  const activeLevel = getActiveLevel();
+  const upperLevel = activeLevel.toUpperCase();
+  const progress = getCombinedLevelProgress(activeLevel);
+  const apps = ['fluentflow', 'hubflow', 'lyricflow'];
+  const met = Object.fromEntries(apps.map((app) => [app, progress[app].progressPct >= CEFR_APP_THRESHOLDS[app]]));
+  const isTerminal = LEVEL_ORDER.indexOf(activeLevel) === LEVEL_ORDER.length - 1;
+
+  level.textContent = upperLevel;
+  if (isTerminal) {
+    description.textContent = `${upperLevel} · nivel máximo alcanzado.`;
+  } else if (apps.every((app) => met[app])) {
+    description.textContent = `${upperLevel} · cumples las 3 condiciones. Tu nivel sube al registrar la próxima actividad.`;
+  } else {
+    const pending = apps.filter((app) => !met[app]).map((app) => APP_CONFIG[app].name);
+    description.textContent = `${upperLevel} · para subir de nivel falta: ${pending.join(', ')}.`;
+  }
+
+  if (breakdown) {
+    breakdown.innerHTML = '';
+    apps.forEach((app) => {
+      const pct = rounded(progress[app].progressPct);
+      breakdown.appendChild(element('span', 'status-pill', `${met[app] ? '✓ ' : ''}${APP_CONFIG[app].name} ${pct}%`));
+    });
+  }
 }
 
 const RECENT_ACTIVITY_PER_APP = 4;
