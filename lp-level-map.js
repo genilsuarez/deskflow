@@ -37,8 +37,8 @@ export const HUBFLOW_LEVELS = {
   "pron-connected": "b2",
   "pron-intonation": "b2",
   "pron-mispronunciations": "b1",
-  "pron-vowels": "a2",
-  "pron-consonants": "a2",
+  "pron-vowels": "a1",
+  "pron-consonants": "b1",
   "pron-diphthongs": "a2",
   "pron-numbers": "a1",
   "pron-british-american": "b1",
@@ -151,7 +151,9 @@ export const HUBFLOW_LEVELS = {
   "c1-compounding-blends": "c1",
   "c1-future-in-past": "c1",
   "c1-aspect-time-nuance": "c1",
-  "c1-hedging-softening": "c1"
+  "c1-hedging-softening": "c1",
+  "b2-thought-groups": "b2",
+  "c1-discourse-marker-prosody": "c1"
 };
 
 export const LYRICFLOW_LEVELS = {
