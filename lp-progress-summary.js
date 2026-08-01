@@ -588,17 +588,19 @@ export function recomputeProgressDocumentSummary(doc, app) {
 
   if (app === 'hubflow') {
     for (const item of items) enrichHubflowContentEntry(item);
-    const catalogTotal = Math.max(
-      items.length,
-      Number.isInteger(doc.summary.totalContent) ? doc.summary.totalContent : 0,
-    );
+    // totalContent SIEMPRE se recalcula del content map actual — nunca se
+    // preserva/ratchetea un total viejo cacheado (ver docs/to-do,
+    // "el total no debe venir de un valor guardado, solo lo aprobado").
+    // Un ratchet con el valor anterior hacía que el total solo pudiera
+    // crecer (y a veces con datos de un catálogo desactualizado), nunca
+    // reflejar el catálogo real vigente.
     doc.summary = {
       ...doc.summary,
       progressPct: items.length
         ? items.reduce((sum, item) => sum + (item.progressPct || 0), 0) / items.length
         : 0,
       completedContent: items.filter((item) => item.completed).length,
-      totalContent: catalogTotal,
+      totalContent: items.length,
       attemptedContent: items.filter((item) => (item.attempts || 0) > 0).length,
       ...computeHubflowActivitySummary(doc.content),
     };
@@ -609,18 +611,17 @@ export function recomputeProgressDocumentSummary(doc, app) {
     for (const [contentId, item] of Object.entries(doc.content)) {
       enrichLyricflowSongEntry(contentId, item);
     }
-    const catalogTotal = Number.isInteger(doc.summary.totalContent) && doc.summary.totalContent > 0
-      ? doc.summary.totalContent
-      : items.length;
+    // Mismo criterio que HubFlow arriba: totalContent siempre = catálogo
+    // actual (items.length), nunca el valor previamente guardado.
     doc.summary = {
       ...doc.summary,
       progressPct: items.length
         ? items.reduce((sum, item) => sum + (item.progressPct || 0), 0) / items.length
         : 0,
       completedContent: items.filter((item) => item.completed).length,
-      totalContent: catalogTotal,
+      totalContent: items.length,
       attemptedContent: items.filter((item) => (item.attempts || 0) > 0).length,
-      ...computeLyricflowActivitySummary(doc.content, catalogTotal),
+      ...computeLyricflowActivitySummary(doc.content, items.length),
     };
     return snapshotRecomputeState(doc, app) !== before;
   }

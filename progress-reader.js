@@ -228,17 +228,15 @@ function repairProgressDocument(document, app) {
     repaired = true;
   }
 
+  // totalContent siempre = tamaño del content map actual. Antes se
+  // preservaba (Math.max) el mayor valor histórico visto para hubflow/
+  // lyricflow, lo que hacía que el total solo pudiera crecer y nunca
+  // reflejara el catálogo real vigente tras un recorte de contenido.
   const contentCount = Object.keys(document.content).length;
   const summary = document.summary;
-  const catalogTotal = Number.isInteger(summary.totalContent) && summary.totalContent > 0
-    ? summary.totalContent
-    : 0;
-  const preservedTotal = app === 'hubflow' || app === 'lyricflow'
-    ? Math.max(contentCount, catalogTotal)
-    : contentCount;
 
-  if (contentCount > 0 && summary.totalContent !== preservedTotal) {
-    summary.totalContent = preservedTotal;
+  if (contentCount > 0 && summary.totalContent !== contentCount) {
+    summary.totalContent = contentCount;
     repaired = true;
   }
   if (summary.completedContent > summary.totalContent) {
