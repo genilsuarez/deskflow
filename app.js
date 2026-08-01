@@ -5,6 +5,7 @@ import { runFullSync, shouldDeferStatsDisplay, shouldDeferActivityDisplay, consu
 import { animateText, animateCssVar, animateWidth } from './lp-stats-animate.js';
 import { setupSupabaseAuth } from './lp-auth-setup.js';
 import { getActiveLevel, getCombinedLevelProgress, LEVEL_ORDER } from './lp-progress-summary.js';
+import { warmAllCatalogTotals } from './lp-catalog-warmer.js';
 
 const APP_CONFIG = Object.freeze({
   fluentflow: {
@@ -1140,6 +1141,9 @@ void Promise.all([
   hydrateActivityFromCloud('hubflow'),
   hydrateActivityFromCloud('lyricflow'),
 ]);
+void warmAllCatalogTotals().then((changed) => {
+  if (changed) scheduleRenderAll();
+});
 window.addEventListener('lp-stats-ready', () => scheduleRenderAll());
 window.addEventListener('lp-activity-ready', () => scheduleRenderAll());
 setupSupabaseAuth({
