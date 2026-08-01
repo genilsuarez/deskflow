@@ -1,17 +1,51 @@
 #!/usr/bin/env node
-// Invariantes del sistema de conteo de progreso.
+// Invariantes del sistema de conteo de progreso — prueba compartida.
 //
-// Cada prueba corresponde a un bug real que llegó a producción y mostró números
+// Canónica en Learn/scripts/; copy-shared.sh la distribuye a tests/ de cada app.
+// No editar las copias: el chequeo de deriva del build las revierte.
+//
+// Cada caso corresponde a un bug real que llegó a producción y mostró números
 // incorrectos al usuario. Historial completo: docs/progress-counting-system.md
 //
 // Son pruebas funcionales: importan los módulos reales y ejecutan el código con
 // un localStorage simulado. No hacen grep sobre el fuente — un refactor que
-// preserve el comportamiento debe seguir pasando, y uno que lo rompa debe fallar
-// aunque conserve los nombres.
+// preserve el comportamiento sigue pasando, y uno que lo rompa falla aunque
+// conserve los nombres.
 //
 // Correr:  node tests/progress-invariants.mjs
 
+import { existsSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+/** Primer candidato existente; cada app guarda los compartidos en otra ruta. */
+function locate(...candidates) {
+  for (const rel of candidates) {
+    const abs = resolve(HERE, rel);
+    if (existsSync(abs)) return pathToFileURL(abs).href;
+  }
+  return null;
+}
+
+const summaryPath = locate(
+  '../lp-progress-summary.js', // DeskFlow, LyricFlow
+  '../js/lp-progress-summary.js', // HubFlow
+  '../public/lp-progress-summary.js', // FluentFlow
+  './lp-progress-summary.js' // Learn/scripts (canónico)
+);
+
+if (!summaryPath) {
+  console.error('❌ No se encontró lp-progress-summary.js junto a esta prueba.');
+  process.exit(1);
+}
+
+// Solo DeskFlow: es quien lee el progreso de las 3 apps para el portal.
+const readerPath = locate('../progress-reader.js');
+
 let passed = 0;
+let skipped = 0;
 const failures = [];
 
 function check(name, fn) {
@@ -46,13 +80,9 @@ function installStorage(seed = {}) {
   return data;
 }
 
-function catalogKey(app) {
-  return `learnflow:catalog:${app}:v1`;
-}
-
-function catalogValue(ids) {
-  return JSON.stringify({ totalContent: ids.length, ids, updatedAt: new Date().toISOString() });
-}
+const catalogKey = (app) => `learnflow:catalog:${app}:v1`;
+const catalogValue = (ids) =>
+  JSON.stringify({ totalContent: ids.length, ids, updatedAt: new Date().toISOString() });
 
 /** Documento de progreso con `completedIds` marcados como completados. */
 function progressDoc(app, contentIds, completedIds = []) {
@@ -76,8 +106,8 @@ function progressDoc(app, contentIds, completedIds = []) {
 }
 
 installStorage();
-const summary = await import('../lp-progress-summary.js');
-const { ProgressReader } = await import('../progress-reader.js');
+const summary = await import(summaryPath);
+const reader = readerPath ? await import(readerPath) : null;
 
 // ── 1. El total sale del catálogo, nunca del content map ────────────────────
 // Bug: el content map se infla con ids huérfanos que el cloud-merge une desde
@@ -129,7 +159,7 @@ check('la poda elimina los huérfanos del content map', () => {
 // borraría progreso legítimo en vez de solo no filtrar.
 
 check('sin clave de catálogo NO se poda (fail-open)', () => {
-  installStorage(); // sin catálogo
+  installStorage();
   const doc = progressDoc('hubflow', ['a', 'b', 'desconocido'], ['a', 'desconocido']);
   summary.recomputeProgressDocumentSummary(doc, 'hubflow');
   assertEqual(Object.keys(doc.content).length, 3, 'no debe borrar nada sin catálogo');
@@ -137,7 +167,7 @@ check('sin clave de catálogo NO se poda (fail-open)', () => {
 });
 
 check('una clave de catálogo sin ids tampoco poda (fail-open)', () => {
-  installStorage({ [catalogKey('hubflow')]: JSON.stringify({ totalContent: 3 }) }); // sin ids
+  installStorage({ [catalogKey('hubflow')]: JSON.stringify({ totalContent: 3 }) });
   const doc = progressDoc('hubflow', ['a', 'b', 'desconocido']);
   summary.recomputeProgressDocumentSummary(doc, 'hubflow');
   assertEqual(Object.keys(doc.content).length, 3, 'sin ids no debe podar');
@@ -174,35 +204,7 @@ check('conserva eventos sin contentId en vez de descartarlos', () => {
     'un evento sin contentId no se puede clasificar; no debe perderse');
 });
 
-// ── 5. Modo invitado: el total se muestra sin sesión ────────────────────────
-// Bug: clearGuestLocalProgress() borra learnflow:progress:*/activity:* al salir,
-// y el portal quedaba en "0 de 0". El catálogo es público y no depende de sesión,
-// por eso vive en una clave aparte que sobrevive al borrado.
-
-check('sin documento de progreso, el total sale de learnflow:catalog', () => {
-  const store = installStorage({
-    [catalogKey('fluentflow')]: catalogValue(Array.from({ length: 330 }, (_, i) => `m${i}`)),
-    [catalogKey('hubflow')]: catalogValue(Array.from({ length: 150 }, (_, i) => `h${i}`)),
-    [catalogKey('lyricflow')]: catalogValue(Array.from({ length: 9 }, (_, i) => `s${i}`)),
-  });
-  const reader = new ProgressReader(globalThis.localStorage);
-  assertEqual(reader.readApp('fluentflow').progress.data.summary.totalContent, 330, 'fluentflow');
-  assertEqual(reader.readApp('hubflow').progress.data.summary.totalContent, 150, 'hubflow');
-  assert(!Object.keys(store).some((k) => k.startsWith('learnflow:progress:')),
-    'la prueba debe correr sin documentos de progreso');
-});
-
-check('LyricFlow invitado expone totalActivities, no solo canciones', () => {
-  installStorage({ [catalogKey('lyricflow')]: catalogValue(Array.from({ length: 9 }, (_, i) => `s${i}`)) });
-  const s = new ProgressReader(globalThis.localStorage).readApp('lyricflow').progress.data.summary;
-  // El card de LyricFlow se mide por actividades (PRIMARY_PROGRESS_METRICS en
-  // app.js). Con totalActivities en null caía al fallback de totalContent y
-  // mostraba "0 de 9" (canciones) en vez de "0 de 36".
-  assertEqual(s.totalContent, 9, 'totalContent = canciones');
-  assertEqual(s.totalActivities, 36, 'totalActivities = canciones x 4 actividades');
-});
-
-// ── 6. El avance de nivel CEFR también se calcula sobre datos podados ───────
+// ── 5. El avance de nivel CEFR también se calcula sobre datos podados ───────
 // Bug: getCombinedLevelProgress() leía localStorage crudo. Un huérfano sin
 // completar baja el progressPct del nivel y puede bloquear un ascenso legítimo.
 
@@ -211,7 +213,7 @@ check('el progreso por nivel ignora los huérfanos', () => {
   installStorage({
     [catalogKey('fluentflow')]: catalogValue(ids),
     'learnflow:progress:fluentflow:v1': JSON.stringify(
-      progressDoc('fluentflow', [...ids, 'eliminado-a1'], ids) // los 2 reales completos
+      progressDoc('fluentflow', [...ids, 'eliminado-a1'], ids)
     ),
   });
   const a1 = summary.getCombinedLevelProgress('a1').fluentflow;
@@ -219,7 +221,7 @@ check('el progreso por nivel ignora los huérfanos', () => {
   assertEqual(a1.progressPct, 100, 'nivel completo: un huérfano no debe bloquear el ascenso');
 });
 
-// ── 7. Consistencia interna del resumen ─────────────────────────────────────
+// ── 6. Consistencia interna del resumen ─────────────────────────────────────
 
 check('completados nunca supera el total', () => {
   installStorage({ [catalogKey('hubflow')]: catalogValue(['a', 'b']) });
@@ -238,15 +240,50 @@ check('progressPct concuerda con completados/total', () => {
     `progressPct ${doc.summary.progressPct} no concuerda con ${esperado}`);
 });
 
+// ── 7. Modo invitado (solo DeskFlow, que es quien renderiza el portal) ──────
+// Bug: clearGuestLocalProgress() borra learnflow:progress:*/activity:* al salir,
+// y el portal quedaba en "0 de 0". El catálogo es público y no depende de sesión,
+// por eso vive en una clave aparte que sobrevive al borrado.
+
+if (reader) {
+  check('sin documento de progreso, el total sale de learnflow:catalog', () => {
+    const store = installStorage({
+      [catalogKey('fluentflow')]: catalogValue(Array.from({ length: 330 }, (_, i) => `m${i}`)),
+      [catalogKey('hubflow')]: catalogValue(Array.from({ length: 150 }, (_, i) => `h${i}`)),
+      [catalogKey('lyricflow')]: catalogValue(Array.from({ length: 9 }, (_, i) => `s${i}`)),
+    });
+    const r = new reader.ProgressReader(globalThis.localStorage);
+    assertEqual(r.readApp('fluentflow').progress.data.summary.totalContent, 330, 'fluentflow');
+    assertEqual(r.readApp('hubflow').progress.data.summary.totalContent, 150, 'hubflow');
+    assert(!Object.keys(store).some((k) => k.startsWith('learnflow:progress:')),
+      'la prueba debe correr sin documentos de progreso');
+  });
+
+  check('LyricFlow invitado expone totalActivities, no solo canciones', () => {
+    installStorage({
+      [catalogKey('lyricflow')]: catalogValue(Array.from({ length: 9 }, (_, i) => `s${i}`)),
+    });
+    const s = new reader.ProgressReader(globalThis.localStorage).readApp('lyricflow').progress.data.summary;
+    // El card de LyricFlow se mide por actividades (PRIMARY_PROGRESS_METRICS en
+    // app.js). Con totalActivities en null caía al fallback de totalContent y
+    // mostraba "0 de 9" (canciones) en vez de "0 de 36".
+    assertEqual(s.totalContent, 9, 'totalContent = canciones');
+    assertEqual(s.totalActivities, 36, 'totalActivities = canciones x 4 actividades');
+  });
+} else {
+  skipped += 2; // progress-reader.js solo existe en DeskFlow
+}
+
 // ── Reporte ─────────────────────────────────────────────────────────────────
 
+const suffix = skipped ? ` (${skipped} omitida(s): sin progress-reader.js)` : '';
 console.log('');
 if (failures.length === 0) {
-  console.log(`✅ Invariantes de progreso — ${passed}/${passed} OK`);
+  console.log(`✅ Invariantes de progreso — ${passed}/${passed} OK${suffix}`);
   process.exit(0);
 }
 
-console.log(`❌ Invariantes de progreso — ${passed} OK, ${failures.length} fallo(s)`);
+console.log(`❌ Invariantes de progreso — ${passed} OK, ${failures.length} fallo(s)${suffix}`);
 for (const f of failures) {
   console.log(`   ✗ ${f.name}`);
   console.log(`     ${f.message}`);

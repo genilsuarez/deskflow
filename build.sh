@@ -21,41 +21,11 @@ echo "📦 DeskFlow"
 
 echo "🧪 Validando..."
 
-# 1. Sintaxis de los módulos críticos del sistema de progreso.
-for f in lp-progress-summary.js sync-engine.js progress-reader.js lp-catalog-warmer.js app.js; do
-  [ -f "$f" ] || continue
-  if ! node --check "$f" 2>/dev/null; then
-    echo "❌ Error de sintaxis en $f"
-    node --check "$f"
-    exit 1
-  fi
-done
-
-# 2. Invariantes del conteo de progreso. Cada caso corresponde a un bug que
-#    llegó a producción y mostró números incorrectos (ver el doc).
-if [ -f tests/progress-invariants.mjs ]; then
-  if ! node tests/progress-invariants.mjs; then
-    echo ""
-    echo "❌ Invariantes de progreso rotos — no se despliega."
-    exit 1
-  fi
-fi
-
-# 3. Deriva de archivos compartidos. Learn/scripts/ es la fuente canónica y
-#    copy-shared.sh copia DESDE ahí HACIA los repos: editar la copia de una app
-#    sin actualizar scripts/ hace que el próximo sync revierta el cambio en
-#    silencio. Solo aplica cuando DeskFlow está dentro del árbol de Learn.
-if [ -x ../scripts/copy-shared.sh ]; then
-  if ! ../scripts/copy-shared.sh --check >/tmp/lp-drift.$$ 2>&1; then
-    echo "❌ Deriva en archivos compartidos:"
-    cat /tmp/lp-drift.$$
-    rm -f /tmp/lp-drift.$$
-    echo ""
-    echo "   scripts/ es la fuente canónica. Si el cambio correcto está en la app,"
-    echo "   cópialo primero a scripts/ — si no, el próximo copy-shared.sh lo revierte."
-    exit 1
-  fi
-  rm -f /tmp/lp-drift.$$
+if [ -x ../scripts/lp-build-validate.sh ]; then
+  ../scripts/lp-build-validate.sh DeskFlow || exit 1
+elif [ -f tests/progress-invariants.mjs ]; then
+  # Checkout aislado, sin el árbol de Learn: al menos los invariantes.
+  node tests/progress-invariants.mjs || exit 1
 fi
 
 echo "✅ Validaciones OK"

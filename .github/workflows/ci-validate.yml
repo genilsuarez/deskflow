@@ -21,6 +21,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Bloqueante: invariantes del sistema de conteo de progreso. Cada caso
+      # corresponde a un bug que llegó a producción mostrando totales o
+      # completados incorrectos. docs/progress-counting-system.md
+      - name: Progress-counting invariants
+        run: node tests/progress-invariants.mjs
+
       - name: Verify structure
         run: |
           FAIL=0
