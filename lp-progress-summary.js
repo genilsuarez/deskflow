@@ -570,6 +570,18 @@ export function recomputeProgressDocumentSummary(doc, app) {
   const before = snapshotRecomputeState(doc, app);
   const items = Object.values(doc.content).filter(isRecord);
 
+  // catalogTotalContent lo estampa la app dueña del catálogo (FluentFlow/
+  // HubFlow/LyricFlow) en cada publish propio, fuera de content/summary.
+  // El cloud-merge de DeskFlow (downloadApp() en sync-engine.js) solo une
+  // content_ids de Supabase sin podar ids huérfanos de catálogos viejos —
+  // así que items.length en ese punto puede quedar inflado con contenido
+  // que ya no existe. Si está disponible, catalogTotalContent es siempre
+  // la fuente de verdad para el total; items.length es el fallback para
+  // documentos viejos que todavía no lo tienen.
+  const catalogTotal = Number.isInteger(doc.catalogTotalContent) && doc.catalogTotalContent > 0
+    ? doc.catalogTotalContent
+    : items.length;
+
   if (app === 'fluentflow') {
     for (const [contentId, item] of Object.entries(doc.content)) {
       if (!isRecord(item)) continue;
@@ -580,27 +592,21 @@ export function recomputeProgressDocumentSummary(doc, app) {
     }
     const ff = computeFluentflowProgressSummary(doc.content);
     doc.summary.completedContent = ff.completedContent;
-    doc.summary.totalContent = ff.totalContent;
-    doc.summary.progressPct = ff.progressPct;
+    doc.summary.totalContent = catalogTotal;
+    doc.summary.progressPct = catalogTotal > 0 ? (ff.completedContent / catalogTotal) * 100 : 0;
     doc.cefr = ff.cefr;
     return snapshotRecomputeState(doc, app) !== before;
   }
 
   if (app === 'hubflow') {
     for (const item of items) enrichHubflowContentEntry(item);
-    // totalContent SIEMPRE se recalcula del content map actual — nunca se
-    // preserva/ratchetea un total viejo cacheado (ver docs/to-do,
-    // "el total no debe venir de un valor guardado, solo lo aprobado").
-    // Un ratchet con el valor anterior hacía que el total solo pudiera
-    // crecer (y a veces con datos de un catálogo desactualizado), nunca
-    // reflejar el catálogo real vigente.
     doc.summary = {
       ...doc.summary,
       progressPct: items.length
         ? items.reduce((sum, item) => sum + (item.progressPct || 0), 0) / items.length
         : 0,
       completedContent: items.filter((item) => item.completed).length,
-      totalContent: items.length,
+      totalContent: catalogTotal,
       attemptedContent: items.filter((item) => (item.attempts || 0) > 0).length,
       ...computeHubflowActivitySummary(doc.content),
     };
@@ -611,17 +617,15 @@ export function recomputeProgressDocumentSummary(doc, app) {
     for (const [contentId, item] of Object.entries(doc.content)) {
       enrichLyricflowSongEntry(contentId, item);
     }
-    // Mismo criterio que HubFlow arriba: totalContent siempre = catálogo
-    // actual (items.length), nunca el valor previamente guardado.
     doc.summary = {
       ...doc.summary,
       progressPct: items.length
         ? items.reduce((sum, item) => sum + (item.progressPct || 0), 0) / items.length
         : 0,
       completedContent: items.filter((item) => item.completed).length,
-      totalContent: items.length,
+      totalContent: catalogTotal,
       attemptedContent: items.filter((item) => (item.attempts || 0) > 0).length,
-      ...computeLyricflowActivitySummary(doc.content, items.length),
+      ...computeLyricflowActivitySummary(doc.content, catalogTotal),
     };
     return snapshotRecomputeState(doc, app) !== before;
   }

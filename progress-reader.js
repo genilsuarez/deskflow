@@ -228,15 +228,24 @@ function repairProgressDocument(document, app) {
     repaired = true;
   }
 
-  // totalContent siempre = tamaño del content map actual. Antes se
-  // preservaba (Math.max) el mayor valor histórico visto para hubflow/
-  // lyricflow, lo que hacía que el total solo pudiera crecer y nunca
-  // reflejara el catálogo real vigente tras un recorte de contenido.
+  // totalContent = catalogTotalContent (estampado por la app dueña del
+  // catálogo en cada publish propio) cuando está disponible; si no,
+  // tamaño del content map actual. Antes se preservaba (Math.max) el
+  // mayor valor histórico visto para hubflow/lyricflow, lo que hacía que
+  // el total solo pudiera crecer. Y aun sin ese ratchet, el content map
+  // igual puede inflarse con ids huérfanos porque el cloud-merge
+  // (downloadApp() en sync-engine.js) solo une content_ids de Supabase
+  // sin podar los que ya no están en el catálogo vigente — por eso
+  // catalogTotalContent, que no pasa por ese merge, es la fuente de
+  // verdad cuando existe.
   const contentCount = Object.keys(document.content).length;
   const summary = document.summary;
+  const preservedTotal = Number.isInteger(document.catalogTotalContent) && document.catalogTotalContent > 0
+    ? document.catalogTotalContent
+    : contentCount;
 
-  if (contentCount > 0 && summary.totalContent !== contentCount) {
-    summary.totalContent = contentCount;
+  if (contentCount > 0 && summary.totalContent !== preservedTotal) {
+    summary.totalContent = preservedTotal;
     repaired = true;
   }
   if (summary.completedContent > summary.totalContent) {
@@ -360,9 +369,16 @@ function validateProgress(document, app) {
     : null;
   const activitySummary = lyricflowActivities || hubflowActivities;
 
+  // summary.totalContent ya viene reparado por repairProgressDocument()
+  // (prefiere catalogTotalContent). fluentflowSummary se recalcula acá
+  // aparte a partir de document.content, así que su propio totalContent
+  // (= content map en bruto) NO se usa — puede estar inflado con ids
+  // huérfanos que el cloud-merge unió sin podar.
   const summaryCompleted = fluentflowSummary?.completedContent ?? summary.completedContent;
-  const summaryTotal = fluentflowSummary?.totalContent ?? summary.totalContent;
-  const summaryProgressPct = fluentflowSummary?.progressPct ?? summary.progressPct;
+  const summaryTotal = summary.totalContent;
+  const summaryProgressPct = fluentflowSummary
+    ? (summaryTotal > 0 ? (summaryCompleted / summaryTotal) * 100 : 0)
+    : summary.progressPct;
   const summaryCefr = fluentflowSummary
     ? normalizeCefr({ cefr: fluentflowSummary.cefr, summary: {} }, app)
     : normalizeCefr(document, app);
