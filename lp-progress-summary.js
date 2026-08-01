@@ -582,11 +582,39 @@ function readCatalogTotalFallback(app) {
   }
 }
 
+// Mismo learnflow:catalog:<app>:v1, pero el set de ids en vez del total —
+// permite podar del content map los content_ids que el cloud-merge
+// (downloadApp() en sync-engine.js) unió desde Supabase pero que ya no
+// existen en el catálogo vigente (contenido renombrado/reestructurado).
+// Sin podar, esos ids huérfanos con completed:true inflan tanto
+// completedContent como (para FluentFlow) el gating CEFR secuencial, que
+// depende de saber con certeza si TODOS los módulos reales del nivel
+// anterior están completos.
+function readCatalogIdsFallback(app) {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(`learnflow:catalog:${app}:v1`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.ids) && parsed.ids.length > 0 ? new Set(parsed.ids) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Rebuild summary (and FluentFlow cefr) from raw content after cloud merge. */
 export function recomputeProgressDocumentSummary(doc, app) {
   if (!isRecord(doc) || !isRecord(doc.content)) return false;
   doc.summary = isRecord(doc.summary) ? doc.summary : {};
   const before = snapshotRecomputeState(doc, app);
+
+  const catalogIds = readCatalogIdsFallback(app);
+  if (catalogIds) {
+    for (const contentId of Object.keys(doc.content)) {
+      if (!catalogIds.has(contentId)) delete doc.content[contentId];
+    }
+  }
+
   const items = Object.values(doc.content).filter(isRecord);
 
   // catalogTotalContent lo estampa la app dueña del catálogo (FluentFlow/
