@@ -67,17 +67,44 @@ function assertEqual(actual, expected, message) {
   }
 }
 
-/** localStorage simulado; se reinstala en cada prueba para aislarlas. */
+/**
+ * localStorage simulado; se reinstala en cada prueba para aislarlas.
+ *
+ * Las claves se guardan como propiedades enumerables propias y los métodos como
+ * no enumerables, igual que un objeto Storage real. Importa: hay código de
+ * producción que recorre el storage con Object.keys(localStorage)
+ * —clearGuestLocalProgress() -- y con un stub que expone los métodos como
+ * propiedades normales recorrería ['getItem','setItem',...] y no borraría nada,
+ * dando por buena una prueba que en realidad no ejecutó nada.
+ */
 function installStorage(seed = {}) {
-  const data = { ...seed };
-  globalThis.localStorage = {
-    getItem: (key) => (key in data ? data[key] : null),
-    setItem: (key, value) => { data[key] = String(value); },
-    removeItem: (key) => { delete data[key]; },
-    key: (i) => Object.keys(data)[i] ?? null,
-    get length() { return Object.keys(data).length; },
-  };
-  return data;
+  const ls = {};
+  const define = (name, value) =>
+    Object.defineProperty(ls, name, { value, enumerable: false, writable: true, configurable: true });
+
+  define('getItem', (key) => (typeof ls[key] === 'string' ? ls[key] : null));
+  define('setItem', (key, value) => { ls[key] = String(value); });
+  define('removeItem', (key) => { delete ls[key]; });
+  define('clear', () => { for (const k of Object.keys(ls)) delete ls[k]; });
+  define('key', (i) => Object.keys(ls)[i] ?? null);
+  Object.defineProperty(ls, 'length', {
+    get: () => Object.keys(ls).length,
+    enumerable: false,
+    configurable: true,
+  });
+
+  for (const [key, value] of Object.entries(seed)) ls[key] = String(value);
+  globalThis.localStorage = ls;
+  return ls;
+}
+
+/** sessionStorage equivalente; lp-guest-reset.js lo usa para el flag de logout. */
+function installSessionStorage() {
+  const previous = globalThis.localStorage;
+  installStorage();
+  globalThis.sessionStorage = globalThis.localStorage;
+  globalThis.localStorage = previous;
+  return globalThis.sessionStorage;
 }
 
 const catalogKey = (app) => `learnflow:catalog:${app}:v1`;
@@ -272,6 +299,52 @@ if (reader) {
   });
 } else {
   skipped += 2; // progress-reader.js solo existe en DeskFlow
+}
+
+// ── 8. El logout no debe llevarse la clave de catálogo ─────────────────────
+// clearGuestLocalProgress() borra learnflow:progress:* y learnflow:activity:*
+// al salir (correcto: no debe filtrarse progreso ajeno en un dispositivo
+// compartido). learnflow:catalog:* NO matchea ese borrado a propósito — el
+// catálogo es público y no depende de la sesión. Si alguien "ordena" el borrado
+// agregando ese prefijo, el modo invitado vuelve a "0 de 0" (ronda 3) y ninguna
+// otra prueba lo nota: todas siembran la clave por su cuenta.
+
+const guestResetPath = locate(
+  '../lp-guest-reset.js', // DeskFlow, LyricFlow
+  '../js/lp-guest-reset.js', // HubFlow
+  '../public/lp-guest-reset.js' // FluentFlow
+);
+
+if (guestResetPath) {
+  const store = installStorage({
+    'learnflow:progress:hubflow:v1': '{"content":{}}',
+    'learnflow:activity:hubflow:v1': '{"events":[]}',
+    'learnflow:catalog:hubflow:v1': JSON.stringify({ totalContent: 150, ids: ['a'] }),
+    'learnflow:catalog:fluentflow:v1': JSON.stringify({ totalContent: 330, ids: ['b'] }),
+    'lp-theme': 'dark',
+  });
+  installSessionStorage();
+  await import(guestResetPath);
+  const guestReset = globalThis.lpGuestReset;
+
+  check('el logout borra progreso y actividad', () => {
+    assert(guestReset, 'lp-guest-reset.js debe exponer window.lpGuestReset');
+    guestReset.clearGuestLocalProgress();
+    assert(!('learnflow:progress:hubflow:v1' in store), 'debe borrar el progreso');
+    assert(!('learnflow:activity:hubflow:v1' in store), 'debe borrar la actividad');
+  });
+
+  check('el logout PRESERVA learnflow:catalog:* (si no, invitado = "0 de 0")', () => {
+    assert('learnflow:catalog:hubflow:v1' in store,
+      'la clave de catálogo de hubflow debe sobrevivir al logout');
+    assert('learnflow:catalog:fluentflow:v1' in store,
+      'la clave de catálogo de fluentflow debe sobrevivir al logout');
+    const parsed = JSON.parse(store['learnflow:catalog:hubflow:v1']);
+    assertEqual(parsed.totalContent, 150, 'el total del catálogo debe quedar intacto');
+    assert(Array.isArray(parsed.ids) && parsed.ids.length > 0, 'los ids deben quedar intactos');
+  });
+} else {
+  skipped += 2;
 }
 
 // ── Reporte ─────────────────────────────────────────────────────────────────
