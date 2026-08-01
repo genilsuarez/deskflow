@@ -602,6 +602,26 @@ function readCatalogIdsFallback(app) {
   }
 }
 
+// Poda eventos de actividad cuyo contentId ya no existe en el catálogo vigente.
+// El ledger (learnflow:activity:<app>:v1) es la otra mitad del ciclo de
+// huérfanos: aunque el content map de progreso quede limpio, sync-engine sube
+// el ledger completo en cada sync (syncActivityEvents), así que los eventos
+// huérfanos se reinstalan en Supabase y vuelven a inflar total_score /
+// total_attempts del dashboard admin.
+//
+// Fail-open igual que readCatalogIdsFallback: si el catálogo no cargó, no
+// filtra. Los eventos sin contentId se conservan — no se pueden clasificar y
+// descartarlos perdería datos.
+export function pruneActivityEventsToCatalog(events, app) {
+  if (!Array.isArray(events)) return events;
+  const catalogIds = readCatalogIdsFallback(app);
+  if (!catalogIds) return events;
+  return events.filter((event) => {
+    const contentId = event?.contentId;
+    return !contentId || catalogIds.has(contentId);
+  });
+}
+
 /** Rebuild summary (and FluentFlow cefr) from raw content after cloud merge. */
 export function recomputeProgressDocumentSummary(doc, app) {
   if (!isRecord(doc) || !isRecord(doc.content)) return false;

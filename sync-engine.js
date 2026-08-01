@@ -22,6 +22,7 @@ import {
   inferFluentflowCefrLevel,
   mergeHubflowActivities,
   mergeLyricflowActivities,
+  pruneActivityEventsToCatalog,
   recomputeProgressDocumentSummary,
 } from './lp-progress-summary.js';
 
@@ -479,7 +480,10 @@ function mergeActivityEvents(localEvents, remoteRows, app) {
     if (!event?.eventId || !event?.occurredAt || byId.has(event.eventId)) continue;
     byId.set(event.eventId, event);
   }
-  return [...byId.values()]
+  // Poda acá para que el ledger local se auto-limpie: si no, los eventos
+  // huérfanos que bajan de Supabase se vuelven a escribir en localStorage y
+  // syncApp() los re-sube en el siguiente ciclo.
+  return pruneActivityEventsToCatalog([...byId.values()], app)
     .sort((first, second) => second.occurredAt.localeCompare(first.occurredAt))
     .slice(0, MAX_ACTIVITY_EVENTS);
 }
@@ -734,7 +738,18 @@ async function syncApp(app) {
     notifyProgressLocalChange(app);
   }
   if (activityDoc && Array.isArray(activityDoc.events) && activityDoc.events.length) {
-    results.activity = await lpSupabase.syncActivityEvents(app, activityDoc.events);
+    // Nunca subir eventos de contenido que ya no existe: activity_events es
+    // append-only (migración 003), así que una fila huérfana subida solo se
+    // puede quitar con una migración server-side.
+    const uploadable = pruneActivityEventsToCatalog(activityDoc.events, app);
+    if (uploadable.length !== activityDoc.events.length) {
+      activityDoc.events = uploadable;
+      activityDoc.updatedAt = new Date().toISOString();
+      writeRaw(`learnflow:activity:${app}:v1`, activityDoc);
+    }
+    if (uploadable.length) {
+      results.activity = await lpSupabase.syncActivityEvents(app, uploadable);
+    }
   }
 
   return results;
