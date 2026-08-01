@@ -738,11 +738,26 @@ export function computeLyricflowLevelSummary(content, levels = LYRICFLOW_LEVELS)
   );
 }
 
+// Lee el documento crudo y lo poda contra el catálogo vigente. La poda importa
+// acá aparte de en recomputeProgressDocumentSummary(): esta ruta lee
+// localStorage directo, sin pasar por progress-reader ni por el recompute, así
+// que sin podar los ids huérfanos que el cloud-merge trae de Supabase entran
+// al cálculo de nivel. Distorsionan el gate: un huérfano no completado baja el
+// progressPct del nivel y puede bloquear un ascenso legítimo (ej. A2 pasaría de
+// 43/55 a 44/59), y uno completado infla el numerador.
 function readLocalProgressDoc(app) {
   try {
     if (typeof localStorage === 'undefined') return null;
     const raw = localStorage.getItem(`learnflow:progress:${app}:v1`);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const doc = JSON.parse(raw);
+    const catalogIds = readCatalogIdsFallback(app);
+    if (catalogIds && isRecord(doc?.content)) {
+      for (const contentId of Object.keys(doc.content)) {
+        if (!catalogIds.has(contentId)) delete doc.content[contentId];
+      }
+    }
+    return doc;
   } catch {
     return null;
   }
