@@ -25,11 +25,20 @@ jobs:
         with:
           node-version: '20'
 
-      # Bloqueante: invariantes del sistema de conteo de progreso. Cada caso
-      # corresponde a un bug que llegó a producción mostrando totales o
-      # completados incorrectos. docs/progress-counting-system.md
-      - name: Progress-counting invariants
-        run: node tests/progress-invariants.mjs
+      # Bloqueante: toda prueba en tests/*.mjs. El bucle es a propósito — con
+      # pasos enumerados a mano, cada archivo de prueba nuevo queda fuera de CI
+      # en silencio (a DeskFlow le pasó: el gate local corría reader, sync-engine
+      # y catalog-warmer, y CI solo los invariantes).
+      # Contexto de cada caso: docs/progress-counting-system.md
+      - name: Progress tests (tests/*.mjs)
+        run: |
+          FAIL=0
+          shopt -s nullglob
+          for t in tests/*.mjs; do
+            echo "── $t"
+            node "$t" || FAIL=1
+          done
+          exit $FAIL
 
       - name: Verify structure
         run: |

@@ -5,7 +5,18 @@
 (function (global) {
   'use strict';
 
-  var HUB_SCORE_PREFIX_RE = /^(advcoll|art|causative|clause|cleft|coll|comp|cond|conf|dict|errhunt|ger|inver|irr|kwt|listen|madeof|modals|odd|paracloze|paraphrase|phonics|phrasal|plural|pos|pref|prep|pron-study|quant|regswitch|rs|sbe|sentcomb|stress|tense|usedto|vchunks|vocab|wf|wordorder|wr)-/;
+  // Prefijos de los scoreKeys de HubFlow, donde vive su historial de intentos
+  // (`<scoreKey>:v1`). Esta lista DEBE cubrir los 88 prefijos de PROGRESS_RULES
+  // en HubFlow/data/catalog.js; lo verifica HubFlow/tests/guest-reset.mjs, que
+  // imprime el regex correcto si el catálogo crece.
+  //
+  // No se deriva del catálogo en runtime a propósito: este archivo es compartido
+  // y el reset se dispara también desde DeskFlow, LyricFlow y FluentFlow, donde
+  // el catálogo de HubFlow no está cargado. La lista tiene que ser estática.
+  //
+  // Estuvo corta hasta el 2026-08-01: cubría 41 de 88, así que un reset de
+  // invitado dejaba vivo el historial de los módulos con los otros 47 prefijos.
+  var HUB_SCORE_PREFIX_RE = /^(a1gapfill|a1match|a1q|a1sb|a2errspot|a2sentorder|advcoll|adverbs|advwordform|argument|art|aspect|blends|causative|clause|cleft|cohesion|coll|collmastery|comp|compound|cond|conf|connotation|contract|demonstr|dict|discourse|ed|ellipsis|errhunt|formalreg|fronting|future|futurepast|ger|hedging|idiomctx|imperative|ing|inver|irr|kwt|linking|listen|madeof|mixedcond|modaldeduct|modals|negaffix|nominal|noun|odd|paracloze|paraphrase|particip|passive|pastsimplecont|phonics|phrasal|plural|pluralposs|pos|pref|prep|pron|pronouns|punct|quant|regprecision|regswitch|reladv|rs|sbe|sentcomb|sentreorder|someany|stress|subjunctive|summarize|tense|tobehave|usedto|vchunks|vocab|wf|wordorder|wr)-/;
   var LOGOUT_FLAG_KEY = 'lp-explicit-logout';
   var LOGOUT_FLAG_TTL_MS = 5 * 60 * 1000;
   var PROGRESS_APPS = ['fluentflow', 'hubflow', 'lyricflow'];

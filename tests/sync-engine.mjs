@@ -210,6 +210,57 @@ await check('el merge de la nube no reintroduce huérfanos en el progreso', asyn
   assertEqual(doc.summary.completedContent, 1, 'el huérfano completado no debe contar');
 });
 
+// ── Reset por app: borrar en el servidor NO alcanza ────────────────────────
+
+await check('un borrado server-side no sobrevive si queda progreso local', async () => {
+  // Caracterización, no aspiración: documenta por qué la migración 022 necesita
+  // un script de consola además del SQL. upsert_progress_merge es monotónico
+  // (`completed = completed OR excluded.completed`), así que vaciar las filas en
+  // Supabase sin limpiar el cliente no resetea nada — el siguiente ciclo las
+  // re-sube. Pasó en producción con la 021, dos veces.
+  //
+  // Si esta prueba falla porque el sync ahora respeta los borrados remotos, es
+  // un cambio de diseño deliberado: actualizar también docs/progress-counting-system.md
+  // y el encabezado de 022_reset_hubflow_progress_genil.sql.
+  await primeSync({
+    [catalogKey('hubflow')]: catalogValue(['h1', 'h2']),
+    // La nube queda vacía: simula el DELETE ya ejecutado en Supabase.
+    'learnflow:progress:hubflow:v1': progressDoc('hubflow', ['h1', 'h2'], ['h1']),
+  });
+  await sync.runFullSync({ force: true });
+
+  const ids = stub.uploads.progress.filter((u) => u.app === 'hubflow').flatMap((u) => u.contentIds);
+  assert(ids.includes('h1'),
+    'el cliente re-sube lo que el servidor borró — por eso el reset exige limpiar el localStorage');
+});
+
+await check('con el local limpio y la nube vacía el progreso no reaparece', async () => {
+  // El estado después del script de consola de la 022: de HubFlow solo sobrevive
+  // la clave de catálogo. Nada debe reconstruir progreso a partir de ella.
+  //
+  // FluentFlow se siembra con progreso a propósito: si el ciclo de sync no
+  // corriera, HubFlow daría cero igual y la prueba pasaría sin probar nada.
+  // Que FluentFlow sí suba es lo que demuestra que el motor se ejecutó.
+  const store = await primeSync({
+    [catalogKey('hubflow')]: catalogValue(['h1', 'h2']),
+    [catalogKey('fluentflow')]: catalogValue(['f1']),
+    'learnflow:progress:fluentflow:v1': progressDoc('fluentflow', ['f1'], ['f1']),
+  });
+  await sync.runFullSync({ force: true });
+
+  const subioFluent = stub.uploads.progress.filter((u) => u.app === 'fluentflow').flatMap((u) => u.contentIds);
+  assertSameSet(subioFluent, ['f1'], 'testigo: el ciclo de sync corrió de verdad');
+
+  const raw = store['learnflow:progress:hubflow:v1'];
+  const completados = raw
+    ? Object.values(JSON.parse(raw).content ?? {}).filter((c) => c.completed).length
+    : 0;
+  assertEqual(completados, 0, 'no debe aparecer progreso de la nada');
+
+  const ids = stub.uploads.progress.filter((u) => u.app === 'hubflow').flatMap((u) => u.contentIds);
+  assertEqual(ids.length, 0, 'sin progreso local no hay nada que subir');
+});
+
 // ── Sin catálogo: fail-open, no borrar datos del usuario ───────────────────
 
 await check('sin clave de catálogo no descarta eventos (fail-open)', async () => {
