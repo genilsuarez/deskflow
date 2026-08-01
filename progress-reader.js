@@ -8,6 +8,7 @@ import {
   enrichHubflowContentEntry,
   enrichLyricflowSongEntry,
   recomputeProgressDocumentSummary,
+  LYRICFLOW_ACTIVITY_IDS,
 } from './lp-progress-summary.js';
 
 const APPS = Object.freeze(['fluentflow', 'hubflow', 'lyricflow']);
@@ -475,6 +476,14 @@ function readCatalogTotal(storage, app) {
 function emptyProgressResult(app, catalogTotal = null) {
   const timestamp = new Date().toISOString();
   const total = catalogTotal ?? 0;
+  // LyricFlow mide su card por actividades (canciones × LYRICFLOW_ACTIVITY_IDS),
+  // no por totalContent (canciones) — ver PRIMARY_PROGRESS_METRICS en app.js.
+  // Sin esto, totalActivities quedaba null y progressDisplayMetrics() caía al
+  // fallback de totalContent, mostrando "canciones" en vez de "actividades"
+  // apenas se sembraba el catálogo vía lp-catalog-warmer.js sin abrir la app.
+  const totalActivities = app === 'lyricflow' && total > 0
+    ? total * LYRICFLOW_ACTIVITY_IDS.length
+    : null;
   const data = Object.freeze({
     app,
     updatedAt: timestamp,
@@ -484,9 +493,9 @@ function emptyProgressResult(app, catalogTotal = null) {
       completedContent: 0,
       totalContent: total,
       attemptedContent: 0,
-      completedActivities: null,
-      totalActivities: null,
-      attemptedActivities: null,
+      completedActivities: totalActivities !== null ? 0 : null,
+      totalActivities,
+      attemptedActivities: totalActivities !== null ? 0 : null,
       lastContent: null,
     }),
     content: Object.freeze({}),
