@@ -203,7 +203,7 @@ function repairContentEntry(contentId, item, app) {
   return repaired ? item : item;
 }
 
-function repairProgressDocument(document, app) {
+function repairProgressDocument(document, app, storage = null) {
   if (!isRecord(document) || !isRecord(document.summary) || !isRecord(document.content)) return false;
   let repaired = false;
 
@@ -242,7 +242,7 @@ function repairProgressDocument(document, app) {
   const summary = document.summary;
   const preservedTotal = Number.isInteger(document.catalogTotalContent) && document.catalogTotalContent > 0
     ? document.catalogTotalContent
-    : contentCount;
+    : (storage && readCatalogTotal(storage, app)) || contentCount;
 
   if (contentCount > 0 && summary.totalContent !== preservedTotal) {
     summary.totalContent = preservedTotal;
@@ -454,8 +454,27 @@ function validateActivity(document, app) {
   return result(events.length === 0 ? STATUS.EMPTY : STATUS.READY, data);
 }
 
-function emptyProgressResult(app) {
+// learnflow:catalog:<app>:v1 — tamaño de catálogo, separado a propósito del
+// progreso del usuario. clearGuestLocalProgress() (lp-guest-reset.js) borra
+// todo lo que empieza con learnflow:progress:/learnflow:activity: al hacer
+// logout explícito (correcto: no debe filtrar progreso del usuario anterior
+// en un dispositivo compartido) — pero eso dejaba el total en 0 también en
+// modo invitado, aunque el catálogo es público y no depende de la sesión.
+// Esta clave no matchea ese borrado, así que sobrevive al logout.
+function readCatalogTotal(storage, app) {
+  try {
+    const raw = storage.getItem(`learnflow:catalog:${app}:v1`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return isInteger(parsed?.totalContent) && parsed.totalContent > 0 ? parsed.totalContent : null;
+  } catch {
+    return null;
+  }
+}
+
+function emptyProgressResult(app, catalogTotal = null) {
   const timestamp = new Date().toISOString();
+  const total = catalogTotal ?? 0;
   const data = Object.freeze({
     app,
     updatedAt: timestamp,
@@ -463,7 +482,7 @@ function emptyProgressResult(app) {
     summary: Object.freeze({
       progressPct: 0,
       completedContent: 0,
-      totalContent: 0,
+      totalContent: total,
       attemptedContent: 0,
       completedActivities: null,
       totalActivities: null,
@@ -526,13 +545,14 @@ export class ProgressReader {
     }
 
     if (raw === null) {
+      const app = key.split(':')[2];
       return key.startsWith('learnflow:progress:')
-        ? emptyProgressResult(key.split(':')[2])
-        : emptyActivityResult(key.split(':')[2]);
+        ? emptyProgressResult(app, readCatalogTotal(this.storage, app))
+        : emptyActivityResult(app);
     }
     const parsed = parseStoredValue(raw);
     if (parsed.error) return result(STATUS.INVALID, null, parsed.error);
-    if (repairStoredDocument(parsed.value) || repairProgressDocument(parsed.value, key.split(':')[2])) {
+    if (repairStoredDocument(parsed.value) || repairProgressDocument(parsed.value, key.split(':')[2], this.storage)) {
       try {
         this.storage.setItem(key, JSON.stringify(parsed.value));
       } catch {
