@@ -563,6 +563,25 @@ function snapshotRecomputeState(doc, app) {
   });
 }
 
+// learnflow:catalog:<app>:v1 — tamaño de catálogo público, sembrado por el
+// publish propio de cada app o por DeskFlow/lp-catalog-warmer.js cuando esa
+// app nunca corrió en este dispositivo. Fallback intermedio entre
+// doc.catalogTotalContent (mejor fuente, pero puede faltar en documentos
+// viejos sincronizados desde la nube antes de abrir la app dueña) e
+// items.length (peor fuente: el tamaño crudo del content map, que solo
+// refleja cuántos ids distintos tiene el usuario, no el catálogo real).
+function readCatalogTotalFallback(app) {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(`learnflow:catalog:${app}:v1`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Number.isInteger(parsed?.totalContent) && parsed.totalContent > 0 ? parsed.totalContent : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Rebuild summary (and FluentFlow cefr) from raw content after cloud merge. */
 export function recomputeProgressDocumentSummary(doc, app) {
   if (!isRecord(doc) || !isRecord(doc.content)) return false;
@@ -574,13 +593,15 @@ export function recomputeProgressDocumentSummary(doc, app) {
   // HubFlow/LyricFlow) en cada publish propio, fuera de content/summary.
   // El cloud-merge de DeskFlow (downloadApp() en sync-engine.js) solo une
   // content_ids de Supabase sin podar ids huérfanos de catálogos viejos —
-  // así que items.length en ese punto puede quedar inflado con contenido
-  // que ya no existe. Si está disponible, catalogTotalContent es siempre
-  // la fuente de verdad para el total; items.length es el fallback para
-  // documentos viejos que todavía no lo tienen.
+  // así que items.length en ese punto puede quedar inflado (o, si el
+  // usuario nunca abrió esa app con el schema nuevo, simplemente reflejar
+  // solo los ids con los que interactuó, no el catálogo completo). Si
+  // catalogTotalContent falta, learnflow:catalog:<app>:v1 (público, no
+  // depende de sesión) es la fuente de verdad; items.length es el último
+  // fallback para cuando ni siquiera esa clave existe todavía.
   const catalogTotal = Number.isInteger(doc.catalogTotalContent) && doc.catalogTotalContent > 0
     ? doc.catalogTotalContent
-    : items.length;
+    : readCatalogTotalFallback(app) ?? items.length;
 
   if (app === 'fluentflow') {
     for (const [contentId, item] of Object.entries(doc.content)) {
