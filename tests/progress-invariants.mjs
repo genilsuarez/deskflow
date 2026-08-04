@@ -5,12 +5,15 @@
 // No editar las copias: el chequeo de deriva del build las revierte.
 //
 // Cada caso corresponde a un bug real que llegó a producción y mostró números
-// incorrectos al usuario. Historial completo: docs/progress-counting-system.md
+// incorrectos al usuario. Historial: README.md § Sistema de progreso.
 //
 // Son pruebas funcionales: importan los módulos reales y ejecutan el código con
 // un localStorage simulado. No hacen grep sobre el fuente — un refactor que
 // preserve el comportamiento sigue pasando, y uno que lo rompa falla aunque
 // conserve los nombres.
+//
+// Las pruebas que dependen de progress-reader.js (exclusivo de DeskFlow) viven
+// en DeskFlow/tests/progress-reader-invariants.mjs — no en este archivo.
 //
 // Correr:  node tests/progress-invariants.mjs
 
@@ -41,11 +44,7 @@ if (!summaryPath) {
   process.exit(1);
 }
 
-// Solo DeskFlow: es quien lee el progreso de las 3 apps para el portal.
-const readerPath = locate('../progress-reader.js');
-
 let passed = 0;
-let skipped = 0;
 const failures = [];
 
 function check(name, fn) {
@@ -134,7 +133,6 @@ function progressDoc(app, contentIds, completedIds = []) {
 
 installStorage();
 const summary = await import(summaryPath);
-const reader = readerPath ? await import(readerPath) : null;
 
 // ── 1. El total sale del catálogo, nunca del content map ────────────────────
 // Bug: el content map se infla con ids huérfanos que el cloud-merge une desde
@@ -267,41 +265,7 @@ check('progressPct concuerda con completados/total', () => {
     `progressPct ${doc.summary.progressPct} no concuerda con ${esperado}`);
 });
 
-// ── 7. Modo invitado (solo DeskFlow, que es quien renderiza el portal) ──────
-// Bug: clearGuestLocalProgress() borra learnflow:progress:*/activity:* al salir,
-// y el portal quedaba en "0 de 0". El catálogo es público y no depende de sesión,
-// por eso vive en una clave aparte que sobrevive al borrado.
-
-if (reader) {
-  check('sin documento de progreso, el total sale de learnflow:catalog', () => {
-    const store = installStorage({
-      [catalogKey('fluentflow')]: catalogValue(Array.from({ length: 330 }, (_, i) => `m${i}`)),
-      [catalogKey('hubflow')]: catalogValue(Array.from({ length: 150 }, (_, i) => `h${i}`)),
-      [catalogKey('lyricflow')]: catalogValue(Array.from({ length: 9 }, (_, i) => `s${i}`)),
-    });
-    const r = new reader.ProgressReader(globalThis.localStorage);
-    assertEqual(r.readApp('fluentflow').progress.data.summary.totalContent, 330, 'fluentflow');
-    assertEqual(r.readApp('hubflow').progress.data.summary.totalContent, 150, 'hubflow');
-    assert(!Object.keys(store).some((k) => k.startsWith('learnflow:progress:')),
-      'la prueba debe correr sin documentos de progreso');
-  });
-
-  check('LyricFlow invitado expone totalActivities, no solo canciones', () => {
-    installStorage({
-      [catalogKey('lyricflow')]: catalogValue(Array.from({ length: 9 }, (_, i) => `s${i}`)),
-    });
-    const s = new reader.ProgressReader(globalThis.localStorage).readApp('lyricflow').progress.data.summary;
-    // El card de LyricFlow se mide por actividades (PRIMARY_PROGRESS_METRICS en
-    // app.js). Con totalActivities en null caía al fallback de totalContent y
-    // mostraba "0 de 9" (canciones) en vez de "0 de 36".
-    assertEqual(s.totalContent, 9, 'totalContent = canciones');
-    assertEqual(s.totalActivities, 36, 'totalActivities = canciones x 4 actividades');
-  });
-} else {
-  skipped += 2; // progress-reader.js solo existe en DeskFlow
-}
-
-// ── 8. El logout no debe llevarse la clave de catálogo ─────────────────────
+// ── 7. El logout no debe llevarse la clave de catálogo ─────────────────────
 // clearGuestLocalProgress() borra learnflow:progress:* y learnflow:activity:*
 // al salir (correcto: no debe filtrarse progreso ajeno en un dispositivo
 // compartido). learnflow:catalog:* NO matchea ese borrado a propósito — el
@@ -344,23 +308,21 @@ if (guestResetPath) {
     assert(Array.isArray(parsed.ids) && parsed.ids.length > 0, 'los ids deben quedar intactos');
   });
 } else {
-  skipped += 2;
+  // lp-guest-reset.js no encontrado — pruebas de logout no aplican en este contexto
 }
 
 // ── Reporte ─────────────────────────────────────────────────────────────────
 
-const suffix = skipped ? ` (${skipped} omitida(s): sin progress-reader.js)` : '';
 console.log('');
 if (failures.length === 0) {
-  console.log(`✅ Invariantes de progreso — ${passed}/${passed} OK${suffix}`);
+  console.log(`✅ Invariantes de progreso — ${passed}/${passed} OK`);
   process.exit(0);
 }
 
-console.log(`❌ Invariantes de progreso — ${passed} OK, ${failures.length} fallo(s)${suffix}`);
+console.log(`❌ Invariantes de progreso — ${passed} OK, ${failures.length} fallo(s)`);
 for (const f of failures) {
   console.log(`   ✗ ${f.name}`);
   console.log(`     ${f.message}`);
 }
 console.log('');
-console.log('   Contexto: docs/progress-counting-system.md');
 process.exit(1);
