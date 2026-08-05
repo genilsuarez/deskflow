@@ -577,6 +577,11 @@ body {
 }
 .nav-mode-toggle:hover { opacity: 1; }
 
+.drawer-close-btn {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
 .sidebar__footer {
   margin-top: auto;
   padding-top: 12px;
@@ -2566,6 +2571,13 @@ body {
   color: var(--lp-accent-dark);
 }
 
+/* Oculto por defecto (desktop); el media query mobile lo muestra. Va después
+   de .lp-icon-btn a propósito: esa regla también fija display y este botón
+   lleva esa clase — puesta antes, .lp-icon-btn la pisaría en silencio. */
+.drawer-close-btn {
+  display: none;
+}
+
 .lp-pill {
   font-family: var(--lp-font-body);
   font-size: 0.78rem;
@@ -2919,6 +2931,11 @@ a:focus-visible,
   /* Sidebar pin es desktop-only — ocultar toggle de modo nav en mobile */
   .nav-mode-toggle {
     display: none;
+  }
+
+  /* ...y mostrar la X de cierre en su lugar */
+  .drawer-close-btn {
+    display: flex;
   }
 
   .context-row { grid-template-columns: 1fr; }

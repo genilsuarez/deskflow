@@ -906,6 +906,7 @@ function setupNavigationMode() {
     const nextMode = document.documentElement.dataset.navigationMode === 'floating' ? 'sidebar' : 'floating';
     setNavigationMode(nextMode, true);
   });
+  document.getElementById('drawerCloseBtn')?.addEventListener('click', closeSidebar);
 }
 
 const TOPBAR_CONTENT = {
