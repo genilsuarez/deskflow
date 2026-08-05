@@ -414,7 +414,7 @@ function renderCefr() {
     breakdown.innerHTML = '';
     apps.forEach((app) => {
       const pct = rounded(progress[app].progressPct);
-      breakdown.appendChild(element('span', 'status-pill', `${met[app] ? '✓ ' : ''}${APP_CONFIG[app].name} ${pct}%`));
+      breakdown.appendChild(element('span', 'status-pill', `${met[app] ? '✓ ' : ''}${APP_CONFIG[app].name} ${upperLevel} ${pct}%`));
     });
   }
 }
