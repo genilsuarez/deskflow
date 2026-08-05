@@ -946,6 +946,10 @@ function setTopbarTitle(titleEl, title) {
     titleEl.append(title.slice(0, -4), Object.assign(document.createElement('em'), { textContent: 'Flow' }));
     return;
   }
+  if (title === 'Continuar aprendiendo') {
+    titleEl.append('Continuar ', Object.assign(document.createElement('em'), { textContent: 'aprendiendo' }));
+    return;
+  }
   titleEl.textContent = title;
 }
 
