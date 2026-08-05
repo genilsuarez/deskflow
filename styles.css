@@ -366,7 +366,7 @@ body {
 }
 [data-navigation-mode="floating"] .app-shell { grid-template-columns: 1fr; }
 [data-navigation-mode="floating"] .main { grid-column: 1; }
-[data-navigation-mode="floating"] .main-footer { grid-column: 1; }
+[data-navigation-mode="floating"] .lp-footer { grid-column: 1; }
 /* En mobile el sidebar siempre es off-canvas (ver @media max-width:768px más
    abajo) sin importar el modo "sidebar"/"floating" de desktop, así que
    necesita su scrim para cerrar al tocar afuera — por eso esta regla se
@@ -412,7 +412,7 @@ body {
   /* Drawer flotante: el header no debe quedar por encima del scrim durante la transición */
   [data-navigation-mode="floating"] body.lp-drawer-open .app-shell .main,
   [data-navigation-mode="floating"] body.lp-drawer-open .app-shell .topbar,
-  [data-navigation-mode="floating"] body.lp-drawer-open .app-shell .main-footer {
+  [data-navigation-mode="floating"] body.lp-drawer-open .app-shell .lp-footer {
     pointer-events: none;
   }
 
@@ -2176,7 +2176,7 @@ body {
     grid-template-rows: auto 1fr;
   }
 
-  .app-shell[data-view="actividad"] .main-footer {
+  .app-shell[data-view="actividad"] .lp-footer {
     display: none;
   }
 
@@ -2450,7 +2450,7 @@ body {
 }
 
 /* ─── MAIN FOOTER ─── */
-.main-footer {
+.lp-footer {
   grid-column: 2;
   display: flex;
   justify-content: space-between;
@@ -2461,7 +2461,7 @@ body {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
-.foot-meta { font-family: var(--lp-font-mono); font-size: 9px; font-weight: 700; color: var(--lp-muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.lp-footer__meta { font-family: var(--lp-font-mono); font-size: 9px; font-weight: 700; color: var(--lp-muted); letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LP BUTTONS — spec canónica v1 (Learn Platform)
@@ -2720,7 +2720,7 @@ a:focus-visible,
 
   body.lp-drawer-open .app-shell .main,
   body.lp-drawer-open .app-shell .topbar,
-  body.lp-drawer-open .app-shell .main-footer {
+  body.lp-drawer-open .app-shell .lp-footer {
     pointer-events: none;
   }
 
@@ -2859,7 +2859,7 @@ a:focus-visible,
     line-height: 1.2;
   }
   .main:has(.view.is-active .module-detail) { padding-top: 8px; }
-  .main-footer { display: none; }
+  .lp-footer { display: none; }
 
   #view-actividad .activity-feed-card .filter-row {
     position: sticky;
