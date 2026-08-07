@@ -1037,7 +1037,7 @@ function showView(viewName, updateHash = true) {
   const shell = document.querySelector('.app-shell');
   if (shell) shell.dataset.view = viewName;
   if (viewName === 'actividad') renderActivity();
-  if (updateHash) history.replaceState(null, '', `${location.pathname}${location.search}#${viewName}`);
+  if (updateHash) history.pushState(null, '', `${location.pathname}${location.search}#${viewName}`);
   closeSidebar();
   document.getElementById('mainContent').focus({ preventScroll: true });
   window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
@@ -1046,6 +1046,19 @@ function showView(viewName, updateHash = true) {
 function getAppHref(app) {
   if (window.LPPlatformUrls) return window.LPPlatformUrls.appHref(app);
   return `https://genilsuarez.github.io/${app}/`;
+}
+
+/** Resuelve la vista activa desde location.hash — usado en la carga inicial y en popstate. */
+function navigateFromHash() {
+  const hashView = location.hash.slice(1);
+  if (hashView === 'about') {
+    showView('resumen', false);
+    lpAbout.open(null, {
+      inertElements: [document.querySelector('.app-shell')],
+    });
+  } else {
+    showView(document.querySelector(`[data-view-panel="${hashView}"]`) ? hashView : 'resumen', false);
+  }
 }
 
 function setupNavigation() {
@@ -1077,19 +1090,6 @@ function setupNavigation() {
   }));
   scrim.addEventListener('click', closeSidebar);
 
-  sidebar.addEventListener('click', (event) => {
-    const viewControl = event.target.closest('button[data-view]');
-    if (viewControl) {
-      showView(viewControl.dataset.view);
-      return;
-    }
-    const viewLink = event.target.closest('[data-view-link]');
-    if (viewLink) {
-      event.preventDefault();
-      showView(viewLink.dataset.viewLink);
-    }
-  });
-
   document.getElementById('aboutTrigger').addEventListener('click', (event) => {
     lpAbout.open(event, {
       beforeOpen: closeSidebar,
@@ -1109,15 +1109,12 @@ function setupNavigation() {
     if (event.key === 'Escape') closeSidebar();
   });
 
-  const initialView = location.hash.slice(1);
-  if (initialView === 'about') {
-    showView('resumen', false);
-    lpAbout.open(null, {
-      inertElements: [document.querySelector('.app-shell')],
-    });
-  } else {
-    showView(document.querySelector(`[data-view-panel="${initialView}"]`) ? initialView : 'resumen', false);
-  }
+  navigateFromHash();
+  // Atrás/adelante del navegador debe navegar entre vistas internas, no salir de la
+  // app en un solo "atrás" (H11/1.14). showView() ya usa pushState para los clicks del
+  // usuario (arriba); acá solo se responde al cambio de hash que el navegador ya hizo —
+  // showView(hash, false) evita volver a empujar una entrada de historia.
+  window.addEventListener('popstate', navigateFromHash);
 
   window.addEventListener('resize', () => {
     syncSidebarMount();
