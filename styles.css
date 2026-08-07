@@ -2955,7 +2955,14 @@ a:focus-visible,
   .continue-banner h2 { font-size: 1.1rem; }
   .continue-banner .lp-btn { white-space: nowrap; }
   .lp-btn .lp-btn__verb { display: none; }
-  .module-grid { grid-template-columns: 1fr; gap: 8px; }
+  .module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+
+  /* A media columna el texto secundario ("40 de 330") no siempre entra en una
+     línea — se reduce el tamaño en vez de dejarlo truncar en los casos con más
+     dígitos (4.5). El nombre de la app y el % nunca se tocan. */
+  .module-grid .module-card__hint {
+    font-size: 0.6rem;
+  }
 
   #summaryModules .module-card__last {
     white-space: nowrap;
