@@ -912,9 +912,24 @@ function setupNavigationMode() {
 const TOPBAR_CONTENT = {
   resumen: { eyebrow: 'Tu plataforma de aprendizaje', title: 'LearnFlow', sub: '' },
   continuar: { eyebrow: 'Retoma el hilo', title: 'Continuar aprendiendo', sub: 'Accesos directos basados en el último dato válido de cada módulo.' },
-  actividad: { eyebrow: 'Historial local', title: 'Actividad', sub: 'Eventos recientes publicados por los módulos.' },
-  fluentflow: { eyebrow: 'Ruta estructurada', title: 'FluentFlow', sub: 'Ruta A1–C2 con módulos secuenciales y práctica guiada.' },
-  hubflow: { eyebrow: 'Práctica temática', title: 'HubFlow', sub: '80 ejercicios · 4 categorías · 5 modos incluyendo Battle 2P.' },
+  actividad: {
+    eyebrow: 'Historial local',
+    title: 'Actividad',
+    sub: 'Eventos recientes publicados por los módulos.',
+    subMobile: 'Eventos recientes de tus módulos.',
+  },
+  fluentflow: {
+    eyebrow: 'Ruta estructurada',
+    title: 'FluentFlow',
+    sub: 'Ruta A1–C2 con módulos secuenciales y práctica guiada.',
+    subMobile: 'Ruta A1–C2 con práctica guiada.',
+  },
+  hubflow: {
+    eyebrow: 'Práctica temática',
+    title: 'HubFlow',
+    sub: '80 ejercicios · 4 categorías · 5 modos incluyendo Battle 2P.',
+    subMobile: '80 ejercicios · 4 categorías · 5 modos.',
+  },
   lyricflow: {
     eyebrow: 'Aprendizaje con música',
     title: 'LyricFlow',
@@ -923,17 +938,38 @@ const TOPBAR_CONTENT = {
   },
 };
 
+/**
+ * El max-width de .topbar-greeting deja menos espacio real del necesario en
+ * el rango ~832-1100px (pill de stats centrado + botón atrás compiten por el
+ * mismo ancho) — se detecta el truncamiento en vivo en vez de fijar un
+ * breakpoint mágico, porque el punto exacto de corte depende del largo de
+ * cada texto (H1/1.7). Sin `short` disponible, se deja el truncamiento CSS
+ * existente (ellipsis) como red de seguridad.
+ */
+function setSubTextSafe(subEl, full, short) {
+  subEl.textContent = full;
+  if (short && subEl.scrollWidth > subEl.clientWidth) subEl.textContent = short;
+}
+
 function resolveTopbarSub(content, viewName) {
-  if (viewName === 'resumen') return RESUMEN_HINTS[0];
+  if (viewName === 'resumen') return RESUMEN_HINTS[0].full;
   const useMobileCopy = window.matchMedia('(max-width: 768px)').matches;
   if (useMobileCopy && content.subMobile) return content.subMobile;
   return content.sub;
 }
 
+function applyTopbarSub(subEl, content, viewName) {
+  if (viewName === 'resumen') {
+    setSubTextSafe(subEl, RESUMEN_HINTS[0].full, RESUMEN_HINTS[0].short);
+    return;
+  }
+  setSubTextSafe(subEl, resolveTopbarSub(content, viewName), content.subMobile);
+}
+
 const RESUMEN_HINTS = [
-  'Tres módulos, un hilo: estructura, práctica y música conectados.',
-  'Tu progreso vive aquí, en tu navegador. Sin cuentas, sin excusas.',
-  'Cada sesión cuenta. Vuelve cuando quieras, todo sigue donde lo dejaste.'
+  { full: 'Tres módulos, un hilo: estructura, práctica y música conectados.', short: 'Tres módulos, un hilo conectado.' },
+  { full: 'Tu progreso vive aquí, en tu navegador. Sin cuentas, sin excusas.', short: 'Tu progreso vive en tu navegador.' },
+  { full: 'Cada sesión cuenta. Vuelve cuando quieras, todo sigue donde lo dejaste.', short: 'Cada sesión cuenta. Todo sigue donde lo dejaste.' },
 ];
 
 const MODULE_VIEWS = new Set(['fluentflow', 'hubflow', 'lyricflow']);
@@ -971,14 +1007,14 @@ function updateTopbar(viewName) {
     eyebrowEl.textContent = 'Tu plataforma de aprendizaje';
     eyebrowEl.hidden = false;
     setTopbarTitle(titleEl, 'LearnFlow');
-    subEl.textContent = RESUMEN_HINTS[0];
+    setSubTextSafe(subEl, RESUMEN_HINTS[0].full, RESUMEN_HINTS[0].short);
     return;
   }
   if (resolvedView !== 'resumen') topbar.classList.add('topbar--compact');
   eyebrowEl.textContent = content.eyebrow;
   eyebrowEl.hidden = false;
   setTopbarTitle(titleEl, content.title);
-  subEl.textContent = resolveTopbarSub(content, resolvedView);
+  applyTopbarSub(subEl, content, resolvedView);
 }
 
 function showView(viewName, updateHash = true) {
@@ -1190,7 +1226,7 @@ window.addEventListener('storage', (event) => {
     current = (current + 1) % hints.length;
     subEl.style.opacity = '0';
     setTimeout(() => {
-      subEl.textContent = hints[current];
+      setSubTextSafe(subEl, hints[current].full, hints[current].short);
       subEl.style.opacity = '1';
     }, 300);
   }, 120000);
