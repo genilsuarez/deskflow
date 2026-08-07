@@ -913,12 +913,17 @@ body {
 .local-notice { margin-bottom: 14px; padding: 10px 16px; border: 1px dashed var(--lp-border-strong); border-radius: var(--lp-radius-md); background: var(--lp-warning-soft); }
 .local-notice p { margin: 4px 0 0; color: var(--lp-ink-soft); font-size: 0.7rem; line-height: 1.55; }
 
-/* ─── CONTEXT ROW (progress + CEFR inline) ─── */
+/* ─── CONTEXT ROW (progress + CEFR + racha) ─── */
 .context-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 10px;
+}
+/* Mobile: la racha ocupa su propia fila completa en vez de apretarse a un tercio
+   de columna (4.3) — desktop la vuelve a poner en línea, ver @media abajo. */
+.context-card--streak {
+  grid-column: 1 / -1;
 }
 .context-card {
   display: flex;
@@ -961,6 +966,10 @@ body {
   font-weight: 600;
   color: var(--lp-cat-purple);
   flex: 0 0 auto;
+}
+.context-card__level--streak {
+  color: var(--lp-cat-amber);
+  white-space: nowrap;
 }
 
 .context-card--cefr .context-card__copy h2 {
@@ -1909,7 +1918,7 @@ body {
     grid-column: 2;
     grid-row: 1;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     margin-bottom: 0;
     min-height: var(--module-card-height, 88px);
@@ -1918,11 +1927,18 @@ body {
   }
 
   #view-resumen .context-row .context-card--progress,
-  #view-resumen .context-row .context-card--cefr {
+  #view-resumen .context-row .context-card--cefr,
+  #view-resumen .context-row .context-card--streak {
     min-height: var(--module-card-height, 88px);
     height: 100%;
     align-self: stretch;
     box-sizing: border-box;
+  }
+
+  /* A este ancho hay lugar de sobra — la racha vuelve a su columna normal
+     en vez del full-span que usa en mobile. */
+  #view-resumen .context-row .context-card--streak {
+    grid-column: auto;
   }
 }
 
@@ -2288,7 +2304,7 @@ body {
     grid-column: 2;
     grid-row: 1;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     margin-bottom: 0;
     min-height: var(--module-card-height, 88px);
@@ -2297,11 +2313,18 @@ body {
   }
 
   #view-resumen .context-row .context-card--progress,
-  #view-resumen .context-row .context-card--cefr {
+  #view-resumen .context-row .context-card--cefr,
+  #view-resumen .context-row .context-card--streak {
     min-height: var(--module-card-height, 88px);
     height: 100%;
     align-self: stretch;
     box-sizing: border-box;
+  }
+
+  /* A este ancho hay lugar de sobra — la racha vuelve a su columna normal
+     en vez del full-span que usa en mobile. */
+  #view-resumen .context-row .context-card--streak {
+    grid-column: auto;
   }
 
   #view-resumen .continue-banner h2 {

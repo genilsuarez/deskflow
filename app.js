@@ -447,6 +447,34 @@ function latestValidEvents(limit = 3) {
     .slice(0, limit);
 }
 
+/** YYYY-MM-DD del día calendario LOCAL de una fecha — no comparar el ISO string en UTC crudo. */
+function localDayKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Racha de plataforma (4.3): días consecutivos con ≥1 evento en cualquiera de las 3 apps, sin
+ * filtro de score — un intento fallido ya es uso real. Se calcula en vivo desde latestValidEvents()
+ * sin límite (nunca se cachea): el reset de invitado (lp-guest-reset.js) borra los ledgers de
+ * origen, así que un streak sin caché propia queda en 0 automáticamente, sin tocar ese archivo.
+ * Si hoy todavía no tiene evento no se corta de inmediato — se sigue contando desde ayer, para no
+ * mostrar la racha "rota" a media mañana antes de que el usuario haya tenido chance de practicar.
+ */
+function calculateStreak(events) {
+  if (!events.length) return 0;
+  const activeDays = new Set(events.map((event) => localDayKey(new Date(event.occurredAt))));
+
+  const cursor = new Date();
+  if (!activeDays.has(localDayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+
+  let streak = 0;
+  while (activeDays.has(localDayKey(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
 function formatDate(isoDate, { compact = false } = {}) {
   if (compact) {
     return new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(isoDate));
@@ -585,6 +613,23 @@ function renderRecentActivity() {
   renderActivityList(document.getElementById('recentActivity'), latestValidEvents(3), 3, {
     emptyDescription: 'Tus sesiones recientes se mostrarán aquí al completar actividades en tus módulos.'
   });
+}
+
+function renderStreak() {
+  const heading = document.getElementById('streakHeading');
+  const description = document.getElementById('streakDescription');
+  const value = document.getElementById('streakValue');
+  const allDeferred = APPS.every((app) => shouldDeferActivityDisplay(app));
+  // Sin límite: el streak necesita el historial completo por app (hasta 200 eventos,
+  // ver MAX_ACTIVITY_EVENTS en progress-reader.js), no solo los 3-4 más recientes que
+  // usan renderRecentActivity()/allValidEvents() para la lista visible.
+  const streak = allDeferred ? 0 : calculateStreak(latestValidEvents(Infinity));
+
+  heading.textContent = streak === 1 ? '1 día' : `${streak} días`;
+  value.textContent = `🔥 ${streak}`;
+  description.textContent = streak > 0
+    ? 'Racha activa en tus tres apps.'
+    : 'Completa una actividad hoy para empezar tu racha.';
 }
 
 function renderContinue() {
@@ -794,6 +839,7 @@ function renderAll() {
   renderGlobalProgress(animateReveal);
   renderHeaderStats(animateReveal);
   renderCefr();
+  renderStreak();
   renderModuleCards(animateReveal);
   renderRecentActivity();
   renderContinue();
