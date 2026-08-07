@@ -2982,7 +2982,8 @@ a:focus-visible,
 
   /* A media columna el texto secundario ("40 de 330") no siempre entra en una
      línea — se reduce el tamaño en vez de dejarlo truncar en los casos con más
-     dígitos (4.5). El nombre de la app y el % nunca se tocan. */
+     dígitos (4.5). El nombre de la app y el % nunca se tocan. Sigue truncando
+     por debajo de ~480px (ver override en @media max-width:480px). */
   .module-grid .module-card__hint {
     font-size: 0.6rem;
   }
@@ -3370,4 +3371,13 @@ a:focus-visible,
     margin-bottom: 12px;
   }
   .module-detail__label { font-size: 0.88rem; }
+
+  /* Celular real: vuelve a 1 columna a todo el ancho (4.5). Medido en vivo:
+     incluso con el font-size reducido de arriba, "40 de 330" seguía
+     truncando hasta ~420px — el teléfono más ancho común (428px, iPhone Pro
+     Max) quedaba apenas dentro del margen, ningún teléfono normal lo estaba.
+     A 1 columna cada card tiene ancho de sobra, así que el texto vuelve a su
+     tamaño normal (sin la reducción de arriba, que ya no hace falta acá). */
+  .module-grid { grid-template-columns: 1fr; }
+  .module-grid .module-card__hint { font-size: 0.68rem; }
 }
