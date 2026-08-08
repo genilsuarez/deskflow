@@ -2722,7 +2722,7 @@ a:focus-visible,
     grid-row: 3;
     grid-column: 1;
     min-height: 0;
-    padding: 0 16px 20px;
+    padding: 0 16px calc(20px + env(safe-area-inset-bottom, 0px));
   }
   .sidebar {
     grid-row: 1 / -1;
