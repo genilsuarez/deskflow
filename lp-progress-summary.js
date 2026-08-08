@@ -829,6 +829,24 @@ export function getCombinedLevelProgress(level = readLpLevel()) {
   };
 }
 
+/** Regla compartida de avance: FluentFlow ≥100% AND LyricFlow ≥100% AND HubFlow ≥50% del nivel dado. */
+function meetsLevelCompletion(progress) {
+  return progress.fluentflow.progressPct >= 100 && progress.lyricflow.progressPct >= 100 && progress.hubflow.progressPct >= 50;
+}
+
+/**
+ * `true` cuando el track CEFR completo terminó: nivel activo es 'c2' (el
+ * terminal) y cumple la misma condición que dispara el ascenso en niveles
+ * no terminales. Como C2 nunca avanza a un nivel siguiente, esta es la
+ * señal de "graduación" — se usa para desbloquear contenido fuera de la
+ * escala CEFR (canciones "FR" en LyricFlow).
+ */
+export function isCefrTrackComplete() {
+  const current = readLpLevel();
+  if (current !== 'c2') return false;
+  return meetsLevelCompletion(getCombinedLevelProgress(current));
+}
+
 /**
  * Evalúa si el nivel activo (`lp-level`) debe subir al siguiente y, si
  * corresponde, escribe el nuevo valor en localStorage. No llama a Supabase
@@ -836,8 +854,9 @@ export function getCombinedLevelProgress(level = readLpLevel()) {
  * para no acoplar este módulo de cómputo puro a la capa de red.
  *
  * Regla: FluentFlow ≥100% AND LyricFlow ≥100% AND HubFlow ≥50% del nivel
- * activo. C2 es terminal — no se vuelve a evaluar. El nivel nunca baja: si
- * la condición no se cumple, `lp-level` simplemente no avanza (ver
+ * activo. C2 es terminal — no se vuelve a evaluar (ver isCefrTrackComplete
+ * para detectar la finalización de C2). El nivel nunca baja: si la
+ * condición no se cumple, `lp-level` simplemente no avanza (ver
  * docs/to-do/learnflow-progression-system.md § Reset parcial).
  */
 export function checkLevelAdvancement() {
@@ -854,7 +873,7 @@ export function checkLevelAdvancement() {
     hubflow: progress.hubflow.progressPct,
     lyricflow: progress.lyricflow.progressPct,
   };
-  const meetsCondition = breakdown.fluentflow >= 100 && breakdown.lyricflow >= 100 && breakdown.hubflow >= 50;
+  const meetsCondition = meetsLevelCompletion(progress);
 
   if (!meetsCondition) {
     return { advanced: false, level: current, breakdown };
