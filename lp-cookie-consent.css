@@ -34,5 +34,10 @@
 
 @media (max-width: 480px) {
   .cookie-consent { flex-direction: column; align-items: stretch; }
+  /* flex: 1 1 320px en .cookie-consent__text fija un ancho base en fila (desktop) —
+     al pasar a columna acá, ese mismo 320px se aplica al ALTO en vez del ancho
+     (flex-basis sigue el eje principal, que cambia con flex-direction). Se resetea
+     a auto para que el alto del párrafo vuelva a depender solo de su contenido. */
+  .cookie-consent__text { flex-basis: auto; }
   .cookie-consent__actions { justify-content: flex-end; }
 }
