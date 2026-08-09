@@ -628,7 +628,7 @@ function renderStreak() {
   heading.textContent = streak === 1 ? '1 día' : `${streak} días`;
   value.textContent = `🔥 ${streak}`;
   description.textContent = streak > 0
-    ? 'Racha activa en tus tres apps.'
+    ? 'Racha activa en tus tres módulos.'
     : 'Completa una actividad hoy para empezar tu racha.';
 }
 

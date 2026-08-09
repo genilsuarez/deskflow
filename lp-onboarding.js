@@ -175,7 +175,7 @@ var lpOnboarding = (function () {
       progressDots(card);
       card.insertAdjacentHTML(
         'beforeend',
-        '<h2 id="onboardingTitle">¿Por qué tres apps y no una?</h2>' +
+        '<h2 id="onboardingTitle">¿Por qué tres módulos y no uno?</h2>' +
           '<p class="onboarding-body">Cada una cubre algo distinto: <strong>FluentFlow</strong> te da el curso estructurado, ' +
           '<strong>HubFlow</strong> la práctica flexible de gramática, y <strong>LyricFlow</strong> la inmersión con canciones. ' +
           'Juntas cubren más que cualquiera por separado.</p>'
@@ -191,7 +191,7 @@ var lpOnboarding = (function () {
       card.insertAdjacentHTML(
         'beforeend',
         '<h2 id="onboardingTitle">Tu nivel se comparte entre las tres</h2>' +
-          '<p class="onboarding-body">Avanzar en las tres apps sube tu nivel en conjunto — no hace falta repetir el mismo contenido tres veces. ' +
+          '<p class="onboarding-body">Avanzar en los tres módulos sube tu nivel en conjunto — no hace falta repetir el mismo contenido tres veces. ' +
           '¿Ya sabes algo de inglés? En la próxima pantalla lo ajustamos.</p>'
       );
       card.appendChild(nextButton('Siguiente', function () {
