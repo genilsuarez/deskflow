@@ -8,9 +8,12 @@
 body.onboarding-open { overflow: hidden; }
 
 .onboarding-card {
+  /* Altura FIJA, no un rango — todas las pantallas del flujo deben medir
+     igual (pedido explícito del usuario). 560px cubre la pantalla más alta
+     (nivel, con 4 opciones de dos líneas) sin scroll; las pantallas más
+     cortas quedan con aire abajo en vez de encoger la tarjeta. */
   position: relative; width: min(100%, 460px);
-  min-height: min(440px, calc(100svh - 40px));
-  max-height: min(680px, calc(100svh - 40px));
+  height: min(560px, calc(100svh - 40px));
   display: flex; flex-direction: column;
   border: 1px solid var(--lp-border); border-radius: var(--lp-radius-lg);
   background: var(--lp-bg-paper, var(--lp-surface));
