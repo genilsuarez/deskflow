@@ -149,6 +149,9 @@
     // System) — dejarlo vivo tras borrar el progreso mostraría contenido
     // desbloqueado que el usuario ya no tiene forma de justificar.
     localStorage.removeItem('lp-level');
+    // Este invitado es una identidad nueva sin progreso — que vuelva a verse
+    // el prompt de "guarda tu progreso" (Fase B.5) cuando complete algo.
+    localStorage.removeItem('lp-login-prompted-v1');
 
     clearSharedUserIdentity();
 

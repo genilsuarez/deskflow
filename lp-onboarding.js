@@ -400,10 +400,10 @@ var lpOnboarding = (function () {
         localStorage.setItem(PLACEMENT_PENDING_KEY, '1');
       }
       var readyCopy = state.placementPending
-        ? 'Arrancas en B1 mientras preparamos un examen real para ubicarte con precisión en niveles más altos — te avisaremos apenas esté listo. Mientras tanto, empieza con una primera actividad; tu progreso se guarda automáticamente.'
+        ? 'Arrancas en B1 mientras preparamos un examen real para ubicarte con precisión en niveles más altos — te avisaremos apenas esté listo. Mientras tanto, empieza con una primera actividad; tu progreso se guarda automáticamente en este dispositivo.'
         : 'Tu contenido ya está ajustado a nivel ' +
           (state.level || 'a1').toUpperCase() +
-          '. Empieza con una primera actividad; tu progreso se guarda automáticamente.';
+          '. Empieza con una primera actividad; tu progreso se guarda automáticamente en este dispositivo.';
       body.insertAdjacentHTML(
         'beforeend',
         '<h2 id="onboardingTitle">Listo — empecemos</h2>' +

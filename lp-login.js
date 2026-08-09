@@ -13,6 +13,7 @@ var lpLogin = (function () {
   var listeners = [];
   var navLabelSyncs = [];
   var modalEl = null;
+  var openCopy = null;
 
   var GOOGLE_ICON = '<svg class="lp-login__provider-icon" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.71v2.26h2.92a8.78 8.78 0 0 0 2.68-6.61z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.55-1.85.87-3.04.87-2.34 0-4.32-1.58-5.03-3.71H.96v2.33A8.99 8.99 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.41 5.41 0 0 1 3.68 9c0-.6.1-1.17.29-1.72V4.95H.96a8.99 8.99 0 0 0 0 8.1l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.33l2.58-2.58C13.46.89 11.43 0 9 0A8.99 8.99 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg>';
   var MAIL_ICON = '<svg class="lp-login__inline-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>';
@@ -100,7 +101,8 @@ var lpLogin = (function () {
     }).catch(function () { /* keep local name */ });
   }
 
-  function open() {
+  function open(options) {
+    openCopy = (options && options.copy) || null;
     injectStyles();
     if (modalEl) { modalEl.remove(); modalEl = null; }
     modalEl = buildModal();
@@ -323,8 +325,8 @@ var lpLogin = (function () {
       '  <header class="lp-login__header">',
       '    <div class="lp-login__identity" aria-hidden="true"><span class="lp-login__avatar-letter">' + initial + '</span></div>',
       '    <div class="lp-login__header-text">',
-      '      <p class="lp-login__eyebrow">' + (isEdit ? (user.isSupabaseUser ? 'LearnFlow · Plataforma' : 'Modo invitado') : 'Acceso a LearnFlow') + '</p>',
-      '      <h2 class="lp-login__title" id="lp-login-title">' + (isEdit ? 'Tu perfil' : 'Iniciar sesión') + '</h2>',
+      '      <p class="lp-login__eyebrow">' + (isEdit ? (user.isSupabaseUser ? 'LearnFlow · Plataforma' : 'Modo invitado') : escapeAttr((openCopy && openCopy.eyebrow) || 'Acceso a LearnFlow')) + '</p>',
+      '      <h2 class="lp-login__title" id="lp-login-title">' + (isEdit ? 'Tu perfil' : escapeAttr((openCopy && openCopy.title) || 'Iniciar sesión')) + '</h2>',
       '    </div>',
       '    <button type="button" class="lp-login__close" aria-label="Cerrar"><span aria-hidden="true">✕</span></button>',
       '  </header>',
