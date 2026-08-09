@@ -80,18 +80,10 @@ body.onboarding-open { overflow: hidden; }
    de pantallas — se recorta el gap para igualar la altura del paso final. */
 .onboarding-body:has(.onboarding-chips) { gap: 12px; }
 
-/* Pantalla de nivel: 7 opciones no caben cómodas al tamaño normal de
-   onboarding-option — se compactan para igualar la altura de las demás
-   pantallas del flujo. */
-.onboarding-options--level { gap: 3px; }
-.onboarding-options--level .onboarding-option { min-height: 0; flex-direction: row; align-items: baseline; gap: 8px; padding: 5px 14px; }
-.onboarding-options--level .onboarding-option strong { flex: 0 0 auto; }
-.onboarding-options--level .onboarding-option span { flex: 1 1 auto; font-size: 0.68rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* Misma pantalla: título + subtítulo compactados para dejar sitio a las
-   7 opciones sin que la card crezca más que el resto del flujo. */
-.onboarding-body:has(.onboarding-options--level) { gap: 8px; }
-.onboarding-body:has(.onboarding-options--level) h2 { font-size: 1.2rem; }
+/* Pantalla de nivel: solo 4 opciones (A1/A2/B1 + "B2 o más") — cabe con el
+   layout normal de dos líneas (etiqueta arriba, texto abajo con wrap), sin
+   necesidad de comprimir a una fila con ellipsis como cuando había 6. */
+.onboarding-options--level .onboarding-option span { white-space: normal; }
 
 .onboarding-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
 .onboarding-chip {
