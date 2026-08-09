@@ -34,8 +34,7 @@
     banner.setAttribute('role', 'region');
     banner.setAttribute('aria-label', 'Aviso de cookies');
     banner.innerHTML =
-      '<p class="cookie-consent__text">Usamos Google Analytics para entender cómo se usa la plataforma ' +
-      '(visitas, qué se completa, qué se abandona). No vendemos tus datos a nadie. ' +
+      '<p class="cookie-consent__text">Usamos cookies de analítica (Google Analytics). ' +
       '<a href="' + privacyHref() + '">Más información</a>.</p>' +
       '<div class="cookie-consent__actions">' +
       '<button type="button" class="cookie-consent__btn cookie-consent__btn--reject" id="cookieConsentReject">Rechazar</button>' +
