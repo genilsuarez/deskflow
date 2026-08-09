@@ -14,6 +14,7 @@ var lpOnboarding = (function () {
   var SEEN_VERSION = 'v1';
   var DAILY_GOAL_KEY = 'lp-daily-goal-minutes';
   var MOTIVE_KEY = 'lp-motive';
+  var BODY_TRANSIT_MS = 140;
 
   var LEVEL_OPTIONS = [
     { value: 'a1', label: 'A1', hint: 'Recién empiezo — nada o casi nada de inglés' },
@@ -91,129 +92,227 @@ var lpOnboarding = (function () {
       if (main) main.focus({ preventScroll: true });
     }
 
+    // Cada paso solo describe su contenido (renderBody) y cómo se comporta
+    // la barra de navegación fija del pie (next/skip/click-to-advance).
     var STEPS = [
-      renderWelcome1,
-      renderWelcome2,
-      renderWelcome3,
-      renderLevelStep,
-      renderGoalMotiveStep,
-      renderFirstValueStep,
+      { body: renderWelcome1, clickAdvance: true, next: { label: 'Siguiente', onClick: function () { goTo(1); } } },
+      { body: renderWelcome2, clickAdvance: true, next: { label: 'Siguiente', onClick: function () { goTo(2); } } },
+      { body: renderWelcome3, clickAdvance: true, next: { label: 'Siguiente', onClick: function () { goTo(3); } } },
+      { body: renderLevelStep },
+      {
+        body: renderGoalMotiveStep,
+        next: {
+          label: 'Siguiente',
+          onClick: function () {
+            if (state.goal) localStorage.setItem(DAILY_GOAL_KEY, state.goal);
+            if (state.motive) localStorage.setItem(MOTIVE_KEY, state.motive);
+            track('onboarding_goal_motive_set');
+            goTo(5);
+          },
+        },
+      },
+      { body: renderFirstValueStep, skip: false, keepFooter: true },
     ];
 
-    function render() {
-      overlay.innerHTML = '';
-      var card = document.createElement('section');
-      card.className = 'onboarding-card';
-      STEPS[state.step](card);
-      overlay.appendChild(card);
-      var firstFocusable = card.querySelector('button, a[href]');
+    var card = document.createElement('section');
+    card.className = 'onboarding-card';
+
+    // Cabecera: atrás (opcional) + barra de progreso segmentada.
+    var topbar = document.createElement('div');
+    topbar.className = 'onboarding-topbar';
+
+    var backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.className = 'onboarding-back';
+    backBtn.innerHTML = '&larr;';
+    backBtn.setAttribute('aria-label', 'Volver a la pantalla anterior');
+    backBtn.addEventListener('click', function () {
+      goTo(state.step - 1);
+    });
+    topbar.appendChild(backBtn);
+
+    var dots = document.createElement('div');
+    dots.className = 'onboarding-progress';
+    dots.setAttribute('aria-hidden', 'true');
+    STEPS.forEach(function () {
+      var dot = document.createElement('span');
+      dot.className = 'onboarding-progress__dot';
+      dots.appendChild(dot);
+    });
+    topbar.appendChild(dots);
+
+    card.appendChild(topbar);
+
+    var body = document.createElement('div');
+    body.className = 'onboarding-body';
+    card.appendChild(body);
+
+    // Pie: CTA de ancho completo + "Saltar" como texto secundario debajo.
+    var footer = document.createElement('div');
+    footer.className = 'onboarding-footer';
+
+    var nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'lp-btn lp-btn--primary onboarding-next';
+    footer.appendChild(nextBtn);
+
+    var skipBtn = document.createElement('button');
+    skipBtn.type = 'button';
+    skipBtn.className = 'onboarding-skip';
+    skipBtn.textContent = 'Saltar';
+    skipBtn.setAttribute('aria-label', 'Saltar introducción');
+    skipBtn.addEventListener('click', function () {
+      finish('skip_step_' + state.step);
+    });
+    footer.appendChild(skipBtn);
+
+    card.appendChild(footer);
+    overlay.appendChild(card);
+
+    // Click en cualquier parte del contenido (fuera de botones/links) avanza
+    // en los pasos puramente informativos — como un carrusel de historias.
+    body.addEventListener('click', function (event) {
+      if (!STEPS[state.step].clickAdvance) return;
+      if (event.target.closest('button, a')) return;
+      goTo(state.step + 1);
+    });
+
+    function updateNav() {
+      var stepDef = STEPS[state.step];
+
+      backBtn.hidden = state.step === 0;
+      backBtn.disabled = state.step === 0;
+
+      var showSkip = stepDef.skip !== false;
+      skipBtn.style.display = showSkip ? '' : 'none';
+
+      if (stepDef.next) {
+        nextBtn.style.display = '';
+        nextBtn.innerHTML = stepDef.next.label + ' <span aria-hidden="true">→</span>';
+        nextBtn.onclick = stepDef.next.onClick;
+      } else {
+        nextBtn.style.display = 'none';
+        nextBtn.onclick = null;
+      }
+
+      // El pie genérico solo se muestra si hay next y/o skip que ofrecer, o si
+      // el paso pide mantenerlo para colocar ahí su propio CTA (mismo lugar
+      // fijo en todas las pantallas — evita que el botón "salte" de posición).
+      footer.hidden = !stepDef.next && !showSkip && !stepDef.keepFooter;
+
+      // Limpia cualquier CTA custom que haya dejado un paso anterior (p.ej. el
+      // último paso) antes de reconstruir next/skip para el paso actual.
+      Array.prototype.slice.call(footer.children).forEach(function (child) {
+        if (child !== nextBtn && child !== skipBtn) child.remove();
+      });
+
+      card.classList.toggle('onboarding-card--advance', !!stepDef.clickAdvance);
+
+      // Los segmentos se acumulan: representan pantallas ya vistas + la actual.
+      dots.querySelectorAll('.onboarding-progress__dot').forEach(function (dot, i) {
+        dot.classList.toggle('is-active', i <= state.step);
+      });
+    }
+
+    // Navegación con flechas dentro de un grupo de opciones (nivel, chips):
+    // mueve el foco entre botones hermanos con prev/next y detiene la
+    // propagación para que el handler global de pasos no interprete la
+    // misma tecla como "atrás"/"siguiente" de pantalla.
+    function attachRoving(container, selector, keys) {
+      container.addEventListener('keydown', function (event) {
+        if (event.key !== keys.prev && event.key !== keys.next) return;
+        var items = Array.prototype.slice.call(container.querySelectorAll(selector));
+        var idx = items.indexOf(document.activeElement);
+        if (idx === -1) return;
+        // En el borde del grupo (primer/último item) no se consume la tecla:
+        // se deja subir al handler global para que retroceda/avance de pantalla.
+        var atStart = event.key === keys.prev && idx === 0;
+        var atEnd = event.key === keys.next && idx === items.length - 1;
+        if (atStart || atEnd) return;
+        event.preventDefault();
+        event.stopPropagation();
+        var nextIdx = event.key === keys.next ? idx + 1 : idx - 1;
+        items[nextIdx].focus();
+      });
+    }
+
+    function firstVisibleFocusable(container) {
+      var els = container.querySelectorAll('button, a[href]');
+      for (var i = 0; i < els.length; i++) {
+        if (els[i].offsetParent !== null) return els[i];
+      }
+      return null;
+    }
+
+    function renderBody() {
+      body.innerHTML = '';
+      STEPS[state.step].body(body);
+      var firstFocusable = firstVisibleFocusable(body) || firstVisibleFocusable(footer);
       if (firstFocusable) firstFocusable.focus();
     }
 
+    function render() {
+      updateNav();
+      renderBody();
+    }
+
     function goTo(step) {
-      state.step = step;
-      render();
+      if (step === state.step) return;
+      body.classList.add('onboarding-body--transit');
+      window.setTimeout(function () {
+        state.step = step;
+        render();
+        // Fuerza reflow para que la transición de entrada se anime desde el estado "transit".
+        void body.offsetHeight;
+        body.classList.remove('onboarding-body--transit');
+      }, BODY_TRANSIT_MS);
     }
 
-    function skipButton() {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'onboarding-skip';
-      btn.textContent = 'Saltar';
-      btn.setAttribute('aria-label', 'Saltar introducción');
-      btn.addEventListener('click', function () {
-        finish('skip_step_' + state.step);
-      });
-      return btn;
-    }
-
-    function progressDots(card) {
-      var dots = document.createElement('div');
-      dots.className = 'onboarding-progress';
-      dots.setAttribute('aria-hidden', 'true');
-      STEPS.forEach(function (_, i) {
-        var dot = document.createElement('span');
-        dot.className = 'onboarding-progress__dot' + (i === state.step ? ' is-active' : '');
-        dots.appendChild(dot);
-      });
-      card.appendChild(dots);
-    }
-
-    function nextButton(label, onClick) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'lp-btn lp-btn--primary onboarding-next';
-      btn.innerHTML = label + ' <span aria-hidden="true">→</span>';
-      btn.addEventListener('click', onClick);
-      return btn;
-    }
-
-    function baseHeader(card) {
-      card.appendChild(skipButton());
-    }
-
-    function renderWelcome1(card) {
-      baseHeader(card);
-      progressDots(card);
-      card.insertAdjacentHTML(
+    function renderWelcome1(body) {
+      body.insertAdjacentHTML(
         'beforeend',
         '<div class="onboarding-badge" aria-hidden="true">L</div>' +
           '<h2 id="onboardingTitle">Una plataforma, tres formas de aprender idiomas</h2>' +
-          '<p class="onboarding-body">Estructura, práctica y música, conectadas por tu nivel real — todo gratis, sin registro obligatorio.</p>' +
+          '<p class="onboarding-body-text">Estructura, práctica y música, conectadas por tu nivel real — todo gratis, sin registro obligatorio.</p>' +
           '<div class="onboarding-modules">' +
           '<span class="onboarding-module onboarding-module--fluent">FluentFlow</span>' +
           '<span class="onboarding-module onboarding-module--hub">HubFlow</span>' +
           '<span class="onboarding-module onboarding-module--lyric">LyricFlow</span>' +
           '</div>'
       );
-      card.appendChild(nextButton('Siguiente', function () {
-        goTo(1);
-      }));
     }
 
-    function renderWelcome2(card) {
-      baseHeader(card);
-      progressDots(card);
-      card.insertAdjacentHTML(
+    function renderWelcome2(body) {
+      body.insertAdjacentHTML(
         'beforeend',
         '<h2 id="onboardingTitle">¿Por qué tres módulos y no uno?</h2>' +
-          '<p class="onboarding-body">Cada una cubre algo distinto: <strong>FluentFlow</strong> te da el curso estructurado, ' +
+          '<p class="onboarding-body-text">Cada una cubre algo distinto: <strong>FluentFlow</strong> te da el curso estructurado, ' +
           '<strong>HubFlow</strong> la práctica flexible de gramática, y <strong>LyricFlow</strong> la inmersión con canciones. ' +
           'Juntas cubren más que cualquiera por separado.</p>'
       );
-      card.appendChild(nextButton('Siguiente', function () {
-        goTo(2);
-      }));
     }
 
-    function renderWelcome3(card) {
-      baseHeader(card);
-      progressDots(card);
-      card.insertAdjacentHTML(
+    function renderWelcome3(body) {
+      body.insertAdjacentHTML(
         'beforeend',
         '<h2 id="onboardingTitle">Tu nivel se comparte entre las tres</h2>' +
-          '<p class="onboarding-body">Avanzar en los tres módulos sube tu nivel en conjunto — no hace falta repetir el mismo contenido tres veces. ' +
+          '<p class="onboarding-body-text">Avanzar en los tres módulos sube tu nivel en conjunto — no hace falta repetir el mismo contenido tres veces. ' +
           '¿Ya sabes algo de inglés? En la próxima pantalla lo ajustamos.</p>'
       );
-      card.appendChild(nextButton('Siguiente', function () {
-        goTo(3);
-      }));
     }
 
-    function renderLevelStep(card) {
-      baseHeader(card);
-      progressDots(card);
-      card.insertAdjacentHTML(
+    function renderLevelStep(body) {
+      body.insertAdjacentHTML(
         'beforeend',
         '<h2 id="onboardingTitle">¿Cuál es tu nivel de inglés hoy?</h2>' +
-          '<p class="onboarding-body">No es un examen — es solo para no mostrarte contenido que ya sabes.</p>'
+          '<p class="onboarding-body-text">No es examen — solo evita repetirte lo que ya sabes.</p>'
       );
       var list = document.createElement('div');
       list.className = 'onboarding-options onboarding-options--level';
       LEVEL_OPTIONS.forEach(function (opt) {
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'onboarding-option';
+        btn.className = 'onboarding-option' + (state.level === opt.value ? ' is-selected' : '');
         btn.innerHTML =
           '<strong>' + opt.label + '</strong><span>' + opt.hint + '</span>';
         btn.addEventListener('click', function () {
@@ -223,26 +322,17 @@ var lpOnboarding = (function () {
         });
         list.appendChild(btn);
       });
-      card.appendChild(list);
-      var noIdea = document.createElement('button');
-      noIdea.type = 'button';
-      noIdea.className = 'onboarding-option onboarding-option--muted';
-      noIdea.textContent = 'No sé, empezar desde cero';
-      noIdea.addEventListener('click', function () {
-        state.level = 'a1';
-        track('onboarding_level_unknown');
-        goTo(4);
-      });
-      card.appendChild(noIdea);
+      attachRoving(list, '.onboarding-option', { prev: 'ArrowUp', next: 'ArrowDown' });
+      body.appendChild(list);
     }
 
-    function chipGroup(options, onPick) {
+    function chipGroup(options, selectedValue, onPick) {
       var wrap = document.createElement('div');
       wrap.className = 'onboarding-chips';
       options.forEach(function (opt) {
         var chip = document.createElement('button');
         chip.type = 'button';
-        chip.className = 'onboarding-chip';
+        chip.className = 'onboarding-chip' + (selectedValue === opt.value ? ' is-selected' : '');
         chip.innerHTML = '<strong>' + opt.label + '</strong>' + (opt.hint ? '<span>' + opt.hint + '</span>' : '');
         chip.addEventListener('click', function () {
           wrap.querySelectorAll('.onboarding-chip').forEach(function (c) {
@@ -253,60 +343,55 @@ var lpOnboarding = (function () {
         });
         wrap.appendChild(chip);
       });
+      attachRoving(wrap, '.onboarding-chip', { prev: 'ArrowLeft', next: 'ArrowRight' });
       return wrap;
     }
 
-    function renderGoalMotiveStep(card) {
-      baseHeader(card);
-      progressDots(card);
-      card.insertAdjacentHTML(
+    function renderGoalMotiveStep(body) {
+      body.insertAdjacentHTML(
         'beforeend',
         '<h2 id="onboardingTitle">Dos preguntas rápidas (opcional)</h2>' +
-          '<p class="onboarding-body">Sirven para personalizar tu experiencia más adelante — puedes saltarlas.</p>' +
+          '<p class="onboarding-body-text">Sirven para personalizar tu experiencia más adelante.</p>' +
           '<p class="onboarding-label">Meta diaria</p>'
       );
-      card.appendChild(
-        chipGroup(GOAL_OPTIONS, function (value) {
+      body.appendChild(
+        chipGroup(GOAL_OPTIONS, state.goal, function (value) {
           state.goal = value;
         })
       );
-      card.insertAdjacentHTML('beforeend', '<p class="onboarding-label">Motivo</p>');
-      card.appendChild(
-        chipGroup(MOTIVE_OPTIONS, function (value) {
+      body.insertAdjacentHTML('beforeend', '<p class="onboarding-label">Motivo</p>');
+      body.appendChild(
+        chipGroup(MOTIVE_OPTIONS, state.motive, function (value) {
           state.motive = value;
-        })
-      );
-      card.appendChild(
-        nextButton('Siguiente', function () {
-          if (state.goal) localStorage.setItem(DAILY_GOAL_KEY, state.goal);
-          if (state.motive) localStorage.setItem(MOTIVE_KEY, state.motive);
-          track('onboarding_goal_motive_set');
-          goTo(5);
         })
       );
     }
 
-    function renderFirstValueStep(card) {
-      progressDots(card);
+    function renderFirstValueStep(body) {
       if (state.level) {
         localStorage.setItem('lp-level', state.level);
       }
-      card.insertAdjacentHTML(
+      body.insertAdjacentHTML(
         'beforeend',
         '<h2 id="onboardingTitle">Listo — empecemos</h2>' +
-          '<p class="onboarding-body">Tu contenido ya está ajustado a nivel ' +
+          '<p class="onboarding-body-text">Tu contenido ya está ajustado a nivel ' +
           (state.level || 'a1').toUpperCase() +
           '. Empieza con una primera actividad; tu progreso se guarda automáticamente.</p>'
       );
+
+      // El CTA y el link "explorar" van al pie fijo (mismo sitio que
+      // Siguiente/Saltar en el resto de pasos) — no al body — para que no
+      // cambien de posición según cuánto texto tenga la pantalla.
       var cta = document.createElement('a');
-      cta.className = 'lp-btn lp-btn--primary onboarding-next';
+      cta.className = 'lp-btn lp-btn--primary onboarding-cta';
       cta.href = fluentflowHref();
       cta.rel = 'noopener';
       cta.innerHTML = 'Empezar con FluentFlow <span aria-hidden="true">→</span>';
       cta.addEventListener('click', function () {
         finish('complete', { reload: false });
       });
-      card.appendChild(cta);
+      footer.appendChild(cta);
+
       var laterBtn = document.createElement('button');
       laterBtn.type = 'button';
       laterBtn.className = 'onboarding-later';
@@ -314,7 +399,7 @@ var lpOnboarding = (function () {
       laterBtn.addEventListener('click', function () {
         finish('complete_explore');
       });
-      card.appendChild(laterBtn);
+      footer.appendChild(laterBtn);
     }
 
     render();
@@ -323,6 +408,29 @@ var lpOnboarding = (function () {
       if (event.key === 'Escape') {
         document.removeEventListener('keydown', onKeydown);
         finish('skip_escape');
+        return;
+      }
+      if (event.key === 'ArrowLeft') {
+        if (state.step > 0) {
+          event.preventDefault();
+          goTo(state.step - 1);
+        }
+        return;
+      }
+      if (event.key === 'ArrowRight') {
+        var stepDef = STEPS[state.step];
+        if (stepDef.next) {
+          event.preventDefault();
+          stepDef.next.onClick();
+        } else if (stepDef.clickAdvance) {
+          event.preventDefault();
+          goTo(state.step + 1);
+        } else if (document.activeElement && document.activeElement.classList.contains('onboarding-option')) {
+          // Paso de nivel: no tiene botón "Siguiente" propio — la opción con
+          // foco se selecciona (mismo efecto que un click) y eso ya avanza.
+          event.preventDefault();
+          document.activeElement.click();
+        }
       }
     });
   }
