@@ -186,7 +186,9 @@ var lpLogin = (function () {
   }
 
   function buildSignupBody() {
+    var lede = openCopy && openCopy.lede;
     return [
+      lede ? '    <p class="lp-login__lede">' + escapeAttr(lede) + '</p>' : '',
       '    <div class="lp-login__tabs" role="tablist" aria-label="Tipo de acceso">',
       '      <button type="button" class="lp-login__tab is-active" role="tab" aria-selected="true" data-tab="cloud" id="lp-login-tab-cloud" aria-controls="lp-login-panel-cloud">Cuenta</button>',
       '      <button type="button" class="lp-login__tab" role="tab" aria-selected="false" data-tab="guest" id="lp-login-tab-guest" aria-controls="lp-login-panel-guest">Invitado</button>',

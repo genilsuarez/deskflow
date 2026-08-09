@@ -867,7 +867,13 @@ function maybePromptLoginAfterFirstActivity() {
   localStorage.setItem(LOGIN_PROMPT_SEEN_KEY, '1');
   if (typeof window.lpTrack === 'function') window.lpTrack('login_prompt_after_first_activity');
   lpLogin.open({
-    copy: { eyebrow: 'Primera actividad completada', title: 'Guarda tu progreso' }
+    copy: {
+      eyebrow: 'Primera actividad completada',
+      title: 'Guarda tu progreso',
+      lede: 'Ahora mismo tu progreso vive solo en este dispositivo: si cambias de teléfono, ' +
+        'limpias el navegador o lo pierdes, se pierde con él. Crear una cuenta lo respalda en ' +
+        'la nube en menos de un minuto — o puedes seguir como invitado y hacerlo más adelante.'
+    }
   });
 }
 
