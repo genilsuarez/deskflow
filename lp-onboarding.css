@@ -9,11 +9,13 @@ body.onboarding-open { overflow: hidden; }
 
 .onboarding-card {
   /* Altura FIJA, no un rango — todas las pantallas del flujo deben medir
-     igual (pedido explícito del usuario). 560px cubre la pantalla más alta
-     (nivel, con 4 opciones de dos líneas) sin scroll; las pantallas más
-     cortas quedan con aire abajo en vez de encoger la tarjeta. */
+     igual (pedido explícito del usuario). 480px es el mínimo que sigue
+     cubriendo la pantalla más alta (nivel, con 4 opciones de dos líneas)
+     sin scroll una vez comprimida (ver .onboarding-body:has(.onboarding-
+     options--level) más abajo) — bajarlo más obliga a scroll ahí. Las
+     pantallas más cortas quedan con aire abajo, pero mucho menos que antes. */
   position: relative; width: min(100%, 460px);
-  height: min(560px, calc(100svh - 40px));
+  height: min(480px, calc(100svh - 40px));
   display: flex; flex-direction: column;
   border: 1px solid var(--lp-border); border-radius: var(--lp-radius-lg);
   background: var(--lp-bg-paper, var(--lp-surface));
@@ -83,10 +85,16 @@ body.onboarding-open { overflow: hidden; }
    de pantallas — se recorta el gap para igualar la altura del paso final. */
 .onboarding-body:has(.onboarding-chips) { gap: 12px; }
 
-/* Pantalla de nivel: solo 4 opciones (A1/A2/B1 + "B2 o más") — cabe con el
-   layout normal de dos líneas (etiqueta arriba, texto abajo con wrap), sin
-   necesidad de comprimir a una fila con ellipsis como cuando había 6. */
+/* Pantalla de nivel: 4 opciones de dos líneas (A1/A2/B1 + "B2 o más") son el
+   contenido más alto de todo el flujo — se comprime lo justo para caber en
+   la misma altura fija que el resto sin volver a truncar el texto (eso ya
+   se probó y se descartó: ver commit anterior). Solo se ajustan paddings/
+   gaps, el texto sigue envolviendo en dos líneas completas. */
 .onboarding-options--level .onboarding-option span { white-space: normal; }
+.onboarding-body:has(.onboarding-options--level) { gap: 8px; }
+.onboarding-body:has(.onboarding-options--level) h2 { font-size: 1.2rem; }
+.onboarding-options--level { gap: 5px; margin-top: 2px; }
+.onboarding-options--level .onboarding-option { min-height: 0; padding: 6px 14px; gap: 1px; }
 
 .onboarding-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
 .onboarding-chip {
