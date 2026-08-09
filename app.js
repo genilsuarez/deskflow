@@ -1220,6 +1220,9 @@ MOBILE_SIDEBAR_MQ.addEventListener('change', syncSidebarMount);
 setupNavigation();
 setupActivityFilters();
 renderAll();
+if (window.lpOnboarding && !lpOnboarding.hasSeenOnboarding() && location.hash !== '#about') {
+  lpOnboarding.open();
+}
 void Promise.all([
   hydrateActivityFromCloud('fluentflow'),
   hydrateActivityFromCloud('hubflow'),
