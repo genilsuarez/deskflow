@@ -1867,7 +1867,7 @@ body {
   }
 
   #view-resumen .resumen-hero {
-    grid-template-columns: minmax(0, 0.5fr) minmax(0, 1fr);
+    grid-template-columns: minmax(240px, 0.5fr) minmax(0, 1fr);
     gap: 10px;
     align-items: stretch;
   }
@@ -2281,7 +2281,7 @@ body {
 
   #view-resumen .resumen-hero {
     display: grid;
-    grid-template-columns: minmax(0, 0.5fr) minmax(0, 1fr);
+    grid-template-columns: minmax(240px, 0.5fr) minmax(0, 1fr);
     gap: 10px;
     margin-bottom: 0;
     align-items: stretch;

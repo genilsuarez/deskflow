@@ -6,6 +6,7 @@ import { animateText, animateCssVar, animateWidth } from './lp-stats-animate.js'
 import { setupSupabaseAuth } from './lp-auth-setup.js';
 import { getActiveLevel, getCombinedLevelProgress, LEVEL_ORDER } from './lp-progress-summary.js';
 import { warmAllCatalogTotals } from './lp-catalog-warmer.js';
+import { scorePlacement, STAGE1_LEVEL, STAGE2_LEVELS } from './lp-placement-scoring.js';
 
 const APP_CONFIG = Object.freeze({
   fluentflow: {
@@ -849,6 +850,32 @@ function renderAll() {
   renderPrimaryContinue();
   prepareAppLinks();
   maybePromptLoginAfterFirstActivity();
+  updatePlacementTestTrigger();
+  maybeOfferPlacementTest();
+}
+
+// Examen de placement B2+ (ver docs/placement-test-b2plus-plan.md) — la función
+// pura scorePlacement vive en un módulo ESM (import arriba); la UI del examen
+// es un <script> plano (lp-placement-test.js, mismo patrón que lpOnboarding),
+// así que se le inyecta acá en vez de que ella importe el módulo directo.
+function placementTestOptions() {
+  return { score: scorePlacement, stage1Level: STAGE1_LEVEL, stage2Levels: STAGE2_LEVELS };
+}
+
+function updatePlacementTestTrigger() {
+  const trigger = document.getElementById('placementTestTrigger');
+  if (!trigger || typeof lpPlacementTest === 'undefined') return;
+  trigger.hidden = !lpPlacementTest.isPending();
+}
+
+// Fase P.3 — mismo criterio que B.5: se ofrece después de la primera actividad
+// real (allValidEvents().length > 0), no al inicio. lpPlacementTest.maybeShowOffer
+// ya es idempotente (guarda propia contra duplicados/sesión descartada).
+function maybeOfferPlacementTest() {
+  if (typeof lpPlacementTest === 'undefined') return;
+  if (allValidEvents().length === 0) return;
+  const container = document.getElementById('resumenDashboard');
+  lpPlacementTest.maybeShowOffer(container, placementTestOptions());
 }
 
 // Fase B.5 — registro diferido: nunca al inicio, solo una vez que hay
@@ -1172,6 +1199,10 @@ function setupNavigation() {
   document.getElementById('replayOnboardingTrigger').addEventListener('click', () => {
     closeSidebar();
     if (window.lpOnboarding) lpOnboarding.open({ force: true });
+  });
+  document.getElementById('placementTestTrigger').addEventListener('click', () => {
+    closeSidebar();
+    if (window.lpPlacementTest) lpPlacementTest.open(placementTestOptions());
   });
   lpLogin.bindNavButton('#loginTrigger', {
     beforeOpen: closeSidebar,

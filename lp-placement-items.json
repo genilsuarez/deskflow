@@ -1,0 +1,365 @@
+{
+  "version": "v1",
+  "items": [
+    {
+      "level": "b1",
+      "question": "Which is correct? 'I enjoy ___.'",
+      "options": [
+        "swimming",
+        "swam",
+        "swim",
+        "to swim"
+      ],
+      "correct": "swimming",
+      "explanation": "<Enjoy> siempre va seguido del gerundio (forma -ing): enjoy swimming."
+    },
+    {
+      "level": "b1",
+      "question": "After prepositions (in, at, of, about), we use:",
+      "options": [
+        "the past tense",
+        "the base form",
+        "the gerund (-ing form)",
+        "the infinitive (to + verb)"
+      ],
+      "correct": "the gerund (-ing form)",
+      "explanation": "Después de una preposición, siempre se usa el <gerund>: interested in learning, good at cooking."
+    },
+    {
+      "level": "b1",
+      "question": "Which group of verbs takes the gerund (-ing)?",
+      "options": [
+        "enjoy, avoid, mind",
+        "learn, offer, promise",
+        "want, hope, plan",
+        "decide, agree, refuse"
+      ],
+      "correct": "enjoy, avoid, mind",
+      "explanation": "<Enjoy>, <avoid> y <mind> van todos seguidos del gerundio (forma -ing)."
+    },
+    {
+      "level": "b1",
+      "question": "\"I am happy,\" she said. → She said she ___ happy.",
+      "options": [
+        "was",
+        "is",
+        "were",
+        "has been"
+      ],
+      "correct": "was",
+      "explanation": "Regla de backshift: presente simple 'am' → pasado simple 'was'."
+    },
+    {
+      "level": "b1",
+      "question": "\"I have seen that film,\" he said. → He said he ___ that film.",
+      "options": [
+        "has seen",
+        "saw",
+        "would see",
+        "had seen"
+      ],
+      "correct": "had seen",
+      "explanation": "Backshift: presente perfecto 'have seen' → pasado perfecto 'had seen'."
+    },
+    {
+      "level": "b1",
+      "question": "\"Don't run!\" → He told the children ___ run.",
+      "options": [
+        "don't",
+        "to not",
+        "didn't",
+        "not to"
+      ],
+      "correct": "not to",
+      "explanation": "Órdenes negativas en estilo indirecto: told + objeto + not to + verbo base."
+    },
+    {
+      "level": "b1",
+      "question": "You're coming tonight, ___?",
+      "options": [
+        "aren't you",
+        "isn't it",
+        "don't you",
+        "won't you"
+      ],
+      "correct": "aren't you",
+      "explanation": "Forma positiva 'are' → coletilla negativa 'aren't you'. Se usa el mismo auxiliar invirtiendo la polaridad."
+    },
+    {
+      "level": "b1",
+      "question": "Let's have lunch, ___?",
+      "options": [
+        "don't we",
+        "will we",
+        "can we",
+        "shall we"
+      ],
+      "correct": "shall we",
+      "explanation": "Regla especial: 'Let's' siempre lleva 'shall we' como coletilla."
+    },
+    {
+      "level": "b1",
+      "question": "We ought to help, ___?",
+      "options": [
+        "oughtn't we",
+        "don't we",
+        "shouldn't we",
+        "mustn't we"
+      ],
+      "correct": "shouldn't we",
+      "explanation": "'Ought to' → la coletilla es 'shouldn't we' (más común que 'oughtn't we')."
+    },
+    {
+      "level": "b1",
+      "question": "What is a <round-trip ticket>?",
+      "options": [
+        "a ticket to go and return",
+        "a ticket for one direction",
+        "a circular ticket",
+        "a free ticket"
+      ],
+      "correct": "a ticket to go and return",
+      "explanation": "Un <round-trip ticket> te permite viajar a un destino y regresar."
+    },
+    {
+      "level": "b1",
+      "question": "What does <all-inclusive> mean for a hotel?",
+      "options": [
+        "only breakfast included",
+        "all meals and drinks included",
+        "no meals included",
+        "only dinner included"
+      ],
+      "correct": "all meals and drinks included",
+      "explanation": "<All-inclusive> significa que todas las comidas, bebidas y actividades están incluidas en el precio."
+    },
+    {
+      "level": "b1",
+      "question": "What is <backpacking>?",
+      "options": [
+        "luxury travel",
+        "budget travel with a backpack",
+        "cruise travel",
+        "business travel"
+      ],
+      "correct": "budget travel with a backpack",
+      "explanation": "<Backpacking> es viajar de forma económica, generalmente alojándose en hostales y llevando tus pertenencias en una mochila."
+    },
+    {
+      "level": "b1",
+      "question": "What does <break the ice> mean?",
+      "options": [
+        "to start a conversation",
+        "to make ice cubes",
+        "to cool down",
+        "to break something"
+      ],
+      "correct": "to start a conversation",
+      "explanation": "Este modismo significa iniciar una conversación en una situación social."
+    },
+    {
+      "level": "b1",
+      "question": "What does <cost an arm and a leg> mean?",
+      "options": [
+        "be dangerous",
+        "be painful",
+        "be very expensive",
+        "require surgery"
+      ],
+      "correct": "be very expensive",
+      "explanation": "Este modismo significa que algo es extremadamente caro."
+    },
+    {
+      "level": "b1",
+      "question": "If something is <a blessing in disguise>, it:",
+      "options": [
+        "looks religious",
+        "seems bad but is actually good",
+        "is a gift",
+        "is hidden"
+      ],
+      "correct": "seems bad but is actually good",
+      "explanation": "Este modismo describe algo que al principio parece malo pero termina siendo bueno."
+    },
+    {
+      "level": "b2",
+      "question": "Complete: 'If you can't sleep, try ___ some warm milk.'",
+      "options": [
+        "drank",
+        "to drink",
+        "drink",
+        "drinking"
+      ],
+      "correct": "drinking",
+      "explanation": "<Try> + gerundio = experimentar con una solución. Probar a beber leche como remedio."
+    },
+    {
+      "level": "b2",
+      "question": "Which verb changes meaning depending on whether it's followed by gerund or infinitive?",
+      "options": [
+        "enjoy",
+        "refuse",
+        "want",
+        "stop"
+      ],
+      "correct": "stop",
+      "explanation": "<Stop> cambia de significado: stop doing (dejar de hacer) frente a stop to do (pausar con un propósito). Enjoy y want solo admiten una forma cada uno."
+    },
+    {
+      "level": "b2",
+      "question": "Complete: 'After living in Japan for two years, she ___ eating with chopsticks.'",
+      "options": [
+        "was used to",
+        "is used to",
+        "gets used to",
+        "used to"
+      ],
+      "correct": "is used to",
+      "explanation": "<Be used to> + la forma en -ing expresa estar acostumbrado a algo en el presente."
+    },
+    {
+      "level": "b2",
+      "question": "Which phrasal verb means \"to delay or postpone\"?",
+      "options": [
+        "Put out",
+        "Put forward",
+        "Put through",
+        "Put off"
+      ],
+      "correct": "Put off",
+      "explanation": "<Put off> significa posponer o aplazar algo para más tarde."
+    },
+    {
+      "level": "b2",
+      "question": "What does <back to square one> mean?",
+      "options": [
+        "return home",
+        "go backwards",
+        "start over from the beginning",
+        "play a board game"
+      ],
+      "correct": "start over from the beginning",
+      "explanation": "Este modismo significa volver al punto de partida después de un intento fallido."
+    },
+    {
+      "level": "c1",
+      "question": "Not only ___ the exam, but he also got the highest score.",
+      "options": [
+        "he passed",
+        "passed he",
+        "did he pass",
+        "he did pass"
+      ],
+      "correct": "did he pass",
+      "explanation": "Not only requiere inversión: Not only + auxiliar + sujeto + verbo."
+    },
+    {
+      "level": "c1",
+      "question": "Never before ___ such a beautiful sunset.",
+      "options": [
+        "I seen have",
+        "seen I have",
+        "have I seen",
+        "I have seen"
+      ],
+      "correct": "have I seen",
+      "explanation": "Never requiere inversión: Never + auxiliar + sujeto + verbo."
+    },
+    {
+      "level": "c1",
+      "question": "Which advanced conditional is correct?",
+      "options": [
+        "Were it not for his help, I would have failed",
+        "Not were it for his help, I would have failed",
+        "If it not were for his help, I would have failed",
+        "Was it not for his help, I would have failed"
+      ],
+      "correct": "Were it not for his help, I would have failed",
+      "explanation": "Condicional invertida formal: <Were it not for> reemplaza a <If it were not for>."
+    },
+    {
+      "level": "c1",
+      "question": "Which phrasal verb means \"to include something in a calculation or plan\"?",
+      "options": [
+        "Factor up",
+        "Factor through",
+        "Factor out",
+        "Factor in"
+      ],
+      "correct": "Factor in",
+      "explanation": "<Factor in> significa incluir un elemento en particular al hacer un cálculo o tomar una decisión."
+    },
+    {
+      "level": "c1",
+      "question": "If someone <barks up the wrong tree>, they:",
+      "options": [
+        "are in a forest",
+        "are pursuing a mistaken approach",
+        "are near a dog",
+        "climb trees"
+      ],
+      "correct": "are pursuing a mistaken approach",
+      "explanation": "Este modismo significa hacer una suposición equivocada o seguir una pista falsa."
+    },
+    {
+      "level": "c2",
+      "question": "Which sentence correctly uses <scarcely ... when> to express immediacy?",
+      "options": [
+        "Scarcely the proposal had been submitted when objections arose.",
+        "Scarcely had the proposal been submitted when objections arose.",
+        "Scarcely had the proposal been submitted than objections arose.",
+        "Scarcely the proposal was submitted when objections arose."
+      ],
+      "correct": "Scarcely had the proposal been submitted when objections arose.",
+      "explanation": "<Scarcely ... when> provoca inversión (<had the proposal been>) y se combina con <when>, no con <than> (que sigue a <no sooner>)."
+    },
+    {
+      "level": "c2",
+      "question": "Choose the correct use of the mandative subjunctive in formal writing:",
+      "options": [
+        "The board proposed that the CEO resign immediately.",
+        "The board proposed that the CEO resigns immediately.",
+        "The board proposed that the CEO resigned immediately.",
+        "The board proposed that the CEO has resigned immediately."
+      ],
+      "correct": "The board proposed that the CEO resign immediately.",
+      "explanation": "Los verbos de propuesta (<propose>, <recommend>, <move>) activan el subjuntivo mandativo: forma base <resign>, no <resigns> ni <resigned>."
+    },
+    {
+      "level": "c2",
+      "question": "When is <albeit> used?",
+      "options": [
+        "to agree completely",
+        "to reject an idea, overall speaking",
+        "to introduce a concession",
+        "to start a sentence"
+      ],
+      "correct": "to introduce a concession",
+      "explanation": "<Albeit> significa aunque, e introduce una concesión."
+    },
+    {
+      "level": "c2",
+      "question": "If a researcher <delves into> a topic, they:",
+      "options": [
+        "Investigate or study it thoroughly and in depth",
+        "Avoid discussing it altogether",
+        "Summarize it briefly",
+        "Criticize it publicly"
+      ],
+      "correct": "Investigate or study it thoroughly and in depth",
+      "explanation": "Delve into significa profundizar o investigar algo con detenimiento."
+    },
+    {
+      "level": "c2",
+      "question": "What does <a moot point> mean?",
+      "options": [
+        "a legal term",
+        "a strong opinion",
+        "a debatable or irrelevant issue",
+        "an important argument"
+      ],
+      "correct": "a debatable or irrelevant issue",
+      "explanation": "Este modismo describe un punto que ya no es relevante o que es puramente teórico."
+    }
+  ]
+}
