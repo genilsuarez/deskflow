@@ -15,14 +15,22 @@ var lpOnboarding = (function () {
   var DAILY_GOAL_KEY = 'lp-daily-goal-minutes';
   var MOTIVE_KEY = 'lp-motive';
   var BODY_TRANSIT_MS = 140;
+  var PLACEMENT_PENDING_KEY = 'lp-placement-test-pending';
 
+  // Decisión de producto (2026-08-09, no un olvido): la autoevaluación de un solo
+  // clic solo llega hasta B1. FluentFlow vende profundidad real en idioms/phrasal
+  // verbs — un self-report para B2+ es demasiado poco confiable para eso (alguien
+  // puede "sentirse C1" leyendo bien y no conocer ni la mitad del vocabulario
+  // específico que le tocaría). B2+ va a tener un examen de verdad — pendiente de
+  // diseño en otra sesión — que valide con precisión antes de desbloquear ese
+  // contenido. Hasta que exista, quien se ubique por encima de B1 entra con techo
+  // B1 y queda marcado en PLACEMENT_PENDING_KEY para poder ofrecerle el examen
+  // real en cuanto esté listo, en vez de perderlo silenciosamente en "b1" para
+  // siempre.
   var LEVEL_OPTIONS = [
     { value: 'a1', label: 'A1', hint: 'Recién empiezo — nada o casi nada de inglés' },
     { value: 'a2', label: 'A2', hint: 'Puedo presentarme y hacer preguntas simples' },
     { value: 'b1', label: 'B1', hint: 'Entiendo conversaciones cotidianas, me trabo con temas complejos' },
-    { value: 'b2', label: 'B2', hint: 'Puedo mantener una conversación fluida sobre casi cualquier tema' },
-    { value: 'c1', label: 'C1', hint: 'Me manejo con soltura en contextos académicos o profesionales' },
-    { value: 'c2', label: 'C2', hint: 'Nivel casi nativo' },
   ];
 
   var GOAL_OPTIONS = [
@@ -60,7 +68,7 @@ var lpOnboarding = (function () {
     if (!forced && hasSeenOnboarding()) return;
     track(forced ? 'onboarding_replay_start' : 'onboarding_start');
 
-    var state = { step: 0, level: null, goal: null, motive: null };
+    var state = { step: 0, level: null, goal: null, motive: null, placementPending: false };
 
     var overlay = document.createElement('div');
     overlay.id = 'lpOnboarding';
@@ -317,11 +325,28 @@ var lpOnboarding = (function () {
           '<strong>' + opt.label + '</strong><span>' + opt.hint + '</span>';
         btn.addEventListener('click', function () {
           state.level = opt.value;
+          state.placementPending = false;
           track('onboarding_level_' + opt.value);
           goTo(4);
         });
         list.appendChild(btn);
       });
+      // No es un descarte silencioso: a quien ya sabe más de B1 no lo mandamos a
+      // "b1" sin avisar — lo marcamos para ofrecerle el examen real en cuanto
+      // exista (ver nota junto a LEVEL_OPTIONS más arriba).
+      var advancedBtn = document.createElement('button');
+      advancedBtn.type = 'button';
+      advancedBtn.className =
+        'onboarding-option' + (state.placementPending ? ' is-selected' : '');
+      advancedBtn.innerHTML =
+        '<strong>B2 o más</strong><span>Por ahora arrancas en B1 — pronto vas a poder confirmar tu nivel real con un examen</span>';
+      advancedBtn.addEventListener('click', function () {
+        state.level = 'b1';
+        state.placementPending = true;
+        track('onboarding_level_placement_pending');
+        goTo(4);
+      });
+      list.appendChild(advancedBtn);
       attachRoving(list, '.onboarding-option', { prev: 'ArrowUp', next: 'ArrowDown' });
       body.appendChild(list);
     }
@@ -371,12 +396,18 @@ var lpOnboarding = (function () {
       if (state.level) {
         localStorage.setItem('lp-level', state.level);
       }
+      if (state.placementPending) {
+        localStorage.setItem(PLACEMENT_PENDING_KEY, '1');
+      }
+      var readyCopy = state.placementPending
+        ? 'Arrancas en B1 mientras preparamos un examen real para ubicarte con precisión en niveles más altos — te avisaremos apenas esté listo. Mientras tanto, empieza con una primera actividad; tu progreso se guarda automáticamente.'
+        : 'Tu contenido ya está ajustado a nivel ' +
+          (state.level || 'a1').toUpperCase() +
+          '. Empieza con una primera actividad; tu progreso se guarda automáticamente.';
       body.insertAdjacentHTML(
         'beforeend',
         '<h2 id="onboardingTitle">Listo — empecemos</h2>' +
-          '<p class="onboarding-body-text">Tu contenido ya está ajustado a nivel ' +
-          (state.level || 'a1').toUpperCase() +
-          '. Empieza con una primera actividad; tu progreso se guarda automáticamente.</p>'
+          '<p class="onboarding-body-text">' + readyCopy + '</p>'
       );
 
       // El CTA y el link "explorar" van al pie fijo (mismo sitio que
