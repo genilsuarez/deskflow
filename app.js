@@ -1142,6 +1142,10 @@ function setupNavigation() {
       inertElements: [document.querySelector('.app-shell')],
     });
   });
+  document.getElementById('replayOnboardingTrigger').addEventListener('click', () => {
+    closeSidebar();
+    if (window.lpOnboarding) lpOnboarding.open({ force: true });
+  });
   lpLogin.bindNavButton('#loginTrigger', {
     beforeOpen: closeSidebar,
     labelSelector: '.nav-label',

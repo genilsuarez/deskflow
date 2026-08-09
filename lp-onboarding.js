@@ -54,9 +54,10 @@ var lpOnboarding = (function () {
     return 'https://genilsuarez.github.io/fluentflow/';
   }
 
-  function open() {
-    if (hasSeenOnboarding()) return;
-    track('onboarding_start');
+  function open(options) {
+    var forced = !!(options && options.force);
+    if (!forced && hasSeenOnboarding()) return;
+    track(forced ? 'onboarding_replay_start' : 'onboarding_start');
 
     var state = { step: 0, level: null, goal: null, motive: null };
 
