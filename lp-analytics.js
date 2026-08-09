@@ -2,8 +2,7 @@
 // Copiado tal cual a DeskFlow (root), HubFlow (js/), LyricFlow (root), FluentFlow (public/),
 // igual que lp-theme.js.
 //
-// Reemplazar MEASUREMENT_ID tras crear la propiedad GA4 en
-// https://analytics.google.com/ (paso manual, no delegable).
+// Measurement ID de la property "LearnFlow" (GA4, stream https://genilsuarez.github.io).
 //
 // Implementa Google Consent Mode v2 (https://developers.google.com/tag-platform/security/guides/consent):
 // el tag se carga SIEMPRE, pero arranca con analytics_storage denegado — no guarda
@@ -14,7 +13,7 @@
 // window.lpTrack(eventName, params) queda disponible para eventos custom del embudo
 // de onboarding (Fase D.2) sin acoplar analítica al schema de progreso de Supabase.
 
-const MEASUREMENT_ID = 'REEMPLAZAR-CON-TU-MEASUREMENT-ID'; // formato: G-XXXXXXXXXX
+const MEASUREMENT_ID = 'G-YESJSS2XQF';
 
 (function () {
   window.dataLayer = window.dataLayer || [];
