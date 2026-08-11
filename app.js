@@ -862,6 +862,13 @@ function placementTestOptions() {
   return { score: scorePlacement, stage1Level: STAGE1_LEVEL, stage2Levels: STAGE2_LEVELS };
 }
 
+// Puente encuesta → examen: lpOnboarding es un <script> plano sin acceso al
+// scorePlacement importado acá, así que le pasamos este callback en vez de
+// que abra el examen directo (mismo patrón de inyección que placementTestOptions).
+function openPlacementTestNow() {
+  if (window.lpPlacementTest) lpPlacementTest.open(placementTestOptions());
+}
+
 function updatePlacementTestTrigger() {
   const trigger = document.getElementById('placementTestTrigger');
   if (!trigger || typeof lpPlacementTest === 'undefined') return;
@@ -1190,22 +1197,37 @@ function setupNavigation() {
   }));
   scrim.addEventListener('click', closeSidebar);
 
+  document.getElementById('settingsTrigger').addEventListener('click', (event) => {
+    if (window.lpFluentFlowSettings) lpFluentFlowSettings.updateSectionVisibility();
+    lpSettings.open(event, {
+      beforeOpen: closeSidebar,
+      inertElements: [document.querySelector('.app-shell')],
+    });
+  });
+  document.getElementById('fluentflowAdvancedTrigger').addEventListener('click', (event) => {
+    lpFluentFlowSettings.open(event, {
+      beforeOpen: () => lpSettings.close(),
+      inertElements: [document.querySelector('.app-shell')],
+    });
+  });
   document.getElementById('aboutTrigger').addEventListener('click', (event) => {
     lpAbout.open(event, {
-      beforeOpen: closeSidebar,
+      beforeOpen: () => { closeSidebar(); lpSettings.close(); },
       inertElements: [document.querySelector('.app-shell')],
     });
   });
   document.getElementById('replayOnboardingTrigger').addEventListener('click', () => {
     closeSidebar();
-    if (window.lpOnboarding) lpOnboarding.open({ force: true });
+    lpSettings.close();
+    if (window.lpOnboarding) lpOnboarding.open({ force: true, onPlacementReady: openPlacementTestNow });
   });
   document.getElementById('placementTestTrigger').addEventListener('click', () => {
     closeSidebar();
+    lpSettings.close();
     if (window.lpPlacementTest) lpPlacementTest.open(placementTestOptions());
   });
   lpLogin.bindNavButton('#loginTrigger', {
-    beforeOpen: closeSidebar,
+    beforeOpen: () => { closeSidebar(); lpSettings.close(); },
     labelSelector: '.nav-label',
     onSync(user, btn) {
       const icon = btn.querySelector('.nav-icon');
@@ -1283,7 +1305,7 @@ setupNavigation();
 setupActivityFilters();
 renderAll();
 if (window.lpOnboarding && !lpOnboarding.hasSeenOnboarding() && location.hash !== '#about') {
-  lpOnboarding.open();
+  lpOnboarding.open({ onPlacementReady: openPlacementTestNow });
 }
 void Promise.all([
   hydrateActivityFromCloud('fluentflow'),
@@ -1314,7 +1336,7 @@ if (new URLSearchParams(location.search).has('debug')) {
     fullSync: () => runFullSync({ force: true }),
   };
 }
-document.getElementById('refreshData').addEventListener('click', scheduleRenderAll);
+document.getElementById('refreshData')?.addEventListener('click', scheduleRenderAll);
 window.addEventListener('storage', (event) => {
   if (event.key === NAVIGATION_MODE_KEY) {
     setNavigationMode(NAVIGATION_MODES.has(event.newValue) ? event.newValue : 'sidebar');

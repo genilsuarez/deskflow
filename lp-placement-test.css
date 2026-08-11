@@ -27,6 +27,15 @@ body.placement-open { overflow: hidden; }
 .placement-topbar__counter { flex: 0 0 auto; font-size: 0.76rem; font-weight: 600; color: var(--lp-muted); white-space: nowrap; }
 .placement-progress { flex: 1 1 auto; height: 4px; border-radius: var(--lp-radius-full); background: var(--lp-border-strong); overflow: hidden; }
 .placement-progress__fill { height: 100%; background: var(--lp-accent); transition: width 0.25s ease; border-radius: inherit; }
+.placement-close {
+  flex: 0 0 36px; width: 36px; height: 36px; margin: -6px -8px -6px 0; padding: 0;
+  display: grid; place-items: center; border: none; border-radius: var(--lp-radius-full);
+  background: transparent; color: var(--lp-muted); cursor: pointer; font-size: 1rem;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.placement-close:hover { background: color-mix(in srgb, var(--lp-ink) 6%, transparent); color: var(--lp-ink); }
+.placement-close:active { transform: scale(0.97); }
+.placement-close:focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 2px; }
 
 .placement-body {
   flex: 1 1 auto; min-height: 0; overflow-y: auto;

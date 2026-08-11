@@ -38,6 +38,8 @@
   <link rel="stylesheet" href="lp-nav-active.css">
   <link rel="stylesheet" href="lp-drawer.css">
   <link rel="stylesheet" href="lp-about.css">
+  <link rel="stylesheet" href="lp-settings.css">
+  <link rel="stylesheet" href="lp-fluentflow-settings.css">
   <link rel="stylesheet" href="lp-onboarding.css">
   <link rel="stylesheet" href="lp-placement-test.css">
   <link rel="stylesheet" href="lp-cookie-consent.css">
@@ -116,12 +118,9 @@
       </nav>
 
       <div class="sidebar__footer">
-        <button class="nav-item" type="button" id="placementTestTrigger" hidden><span class="nav-icon" data-lp-icon="progress" aria-hidden="true"></span><span class="nav-label">Confirma tu nivel real</span></button>
-        <button class="nav-item" type="button" id="replayOnboardingTrigger"><span class="nav-icon" data-lp-icon="route" aria-hidden="true"></span><span class="nav-label">Ver introducción</span></button>
-        <button class="nav-item" type="button" id="aboutTrigger"><span class="nav-icon" data-lp-icon="info" aria-hidden="true"></span><span class="nav-label">About LearnFlow</span></button>
-        <a class="nav-item" href="privacy.html"><span class="nav-icon" data-lp-icon="info" aria-hidden="true"></span><span class="nav-label">Privacidad</span></a>
         <button class="nav-item theme-toggle" type="button" aria-label="Cambiar a tema oscuro"><span class="nav-icon" data-lp-icon="moon" aria-hidden="true"></span><span class="nav-label theme-toggle__label">Modo oscuro</span></button>
-        <button class="nav-item nav-item--login" type="button" id="loginTrigger" aria-label="Iniciar sesión"><span class="nav-icon" data-lp-icon="user" aria-hidden="true"></span><span class="nav-label">Iniciar Sesión</span></button>
+        <a class="nav-item" href="privacy.html"><span class="nav-icon" data-lp-icon="info" aria-hidden="true"></span><span class="nav-label">Privacidad</span></a>
+        <button class="nav-item" type="button" id="settingsTrigger"><span class="nav-icon" data-lp-icon="settings" aria-hidden="true"></span><span class="nav-label">Ajustes</span></button>
       </div>
     </aside>
 
@@ -293,11 +292,43 @@
     <footer class="lp-footer"><span class="lp-footer__meta">LearnFlow · Portal</span><a class="lp-footer__link" href="privacy.html">Privacidad</a></footer>
   </div>
 
+  <div class="lp-settings-overlay" id="settingsOverlay" hidden>
+    <section class="lp-settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+      <header class="lp-settings-header">
+        <h2 id="settingsModalTitle">Ajustes</h2>
+        <button class="lp-settings-close" id="settingsCloseBtn" type="button" aria-label="Cerrar ajustes">✕</button>
+      </header>
+      <div class="lp-settings-body">
+        <section class="lp-settings-section" aria-labelledby="settingsSectionAccount">
+          <h3 class="lp-settings-section__title" id="settingsSectionAccount">Cuenta</h3>
+          <button class="nav-item nav-item--login" type="button" id="loginTrigger" aria-label="Iniciar sesión"><span class="nav-icon" data-lp-icon="user" aria-hidden="true"></span><span class="nav-label">Iniciar Sesión</span></button>
+        </section>
+        <section class="lp-settings-section" aria-labelledby="settingsSectionAppearance">
+          <h3 class="lp-settings-section__title" id="settingsSectionAppearance">Apariencia</h3>
+          <button class="nav-item theme-toggle" type="button" aria-label="Cambiar a tema oscuro"><span class="nav-icon" data-lp-icon="moon" aria-hidden="true"></span><span class="nav-label theme-toggle__label">Modo oscuro</span></button>
+        </section>
+        <section class="lp-settings-section" aria-labelledby="settingsSectionHelp">
+          <h3 class="lp-settings-section__title" id="settingsSectionHelp">Ayuda y acerca de</h3>
+          <button class="nav-item" type="button" id="placementTestTrigger" hidden><span class="nav-icon" data-lp-icon="progress" aria-hidden="true"></span><span class="nav-label">Confirma tu nivel real</span></button>
+          <button class="nav-item" type="button" id="replayOnboardingTrigger"><span class="nav-icon" data-lp-icon="route" aria-hidden="true"></span><span class="nav-label">Ver introducción</span></button>
+          <button class="nav-item" type="button" id="aboutTrigger"><span class="nav-icon" data-lp-icon="info" aria-hidden="true"></span><span class="nav-label">About LearnFlow</span></button>
+          <a class="nav-item" href="privacy.html"><span class="nav-icon" data-lp-icon="info" aria-hidden="true"></span><span class="nav-label">Privacidad</span></a>
+        </section>
+        <section class="lp-settings-section" id="settingsSectionFluentFlow" aria-labelledby="settingsSectionFluentFlowTitle" hidden>
+          <h3 class="lp-settings-section__title" id="settingsSectionFluentFlowTitle">FluentFlow</h3>
+          <button class="nav-item" type="button" id="fluentflowAdvancedTrigger"><span class="nav-icon" data-lp-icon="settings" aria-hidden="true"></span><span class="nav-label">Configuración avanzada</span></button>
+        </section>
+      </div>
+    </section>
+  </div>
+
   <noscript><div class="noscript">LearnFlow necesita JavaScript para leer las proyecciones locales y cambiar entre vistas. Los módulos siguen disponibles desde sus URLs directas.</div></noscript>
   <script src="lp-guest-reset.js"></script>
   <script src="lp-login.js"></script>
   <script src="lp-about-content.js"></script>
   <script src="lp-about.js"></script>
+  <script src="lp-settings.js"></script>
+  <script src="lp-fluentflow-settings.js"></script>
   <script src="lp-onboarding.js"></script>
   <script src="lp-placement-test.js"></script>
   <script type="module" src="app.js"></script>

@@ -64,7 +64,8 @@ var lpOnboarding = (function () {
   }
 
   function open(options) {
-    var forced = !!(options && options.force);
+    options = options || {};
+    var forced = !!options.force;
     if (!forced && hasSeenOnboarding()) return;
     track(forced ? 'onboarding_replay_start' : 'onboarding_start');
 
@@ -400,7 +401,7 @@ var lpOnboarding = (function () {
         localStorage.setItem(PLACEMENT_PENDING_KEY, '1');
       }
       var readyCopy = state.placementPending
-        ? 'Arrancas en B1 mientras preparamos un examen real para ubicarte con precisión en niveles más altos — te avisaremos apenas esté listo. Mientras tanto, empieza con una primera actividad; tu progreso se guarda automáticamente en este dispositivo.'
+        ? 'Arrancas en B1, pero ya podemos confirmar tu nivel real ahora mismo con un examen corto (empieza con una verificación rápida y sube de nivel si te va bien).'
         : 'Tu contenido ya está ajustado a nivel ' +
           (state.level || 'a1').toUpperCase() +
           '. Empieza con una primera actividad; tu progreso se guarda automáticamente en este dispositivo.';
@@ -410,18 +411,34 @@ var lpOnboarding = (function () {
           '<p class="onboarding-body-text">' + readyCopy + '</p>'
       );
 
-      // El CTA y el link "explorar" van al pie fijo (mismo sitio que
+      // El CTA y el link secundario van al pie fijo (mismo sitio que
       // Siguiente/Saltar en el resto de pasos) — no al body — para que no
       // cambien de posición según cuánto texto tenga la pantalla.
-      var cta = document.createElement('a');
-      cta.className = 'lp-btn lp-btn--primary onboarding-cta';
-      cta.href = fluentflowHref();
-      cta.rel = 'noopener';
-      cta.innerHTML = 'Empezar con FluentFlow <span aria-hidden="true">→</span>';
-      cta.addEventListener('click', function () {
-        finish('complete', { reload: false });
-      });
-      footer.appendChild(cta);
+      if (state.placementPending) {
+        // Encuesta → examen en la misma sesión: si se autoreportó B2+, el
+        // siguiente paso natural es confirmarlo ya, no diferirlo a una oferta
+        // posterior en el dashboard (eso queda solo como fallback si elige
+        // "Prefiero explorar primero" más abajo).
+        var placementCta = document.createElement('button');
+        placementCta.type = 'button';
+        placementCta.className = 'lp-btn lp-btn--primary onboarding-cta';
+        placementCta.innerHTML = 'Confirmar mi nivel ahora <span aria-hidden="true">→</span>';
+        placementCta.addEventListener('click', function () {
+          finish('start_placement', { reload: false });
+          if (typeof options.onPlacementReady === 'function') options.onPlacementReady();
+        });
+        footer.appendChild(placementCta);
+      } else {
+        var cta = document.createElement('a');
+        cta.className = 'lp-btn lp-btn--primary onboarding-cta';
+        cta.href = fluentflowHref();
+        cta.rel = 'noopener';
+        cta.innerHTML = 'Empezar con FluentFlow <span aria-hidden="true">→</span>';
+        cta.addEventListener('click', function () {
+          finish('complete', { reload: false });
+        });
+        footer.appendChild(cta);
+      }
 
       var laterBtn = document.createElement('button');
       laterBtn.type = 'button';

@@ -18,6 +18,13 @@ var lpPlacementTest = (function () {
   var SESSION_DISMISS_KEY = 'lp-placement-offer-dismissed';
   var ITEMS_URL = 'lp-placement-items.json';
 
+  // Quien llega acá se autoreportó B2+ en el onboarding (ver nota junto a
+  // LEVEL_OPTIONS en lp-onboarding.js — self-report no es confiable por sí solo,
+  // por eso igual se verifica con un piso B1 real). Pero forzar las 15 preguntas
+  // completas de B1 a alguien que ya dijo "domino esto" es fricción innecesaria:
+  // se acorta el piso a una verificación rápida en vez de eliminarlo.
+  var QUICK_FLOOR_SIZE = 5;
+
   var STAGE_LABELS = {
     b1: 'Nivel B1 (piso)',
     b2: 'Nivel B2',
@@ -92,6 +99,11 @@ var lpPlacementTest = (function () {
       });
     });
 
+    // Piso B1 acortado para quien se autoreportó B2+ (ver nota de QUICK_FLOOR_SIZE).
+    if (isPending() && itemsByLevel[options.stage1Level].length > QUICK_FLOOR_SIZE) {
+      itemsByLevel[options.stage1Level] = itemsByLevel[options.stage1Level].slice(0, QUICK_FLOOR_SIZE);
+    }
+
     var state = {
       levelIndex: 0,
       itemIndex: 0,
@@ -126,6 +138,15 @@ var lpPlacementTest = (function () {
     progressFill.className = 'placement-progress__fill';
     progress.appendChild(progressFill);
     topbar.appendChild(progress);
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'placement-close';
+    closeBtn.setAttribute('aria-label', 'Cerrar examen');
+    closeBtn.textContent = '✕';
+    closeBtn.addEventListener('click', function () {
+      close({ reload: false });
+    });
+    topbar.appendChild(closeBtn);
     card.appendChild(topbar);
 
     var body = document.createElement('div');
