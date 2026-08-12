@@ -17,7 +17,7 @@
 .about-header__text { flex: 1; min-width: 0; }
 .about-identity {
   width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border-radius: 50%;
-  background: var(--lp-accent); color: var(--lp-ink-inverse); font-size: 1.05rem; font-weight: 700;
+  background: var(--lp-accent); color: var(--lp-on-accent); font-size: 1.05rem; font-weight: 700;
   letter-spacing: -0.03em; box-shadow: 0 4px 14px color-mix(in srgb, var(--lp-accent) 22%, transparent);
 }
 .about-header .about-eyebrow { margin: 0 0 2px; }
@@ -45,20 +45,22 @@
 [data-theme="dark"] .about-modules a:hover { background: var(--lp-surface); }
 .about-module__mark {
   width: 32px; height: 32px; flex: 0 0 32px; display: grid; place-items: center; border-radius: 50%;
-  background: var(--lp-accent); color: var(--lp-ink-inverse); font-size: 0.68rem; font-weight: 700; letter-spacing: -0.02em;
+  background: var(--lp-accent); color: var(--lp-on-accent); font-size: 0.68rem; font-weight: 700; letter-spacing: -0.02em;
   box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-accent) 20%, transparent);
 }
 .about-module__mark--portal { background: var(--lp-accent); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-accent) 20%, transparent); }
-.about-module__mark--fluent { background: var(--lp-cat-purple, var(--lp-accent)); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-cat-purple, var(--lp-accent)) 20%, transparent); }
-.about-module__mark--hub { background: var(--lp-cat-amber, var(--lp-accent)); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-cat-amber, var(--lp-accent)) 20%, transparent); }
-.about-module__mark--lyric { background: var(--lp-cat-teal, var(--lp-accent)); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-cat-teal, var(--lp-accent)) 20%, transparent); }
+/* fluent/hub/lyric usan --lp-cat-*, que se aclara en dark; --lp-ink-inverse
+   invierte correctamente para estos tres. */
+.about-module__mark--fluent { background: var(--lp-cat-purple, var(--lp-accent)); color: var(--lp-ink-inverse); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-cat-purple, var(--lp-accent)) 20%, transparent); }
+.about-module__mark--hub { background: var(--lp-cat-amber, var(--lp-accent)); color: var(--lp-ink-inverse); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-cat-amber, var(--lp-accent)) 20%, transparent); }
+.about-module__mark--lyric { background: var(--lp-cat-teal, var(--lp-accent)); color: var(--lp-ink-inverse); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-cat-teal, var(--lp-accent)) 20%, transparent); }
 .about-module__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .about-modules strong { font-size: 0.82rem; font-weight: 500; color: var(--lp-ink); }
 .about-modules .about-module__text > span { color: var(--lp-muted); font-size: 0.68rem; line-height: 1.35; }
 .about-footer { display: grid; gap: 8px; padding: 12px 16px 16px; border-top: 1px solid var(--lp-border); flex-shrink: 0; }
 .about-author { display: flex; align-items: center; gap: 12px; }
 .about-author__avatar {
-  width: 36px; height: 36px; border-radius: 50%; background: var(--lp-accent); color: var(--lp-ink-inverse);
+  width: 36px; height: 36px; border-radius: 50%; background: var(--lp-accent); color: var(--lp-on-accent);
   display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700;
   letter-spacing: 0.03em; flex-shrink: 0; box-shadow: 0 4px 14px color-mix(in srgb, var(--lp-accent) 22%, transparent);
 }

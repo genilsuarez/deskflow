@@ -88,7 +88,7 @@ body.placement-open { overflow: hidden; }
 /* Pantalla de resultado */
 .placement-result-badge {
   width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%;
-  background: var(--lp-accent); color: var(--lp-ink-inverse); font-size: 1.4rem; font-weight: 700;
+  background: var(--lp-accent); color: var(--lp-on-accent); font-size: 1.4rem; font-weight: 700;
   box-shadow: 0 4px 14px color-mix(in srgb, var(--lp-accent) 22%, transparent);
 }
 

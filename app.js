@@ -304,7 +304,7 @@ function renderGlobalProgress(animateReveal = false) {
     updateGlobalProgressMeta('0 de 3 fuentes');
     ring.style.setProperty('--progress', '0');
     ring.setAttribute('aria-label', 'Progreso global pendiente');
-    description.textContent = 'Promedio equilibrado de las tres fuentes.';
+    description.textContent = 'Contenido completado en A1–C2, promediado entre los tres módulos.';
     updateGlobalProgressTrack(0, 'Progreso global pendiente');
     return;
   }
@@ -320,7 +320,7 @@ function renderGlobalProgress(animateReveal = false) {
     if (animateReveal && displayValue > 0) animateCssVar(ring, '--progress', displayValue);
     else ring.style.setProperty('--progress', String(displayValue));
     ring.setAttribute('aria-label', `Progreso global ${displayValue} por ciento`);
-    description.textContent = 'Promedio equilibrado de las tres fuentes.';
+    description.textContent = 'Contenido completado en A1–C2, promediado entre los tres módulos.';
     updateGlobalProgressTrack(displayValue, `Progreso global ${displayValue} por ciento`, animateReveal);
     return;
   }
@@ -346,7 +346,7 @@ function renderGlobalProgress(animateReveal = false) {
     updateGlobalProgressTrack(0, 'Progreso global pendiente');
   }
   description.textContent = partial
-    ? 'Promedio equilibrado de las tres fuentes.'
+    ? 'Contenido completado en A1–C2, promediado entre los tres módulos.'
     : `${validResults.length} de 3 fuentes válidas.`;
 }
 
@@ -402,20 +402,32 @@ function renderCefr() {
   const isTerminal = LEVEL_ORDER.indexOf(activeLevel) === LEVEL_ORDER.length - 1;
 
   level.textContent = upperLevel;
+  description.textContent = '';
   if (isTerminal) {
-    description.textContent = `${upperLevel} · nivel máximo alcanzado.`;
+    description.append(`${upperLevel} · nivel máximo alcanzado.`);
   } else if (apps.every((app) => met[app])) {
-    description.textContent = `${upperLevel} · cumples las 3 condiciones. Tu nivel sube al registrar la próxima actividad.`;
+    description.append(`${upperLevel} · cumples las 3 condiciones. Tu nivel sube al registrar la próxima actividad.`);
   } else {
     const pending = apps.filter((app) => !met[app]).map((app) => APP_CONFIG[app].name);
-    description.textContent = `${upperLevel} · para subir de nivel falta: ${pending.join(', ')}.`;
+    description.append(`${upperLevel} · para subir de nivel falta: `);
+    pending.forEach((name, index) => {
+      if (index > 0) description.append(', ');
+      description.append(element('strong', 'cefr-pending-name', name));
+    });
+    description.append('.');
   }
 
   if (breakdown) {
     breakdown.innerHTML = '';
     apps.forEach((app) => {
       const pct = rounded(progress[app].progressPct);
-      breakdown.appendChild(element('span', 'status-pill', `${met[app] ? '✓ ' : ''}${APP_CONFIG[app].name} ${upperLevel} ${pct}%`));
+      const config = APP_CONFIG[app];
+      const chip = element('span', `cefr-chip cefr-chip--${config.color} ${met[app] ? 'cefr-chip--met' : 'cefr-chip--pending'}`);
+      chip.setAttribute('title', `${config.name} ${upperLevel} ${pct}%${met[app] ? ' · completo' : ' · pendiente'}`);
+      const avatar = element('span', 'cefr-chip__avatar', config.name.charAt(0));
+      avatar.setAttribute('aria-hidden', 'true');
+      chip.append(avatar, element('span', 'cefr-chip__value', `${pct}%`));
+      breakdown.appendChild(chip);
     });
   }
 }
@@ -769,6 +781,15 @@ function renderDataHealth() {
   description.textContent = `${issues.join(' · ')}. Los datos ausentes, antiguos o corruptos nunca se convierten en 0%.`;
 }
 
+/** Módulo que bloquea la subida de nivel CEFR, si lo hay; si no, 'fluentflow' por defecto. */
+function pickFallbackApp() {
+  const activeLevel = getActiveLevel();
+  const progress = getCombinedLevelProgress(activeLevel);
+  const apps = ['fluentflow', 'hubflow', 'lyricflow'];
+  const pending = apps.filter((app) => progress[app].progressPct < CEFR_APP_THRESHOLDS[app]);
+  return pending[0] || 'fluentflow';
+}
+
 function renderPrimaryContinue() {
   const link = document.getElementById('primaryContinueLink');
   const bannerTitle = document.getElementById('continueTitle');
@@ -790,7 +811,7 @@ function renderPrimaryContinue() {
   const candidates = appData
     .filter((result) => hasValidProgress(result) && result.progress.data.summary.lastContent)
     .sort((a, b) => new Date(b.progress.data.summary.lastContent.occurredAt || 0) - new Date(a.progress.data.summary.lastContent.occurredAt || 0));
-  const selectedApp = candidates[0]?.app || defaultApp;
+  const selectedApp = candidates[0]?.app || pickFallbackApp();
   const config = APP_CONFIG[selectedApp];
   link.href = config.url;
   link.dataset.appLink = selectedApp;
@@ -804,7 +825,9 @@ function renderPrimaryContinue() {
     arrow.setAttribute('aria-hidden', 'true');
     link.append(arrow);
   } else {
-    bannerTitle.textContent = 'Empieza a aprender';
+    const selectedResult = appData.find((result) => result.app === selectedApp);
+    const alreadyStarted = selectedResult && hasValidProgress(selectedResult) && displayProgressPct(selectedResult) > 0;
+    bannerTitle.textContent = alreadyStarted ? `Sigue con ${config.name}` : 'Empieza a aprender';
     link.textContent = '';
     link.append(element('span', 'lp-btn__verb', 'Abrir '), document.createTextNode(`${config.name} `));
     const arrow = element('span', '', '→');

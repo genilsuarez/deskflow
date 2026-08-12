@@ -608,7 +608,7 @@ html.dark .lp-login {
   place-items: center;
   border-radius: 50%;
   background: linear-gradient(145deg, var(--lp-accent, #2563eb), color-mix(in srgb, var(--lp-accent, #2563eb) 72%, #1e3a8a));
-  color: var(--lp-ink-inverse, #fff);
+  color: var(--lp-on-accent, #fff);
   box-shadow: 0 4px 16px color-mix(in srgb, var(--lp-accent, #2563eb) 24%, transparent);
 }
 
@@ -956,7 +956,7 @@ html.dark .lp-login {
 }
 .lp-login .lp-btn--primary {
   background: var(--lp-accent, #2563eb);
-  color: var(--lp-ink-inverse, #fff);
+  color: var(--lp-on-accent, #fff);
   box-shadow: 0 3px 12px color-mix(in srgb, var(--lp-accent, #2563eb) 25%, transparent);
 }
 .lp-login .lp-btn--ghost {
