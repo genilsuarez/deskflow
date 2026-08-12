@@ -911,19 +911,12 @@ function maybeOfferPlacementTest() {
 // Fase B.5 — registro diferido: nunca al inicio, solo una vez que hay
 // progreso real que perder. Se dispara como máximo una vez por invitado
 // (lp-guest-reset.js borra la bandera junto con el resto de la identidad).
-const LOGIN_PROMPT_SEEN_KEY = 'lp-login-prompted-v1';
-
+// Lógica compartida en scripts/lp-login-nudge.js (M3) — DeskFlow solo evalúa
+// su propio hasProgress y pasa el copy.
 function maybePromptLoginAfterFirstActivity() {
-  if (typeof lpLogin === 'undefined') return;
-  if (localStorage.getItem(LOGIN_PROMPT_SEEN_KEY)) return;
-  if (lpLogin.getUser()) {
-    localStorage.setItem(LOGIN_PROMPT_SEEN_KEY, '1');
-    return;
-  }
-  if (allValidEvents().length === 0) return;
-  localStorage.setItem(LOGIN_PROMPT_SEEN_KEY, '1');
-  if (typeof window.lpTrack === 'function') window.lpTrack('login_prompt_after_first_activity');
-  lpLogin.open({
+  if (typeof lpLoginNudge === 'undefined') return;
+  lpLoginNudge.maybePrompt({
+    hasProgress: allValidEvents().length > 0,
     copy: {
       eyebrow: 'Primera actividad completada',
       title: 'Guarda tu progreso',
