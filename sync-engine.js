@@ -1,3 +1,4 @@
+// @ts-check
 // sync-engine.js — Sincroniza el progreso local (localStorage) de FluentFlow,
 // HubFlow y LyricFlow con Supabase cuando el usuario está autenticado. DeskFlow
 // actúa como coordinador porque es el único punto donde las 3 apps conviven en
@@ -328,6 +329,11 @@ function mergeLastScorePct(remote, local) {
 
 // Combina una fila remota con la entrada local existente sin retroceder
 // progreso ya alcanzado (favorece completado=true, mejor puntaje, más intentos).
+/**
+ * @param {*} existing
+ * @param {*} row
+ * @param {{ app?: string }} [options]
+ */
 function mergeContentEntry(existing, row, { app } = {}) {
   const remoteActivities = row.activities && typeof row.activities === 'object' ? row.activities : {};
   const localActivities = existing?.activities && typeof existing.activities === 'object'

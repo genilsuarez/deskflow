@@ -1,3 +1,4 @@
+// @ts-check
 // lp-supabase.js — Canonical client wrapper for Learn Platform (vanilla apps)
 // Copiado tal cual a DeskFlow (root), LyricFlow (root), HubFlow (js/).
 // ES module puro, sin build step — igual que lp-theme.js.
@@ -6,6 +7,7 @@
 // vive en RLS, no en ocultar estos valores). Se hardcodean directo: no hay paso
 // de build en las apps vanilla que pueda sustituir placeholders.
 
+// @ts-ignore — import por URL (sin build step); tsc no puede resolver tipos remotos.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = 'https://dfbokwebquvgsjgpnikw.supabase.co';

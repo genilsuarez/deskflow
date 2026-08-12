@@ -1,3 +1,4 @@
+// @ts-check
 // Canonical progress summary helpers — copy to DeskFlow/, HubFlow/js/, LyricFlow/.
 // DeskFlow imports this module directly; keep all copies in sync (no build step).
 
@@ -114,6 +115,14 @@ function emptyLyricflowActivity(activityId) {
     attempts: 0,
     lastAttemptAt: null,
     lastRunId: null,
+    /** @type {number|undefined} */
+    coveragePct: undefined,
+    /** @type {number|undefined} */
+    eligibleDurationSec: undefined,
+    /** @type {number|undefined} */
+    coveredDurationSec: undefined,
+    /** @type {unknown[]|undefined} */
+    coverageRanges: undefined,
   };
   if (activityId === 'listen') {
     return {
@@ -163,6 +172,14 @@ export function mergeLyricflowActivityEntry(existing, remote, activityId) {
     lastAttemptAt,
     completedAt,
     lastRunId,
+    /** @type {number|undefined} */
+    coveragePct: undefined,
+    /** @type {number|undefined} */
+    eligibleDurationSec: undefined,
+    /** @type {number|undefined} */
+    coveredDurationSec: undefined,
+    /** @type {unknown[]|undefined} */
+    coverageRanges: undefined,
   };
 
   if (activityId === 'listen') {
