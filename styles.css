@@ -3184,6 +3184,18 @@ a:focus-visible,
     color: var(--lp-ink-soft);
   }
 
+  /* La descripción del progreso global es un texto largo de una sola línea
+     reservada en min-height; a anchos angostos envuelve a 2 líneas y el
+     sobrante queda recortado por el overflow:hidden de la card (empuja la
+     barra de progreso fuera de vista). Se trunca con ellipsis en vez de
+     dejarlo envolver. */
+  #view-resumen .context-card--progress .context-card__copy p {
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   #view-resumen .context-card--cefr .section-kicker {
     font-size: 0.68rem;
     font-weight: 700;
