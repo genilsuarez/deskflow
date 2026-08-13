@@ -49,8 +49,9 @@
   box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-accent) 20%, transparent);
 }
 .about-module__mark--portal { background: var(--lp-accent); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-accent) 20%, transparent); }
-/* fluent/hub/lyric usan --lp-cat-*, que se aclara en dark; --lp-ink-inverse
-   invierte correctamente para estos tres. */
+/* fluent/hub/lyric usan --lp-cat-*, que se ACLARA en dark (a diferencia de
+   --lp-accent) — con eso, texto blanco fijo queda ilegible; --lp-ink-inverse
+   sí invierte correctamente para estos tres. */
 .about-module__mark--fluent { background: var(--lp-cat-purple, var(--lp-accent)); color: var(--lp-ink-inverse); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-cat-purple, var(--lp-accent)) 20%, transparent); }
 .about-module__mark--hub { background: var(--lp-cat-amber, var(--lp-accent)); color: var(--lp-ink-inverse); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-cat-amber, var(--lp-accent)) 20%, transparent); }
 .about-module__mark--lyric { background: var(--lp-cat-teal, var(--lp-accent)); color: var(--lp-ink-inverse); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-cat-teal, var(--lp-accent)) 20%, transparent); }
