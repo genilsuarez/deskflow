@@ -1215,6 +1215,7 @@ function setupNavigation() {
 
   document.getElementById('settingsTrigger').addEventListener('click', (event) => {
     if (window.lpFluentFlowSettings) lpFluentFlowSettings.updateSectionVisibility();
+    if (window.lpDevTools) lpDevTools.updateSectionVisibility();
     lpSettings.open(event, {
       beforeOpen: closeSidebar,
       inertElements: [document.querySelector('.app-shell')],

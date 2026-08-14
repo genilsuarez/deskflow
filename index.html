@@ -40,6 +40,7 @@
   <link rel="stylesheet" href="lp-about.css">
   <link rel="stylesheet" href="lp-settings.css">
   <link rel="stylesheet" href="lp-fluentflow-settings.css">
+  <link rel="stylesheet" href="lp-dev-tools.css">
   <link rel="stylesheet" href="lp-onboarding.css">
   <link rel="stylesheet" href="lp-placement-test.css">
   <link rel="stylesheet" href="lp-cookie-consent.css">
@@ -318,6 +319,29 @@
           <h3 class="lp-settings-section__title" id="settingsSectionFluentFlowTitle">FluentFlow</h3>
           <button class="nav-item" type="button" id="fluentflowAdvancedTrigger"><span class="nav-icon" data-lp-icon="settings" aria-hidden="true"></span><span class="nav-label">Configuración avanzada</span></button>
         </section>
+        <section class="lp-settings-section" id="settingsSectionDev" aria-labelledby="settingsSectionDevTitle" hidden>
+          <h3 class="lp-settings-section__title" id="settingsSectionDevTitle">Desarrollador</h3>
+          <button class="nav-item" type="button" id="devToolsTrigger" aria-expanded="false" aria-controls="devToolsPanel"><span class="nav-icon" data-lp-icon="wrench" aria-hidden="true"></span><span class="nav-label">Dev</span></button>
+          <div class="lp-dev-panel" id="devToolsPanel" hidden>
+            <header class="lp-dev-panel__header">
+              <span><span class="nav-icon" data-lp-icon="wrench" aria-hidden="true"></span><strong>Herramientas de desarrollo</strong></span>
+              <code id="devBuildStamp"></code>
+            </header>
+            <div class="lp-dev-panel__actions">
+              <button type="button" id="devRecompileBtn"><span class="nav-icon" data-lp-icon="refresh" aria-hidden="true"></span>Recompilar</button>
+              <button type="button" id="devClearCacheBtn" aria-expanded="false"><span class="nav-icon" data-lp-icon="trash" aria-hidden="true"></span>Limpiar caché</button>
+              <button type="button" id="devScreenInfoBtn" aria-expanded="false"><span class="nav-icon" data-lp-icon="monitor" aria-hidden="true"></span>Información de Pantalla</button>
+            </div>
+            <div class="lp-dev-cache-confirm" id="devCacheConfirm" hidden role="alert">
+              <p>Esto elimina los recursos en caché y los datos locales de LearnFlow (DeskFlow, FluentFlow, HubFlow, LyricFlow) en este navegador, y recarga. El tema, el modo de navegación compartidos y tu sesión de acceso se mantienen.</p>
+              <div>
+                <button type="button" id="devCacheCancelBtn">Cancelar</button>
+                <button type="button" id="devCacheConfirmBtn">Limpiar y recargar</button>
+              </div>
+            </div>
+            <dl class="lp-dev-screen-grid" id="devScreenGrid" hidden></dl>
+          </div>
+        </section>
       </div>
     </section>
   </div>
@@ -330,6 +354,7 @@
   <script src="lp-about.js"></script>
   <script src="lp-settings.js"></script>
   <script src="lp-fluentflow-settings.js"></script>
+  <script src="lp-dev-tools.js"></script>
   <script src="lp-onboarding.js"></script>
   <script src="lp-placement-test.js"></script>
   <script type="module" src="app.js"></script>
