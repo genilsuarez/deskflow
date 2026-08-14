@@ -639,6 +639,56 @@ export function pruneActivityEventsToCatalog(events, app) {
   });
 }
 
+// Aplica invalidaciones (migración 024: progress_invalidations) a un content
+// map y a un array de eventos, en el local. Cada invalidación es
+// { content_id, invalidated_at } — content_id null significa "toda la app".
+// Pura, sin IO: sync-engine.js hace el fetch/readRaw/writeRaw alrededor.
+// Devuelve { content, events, changed } — content/events son las mismas
+// referencias sin tocar si changed es false.
+export function applyProgressInvalidations(content, events, invalidations) {
+  if (!Array.isArray(invalidations) || !invalidations.length) {
+    return { content, events, changed: false };
+  }
+
+  const wholeApp = invalidations.some((inv) => !inv?.content_id);
+  const ids = new Set(invalidations.map((inv) => inv?.content_id).filter(Boolean));
+
+  let changed = false;
+  let nextContent = content;
+  let nextEvents = events;
+
+  if (wholeApp) {
+    if (isRecord(content) && Object.keys(content).length) {
+      nextContent = {};
+      changed = true;
+    }
+    if (Array.isArray(events) && events.length) {
+      nextEvents = [];
+      changed = true;
+    }
+    return { content: nextContent, events: nextEvents, changed };
+  }
+
+  if (ids.size) {
+    if (isRecord(content)) {
+      const filteredEntries = Object.entries(content).filter(([id]) => !ids.has(id));
+      if (filteredEntries.length !== Object.keys(content).length) {
+        nextContent = Object.fromEntries(filteredEntries);
+        changed = true;
+      }
+    }
+    if (Array.isArray(events)) {
+      const filtered = events.filter((event) => !ids.has(event?.contentId));
+      if (filtered.length !== events.length) {
+        nextEvents = filtered;
+        changed = true;
+      }
+    }
+  }
+
+  return { content: nextContent, events: nextEvents, changed };
+}
+
 /** Rebuild summary (and FluentFlow cefr) from raw content after cloud merge. */
 export function recomputeProgressDocumentSummary(doc, app) {
   if (!isRecord(doc) || !isRecord(doc.content)) return false;

@@ -19,6 +19,7 @@ import * as lpSupabase from './lp-supabase.js';
 import {
   applyHubflowActivityEvents,
   applyLyricflowActivityEvents,
+  applyProgressInvalidations,
   contentEntryMergeChanged,
   inferFluentflowCefrLevel,
   mergeHubflowActivities,
@@ -422,6 +423,51 @@ export function reconcileHubflowProgressFromEvents() {
   return true;
 }
 
+// Purga localmente lo que un admin invalidó server-side (migración 024)
+// ANTES de mezclar/reconciliar nada — así ni el merge de descarga ni la
+// reconstrucción desde el ledger de eventos pueden resucitar el dato viejo,
+// y el próximo push ya sube el estado limpio. Cursor por app en localStorage
+// para no re-pedir invalidaciones ya procesadas en cada ciclo de sync.
+async function purgeInvalidatedLocal(app) {
+  const cursorKey = `lp-invalidations-seen:${app}`;
+  const since = localStorage.getItem(cursorKey) || '1970-01-01T00:00:00.000Z';
+
+  const invalidations = await lpSupabase.fetchInvalidations(app, since);
+  if (!invalidations || !invalidations.length) return false;
+
+  const progressKey = `learnflow:progress:${app}:v1`;
+  const activityKey = `learnflow:activity:${app}:v1`;
+  const progressDoc = readRaw(progressKey);
+  const activityDoc = readRaw(activityKey);
+
+  const { content, events, changed } = applyProgressInvalidations(
+    progressDoc?.content,
+    activityDoc?.events,
+    invalidations
+  );
+
+  if (changed) {
+    if (progressDoc) {
+      progressDoc.content = content || {};
+      recomputeProgressDocumentSummary(progressDoc, app);
+      progressDoc.updatedAt = new Date().toISOString();
+      writeRaw(progressKey, progressDoc);
+    }
+    if (activityDoc) {
+      activityDoc.events = events || [];
+      activityDoc.updatedAt = new Date().toISOString();
+      writeRaw(activityKey, activityDoc);
+    }
+  }
+
+  const latest = invalidations.reduce(
+    (max, inv) => (inv.invalidated_at > max ? inv.invalidated_at : max),
+    since
+  );
+  localStorage.setItem(cursorKey, latest);
+  return changed;
+}
+
 async function downloadApp(app) {
   const remoteRows = await lpSupabase.fetchProgress(app);
   if (remoteRows === null) return { downloaded: false, reason: 'fetch_error' };
@@ -713,6 +759,7 @@ function prepareProgressDocForUpload(progressDoc, app, activityDoc) {
 }
 
 async function pullMergeLocal(app) {
+  await purgeInvalidatedLocal(app);
   const progress = await downloadApp(app);
   const activity = await downloadActivityApp(app);
   let reconciled = false;

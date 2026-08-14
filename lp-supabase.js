@@ -216,6 +216,26 @@ export async function fetchActivityEvents(app) {
   return data ?? [];
 }
 
+/**
+ * Invalidaciones de progreso más nuevas que `sinceIso` (migración 024).
+ * El cliente las usa para purgar su propio localStorage antes de sincronizar,
+ * así nunca re-sube un "completado" que un admin acaba de corregir.
+ */
+export async function fetchInvalidations(app, sinceIso) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return [];
+
+  const { data, error } = await supabase
+    .from('progress_invalidations')
+    .select('content_id, invalidated_at')
+    .eq('user_id', session.user.id)
+    .eq('app', app)
+    .gt('invalidated_at', sinceIso);
+
+  if (error) return null;
+  return data ?? [];
+}
+
 // === ACTIVITY EVENTS ===
 
 export async function syncActivityEvents(app, events) {

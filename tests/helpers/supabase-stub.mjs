@@ -37,6 +37,10 @@ export async function fetchActivityEvents(app) {
   return remote.activity[app] ?? [];
 }
 
+export async function fetchInvalidations(_app, _sinceIso) {
+  return [];
+}
+
 export async function syncProgress(app, doc) {
   uploads.progress.push({ app, contentIds: Object.keys(doc.content ?? {}) });
   return { synced: true, count: Object.keys(doc.content ?? {}).length, via: 'merge_rpc' };
