@@ -91,6 +91,12 @@ var lpDevTools = (function () {
     window.location.reload();
   }
 
+  function scrollIntoViewWhenReady(el) {
+    requestAnimationFrame(function () {
+      el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
+  }
+
   function init() {
     var trigger = document.getElementById('devToolsTrigger');
     var panel = document.getElementById('devToolsPanel');
@@ -119,6 +125,11 @@ var lpDevTools = (function () {
       var next = cacheConfirm.hidden;
       cacheConfirm.hidden = !next;
       clearCacheBtn.setAttribute('aria-expanded', String(next));
+      if (next) {
+        screenGrid.hidden = true;
+        screenInfoBtn.setAttribute('aria-expanded', 'false');
+        scrollIntoViewWhenReady(cacheConfirm);
+      }
     });
 
     cacheCancelBtn.addEventListener('click', function () {
@@ -137,7 +148,12 @@ var lpDevTools = (function () {
       var next = screenGrid.hidden;
       screenGrid.hidden = !next;
       screenInfoBtn.setAttribute('aria-expanded', String(next));
-      if (next) screenGrid.innerHTML = renderScreenGrid(getScreenInfo());
+      if (next) {
+        cacheConfirm.hidden = true;
+        clearCacheBtn.setAttribute('aria-expanded', 'false');
+        screenGrid.innerHTML = renderScreenGrid(getScreenInfo());
+        scrollIntoViewWhenReady(screenGrid);
+      }
     });
   }
 
