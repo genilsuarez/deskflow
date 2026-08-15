@@ -224,23 +224,17 @@ export function readLocalActivityEvents(app) {
 }
 
 /**
- * Fetch activity from Supabase only when localStorage has no ledger yet.
- * Safe to call on app boot — no-op when cache or session flag exists.
+ * Fetch activity from Supabase una vez por sesión de pestaña (no-op si ya se
+ * pidió en esta pestaña — ver nota en downloadActivityAppOnce: antes esto
+ * también se saltaba el fetch para siempre en cuanto había CUALQUIER ledger
+ * local, no solo dentro de la misma sesión). Safe to call on app boot.
  */
 export async function hydrateActivityFromCloud(app) {
   if (!APPS.includes(app)) return { hydrated: false, reason: 'unknown_app' };
   if (!hasStoredSupabaseSession()) return { hydrated: false, reason: 'guest' };
-  if (hasLocalActivityLedger(app)) {
-    markActivityFetched(app);
-    notifyActivityReady(app);
-    return { hydrated: true, reason: 'local_cache' };
-  }
   if (wasActivityFetched(app)) {
-    if (hasLocalActivityLedger(app)) {
-      notifyActivityReady(app);
-      return { hydrated: true, reason: 'session_cached' };
-    }
-    clearActivityFetched(app);
+    notifyActivityReady(app);
+    return { hydrated: hasLocalActivityLedger(app), reason: 'session_cached' };
   }
   const result = await downloadActivityApp(app);
   return { hydrated: hasLocalActivityLedger(app), ...result };
@@ -556,17 +550,22 @@ async function downloadActivityApp(app) {
 }
 
 async function downloadActivityAppOnce(app) {
+  // Antes: si YA había ledger local (casi siempre, para cualquier usuario
+  // activo) esto se saltaba el fetch remoto para SIEMPRE, incluso en una
+  // pestaña/sesión nueva — wasActivityFetched (sessionStorage) nunca
+  // alcanzaba a importar porque este segundo check ganaba primero. Resultado:
+  // activity_events solo se pedía una vez por dispositivo en toda su vida.
+  // Las claves de score por categoría (vocab-<cat>-<modo>:v1, de donde sale
+  // el % de la tarjeta vía getModuleMatrixProgress) solo se rellenan
+  // reconstruyendo esos eventos — así que categorías hechas en otro
+  // dispositivo nunca llegaban acá, aunque learnflow:progress:hubflow:v1 (el
+  // agregado) ya estuviera correcto. Ahora el único gate es la sesión: 1
+  // fetch real por pestaña/reload, no por dispositivo — y como
+  // checkAndRefresh() (migración 026) ya evita llamar a esto seguido sin
+  // necesidad, el costo extra en Supabase queda acotado igual.
   if (wasActivityFetched(app)) {
-    if (hasLocalActivityLedger(app)) {
-      notifyActivityReady(app);
-      return { downloaded: false, reason: 'session_cached' };
-    }
-    clearActivityFetched(app);
-  }
-  if (hasLocalActivityLedger(app)) {
-    markActivityFetched(app);
     notifyActivityReady(app);
-    return { downloaded: false, reason: 'local_cache' };
+    return { downloaded: false, reason: 'session_cached' };
   }
 
   const remoteRows = await lpSupabase.fetchActivityEvents(app);
@@ -704,12 +703,23 @@ export async function refreshFromCloudIfNeeded({ force = false } = {}) {
   }
 }
 
+// -1 (no 0) como default: "nunca chequeado" tiene que ser distinguible de
+// "la última revisión vista fue 0". Los datos de progreso escritos ANTES de
+// que existiera esta migración nunca bumpearon sync_cursor, así que un
+// usuario con progreso real en la nube puede perfectamente tener
+// revision=0 ahí. Si el sentinel de "nunca chequeado" también fuera 0,
+// 0 <= 0 da "ya estoy al día" y el dispositivo no pullea nunca — exactamente
+// el bug que esto reemplaza. Con -1, el primer chequeo en cualquier
+// dispositivo siempre gatilla un pull real sin importar qué número
+// devuelva el server, y de ahí en más las comparaciones ya son correctas.
 function readLastSeenRevision() {
   try {
-    const n = Number(localStorage.getItem(SYNC_REVISION_KEY));
-    return Number.isFinite(n) ? n : 0;
+    const raw = localStorage.getItem(SYNC_REVISION_KEY);
+    if (raw === null) return -1;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : -1;
   } catch {
-    return 0;
+    return -1;
   }
 }
 
