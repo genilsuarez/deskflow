@@ -28,6 +28,41 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+/**
+ * Recalcula si un item está realmente completo a partir de sus `activities`
+ * (completedKeys === totalKeys en las requeridas), en vez de confiar en el
+ * flag `item.completed` de la raíz. Ese flag se fusiona en sync-engine.js
+ * con `Boolean(row.completed) || Boolean(existing.completed)` — "nunca
+ * retrocede" — así que si la regla de completado de la app dueña se volvió
+ * más estricta (ej. HubFlow: Study ahora también exige el ✓) después de la
+ * última sync de ese item, el flag de raíz puede quedar pegado en `true`
+ * aunque ya no lo sea.
+ *
+ * Solo mira 'practice' y 'study' — los únicos activityId que HubFlow usa en
+ * PROGRESS_RULES (ver catalog.js). `item.activities` puede traer además
+ * entradas "match"/"timed" (rastreadas para la matriz de progreso/Maestría,
+ * no exigidas para Aprobado — ver resolveScoreActivity en progress-store.js);
+ * si se contaran aquí, un módulo con Study+Quiz al 100% pero Match sin jugar
+ * nunca se marcaría como completo. Esta función es genérica a propósito (sin
+ * importar el catálogo de cada app, que este archivo no tiene) — misma
+ * defensa que ya usa HubFlow para su propio resumen (`isStoredItemCompleted`
+ * en progress-store.js, que si conoce la regla real), pero disponible
+ * también para lectores cross-app (DeskFlow, LyricFlow) que pueden leer el
+ * doc de otra app sin haberla abierto para autocorregirlo.
+ */
+function isItemActuallyComplete(item) {
+  const activities = isRecord(item?.activities) ? item.activities : {};
+  const required = ['practice', 'study']
+    .map((id) => activities[id])
+    .filter((activity) => isRecord(activity));
+  if (!required.length) return Boolean(item?.completed);
+  return required.every((activity) =>
+    Number.isInteger(activity.totalKeys) && activity.totalKeys > 0
+      ? activity.completedKeys === activity.totalKeys
+      : Boolean(activity.completed)
+  );
+}
+
 /** Infiere nivel CEFR desde el id de módulo (p. ej. quiz-greetings-a1 o a1-reading-1). */
 export function inferFluentflowCefrLevel(contentId) {
   if (!isNonEmptyString(contentId)) return null;
@@ -787,7 +822,7 @@ export function computeHubflowLevelSummary(content, levels = HUBFLOW_LEVELS) {
   for (const [moduleId, level] of Object.entries(levels || {})) {
     if (!byLevel[level]) continue;
     byLevel[level].total++;
-    if (isRecord(content) && content[moduleId]?.completed === true) byLevel[level].completed++;
+    if (isRecord(content) && isItemActuallyComplete(content[moduleId])) byLevel[level].completed++;
   }
   return Object.fromEntries(
     LEVEL_ORDER.map((level) => {
