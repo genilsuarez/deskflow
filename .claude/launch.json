@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "deskflow",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-l", "3098", "/Users/gsuarez/Documents/Code/Learn/DeskFlow"],
+      "port": 3098
+    }
+  ]
+}

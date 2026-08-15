@@ -424,9 +424,10 @@ function renderCefr() {
       const config = APP_CONFIG[app];
       const chip = element('span', `cefr-chip cefr-chip--${config.color} ${met[app] ? 'cefr-chip--met' : 'cefr-chip--pending'}`);
       chip.setAttribute('title', `${config.name} ${upperLevel} ${pct}%${met[app] ? ' · completo' : ' · pendiente'}`);
-      const avatar = element('span', 'cefr-chip__avatar', config.name.charAt(0));
-      avatar.setAttribute('aria-hidden', 'true');
-      chip.append(avatar, element('span', 'cefr-chip__value', `${pct}%`));
+      // Nombre corto (sin el sufijo "Flow", redundante en este contexto) en vez
+      // de una sola inicial — con solo "F"/"H"/"L" no se entendía qué app era.
+      const shortName = config.name.replace(/Flow$/, '');
+      chip.append(element('span', 'cefr-chip__name', shortName), element('span', 'cefr-chip__value', `${pct}%`));
       breakdown.appendChild(chip);
     });
   }

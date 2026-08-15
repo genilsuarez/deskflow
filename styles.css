@@ -988,37 +988,32 @@ body {
   font-weight: 600;
 }
 
-/* Chips compactos avatar+% (en vez de pills de texto largo "FLUENTFLOW A1 100%")
-   para que las 3 apps quepan en una sola línea y no estiren la tarjeta en alto. */
+/* Chips nombre+% — antes solo mostraban una inicial en un avatar circular
+   ("F"/"H"/"L") para caber en una sola línea sin estirar la tarjeta, pero
+   la inicial sola no se entendía. Ahora llevan el nombre corto de la app;
+   se permite que envuelvan a una 2ª línea si no caben las 3 juntas. */
 .cefr-app-breakdown {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 .cefr-chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 1px 7px 1px 2px;
+  padding: 3px 10px;
   border-radius: var(--lp-radius-full);
   font-family: var(--lp-font-mono);
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 700;
 }
-.cefr-chip__avatar {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 16px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
+.cefr-chip__name {
   font-family: var(--lp-font-display);
-  font-size: 0.56rem;
   font-weight: 700;
-  color: var(--lp-ink-inverse);
 }
-.cefr-chip--purple .cefr-chip__avatar { background: var(--lp-cat-purple); }
-.cefr-chip--amber .cefr-chip__avatar { background: var(--lp-cat-amber); }
-.cefr-chip--teal .cefr-chip__avatar { background: var(--lp-cat-teal); }
+.cefr-chip--purple .cefr-chip__name { color: var(--lp-cat-purple); }
+.cefr-chip--amber .cefr-chip__name { color: var(--lp-cat-amber); }
+.cefr-chip--teal .cefr-chip__name { color: var(--lp-cat-teal); }
 
 /* Pendiente: mismo lenguaje monocromo del portal, pero con relleno sólido
    para que salte a la vista cuál módulo falta sin usar semáforo verde/ámbar. */
@@ -1026,13 +1021,13 @@ body {
   background: var(--lp-ink);
   color: var(--lp-surface);
 }
+.cefr-chip--pending .cefr-chip__name {
+  color: var(--lp-surface);
+}
 .cefr-chip--met {
   background: color-mix(in srgb, var(--lp-ink) 5%, var(--lp-surface));
   color: var(--lp-muted);
   border: 1px solid var(--lp-border-subtle);
-}
-.cefr-chip--met .cefr-chip__avatar {
-  opacity: 0.6;
 }
 
 .cefr-pending-name {
