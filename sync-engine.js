@@ -33,6 +33,8 @@ const SYNC_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_ACTIVITY_EVENTS = 200;
 const VISIBILITY_REFRESH_MIN_MS = 12_000;
 const SYNC_CHANNEL_NAME = 'lp-sync';
+const SYNC_REVISION_KEY = 'lp-sync-revision';
+const REVISION_POLL_MS = 25_000;
 
 let lastSyncAt = 0;
 let syncing = false;
@@ -42,6 +44,7 @@ let lastVisibilityRefreshAt = 0;
 let multiSessionSetup = false;
 let syncChannel = null;
 let refreshingFromCloud = false;
+let revisionPollTimer = null;
 
 const STATS_DEFERRAL_TIMEOUT_MS = 8000;
 let statsDisplayReady = !hasStoredSupabaseSession() || hasLocalStatsCache();
@@ -701,10 +704,66 @@ export async function refreshFromCloudIfNeeded({ force = false } = {}) {
   }
 }
 
+function readLastSeenRevision() {
+  try {
+    const n = Number(localStorage.getItem(SYNC_REVISION_KEY));
+    return Number.isFinite(n) ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeLastSeenRevision(revision) {
+  try {
+    localStorage.setItem(SYNC_REVISION_KEY, String(revision));
+  } catch {
+    /* localStorage no disponible */
+  }
+}
+
+/**
+ * Gate barato delante de refreshFromCloudIfNeeded() (migración 026,
+ * sync_cursor): en vez de pullear-y-mergear en cada visibility/focus/poll
+ * (que era el único mecanismo que decidía "hay algo nuevo" hasta ahora, vía
+ * cloudHydrated + throttle de 12s), primero compara un solo entero contra el
+ * último visto. Si nadie escribió nada nuevo, no se toca progress ni
+ * activity_events para nada — la fuente de los 5-navegadores-5-porcentajes
+ * era justamente que ese "hay algo nuevo" se decidía con heurísticas que
+ * podían desincronizarse entre sí.
+ *
+ * force:true (botón manual, reconexión online) se salta la comparación pero
+ * de todos modos registra la revisión post-pull, para que el próximo check
+ * liviano no vuelva a disparar un pull redundante innecesariamente.
+ *
+ * Si fetchSyncRevision() falla (sesión en carrera, red, RLS) cae al
+ * comportamiento de siempre (refreshFromCloudIfNeeded con su propio
+ * throttle) — nunca es peor que antes de esta migración.
+ */
+export async function checkAndRefresh({ force = false } = {}) {
+  if (force) {
+    const result = await refreshFromCloudIfNeeded({ force: true });
+    const revision = await lpSupabase.fetchSyncRevision();
+    if (result.refreshed && revision !== null) writeLastSeenRevision(revision);
+    return result;
+  }
+
+  const revision = await lpSupabase.fetchSyncRevision();
+  if (revision === null) return refreshFromCloudIfNeeded();
+  if (revision <= readLastSeenRevision()) {
+    return { refreshed: false, reason: 'up_to_date', revision };
+  }
+
+  const result = await refreshFromCloudIfNeeded({ force: true });
+  if (result.refreshed) writeLastSeenRevision(revision);
+  return result;
+}
+
 /**
  * Cross-tab + multi-device hooks:
  * - BroadcastChannel for same-origin tabs
  * - visibility/focus → re-download (merge-by-max)
+ * - polling liviano de la revisión mientras la pestaña está visible (barato:
+ *   1 fila indexada, no progress/activity_events completos)
  */
 export function setupMultiSessionSync() {
   if (typeof window === 'undefined' || multiSessionSetup) return;
@@ -726,7 +785,7 @@ export function setupMultiSessionSync() {
 
   const onVisible = () => {
     if (document.visibilityState && document.visibilityState !== 'visible') return;
-    void refreshFromCloudIfNeeded();
+    void checkAndRefresh();
   };
 
   document.addEventListener('visibilitychange', onVisible);
@@ -734,12 +793,19 @@ export function setupMultiSessionSync() {
 
   // Online again after offline — pull latest before local writes race.
   window.addEventListener('online', () => {
-    void refreshFromCloudIfNeeded({ force: true });
+    void checkAndRefresh({ force: true });
   });
 
   window.addEventListener('lp-guest-reset', () => {
     resetDownloadState();
   });
+
+  if (!revisionPollTimer) {
+    revisionPollTimer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      void checkAndRefresh();
+    }, REVISION_POLL_MS);
+  }
 }
 
 function prepareProgressDocForUpload(progressDoc, app, activityDoc) {

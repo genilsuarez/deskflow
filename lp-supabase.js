@@ -174,7 +174,13 @@ export async function syncProgress(app, localProgress) {
 
 export async function fetchProgress(app) {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) return [];
+  // null (no []): sin sesión acá es indistinguible de una carrera de arranque
+  // frío (el cliente de Supabase todavía restaurando el token desde storage)
+  // — devolver [] hacía que downloadOnLogin() lo confundiera con "sin datos
+  // remotos" y marcara cloudHydrated=true sin haber pedido nada realmente,
+  // dejando el dispositivo pegado en su copia local vieja (ver auditoría
+  // House & Rooms: 5 navegadores, 5 porcentajes distintos, ninguno = nube).
+  if (!session?.user) return null;
 
   const { data, error } = await supabase
     .from('progress')
@@ -188,7 +194,7 @@ export async function fetchProgress(app) {
 
 export async function fetchActivityEvents(app) {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) return [];
+  if (!session?.user) return null; // ver nota en fetchProgress()
 
   const { data, error } = await supabase
     .from('activity_events')
@@ -211,7 +217,7 @@ export async function fetchActivityEvents(app) {
  */
 export async function fetchInvalidations(app, sinceIso) {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) return [];
+  if (!session?.user) return null; // ver nota en fetchProgress()
 
   const { data, error } = await supabase
     .from('progress_invalidations')
@@ -222,6 +228,28 @@ export async function fetchInvalidations(app, sinceIso) {
 
   if (error) return null;
   return data ?? [];
+}
+
+/**
+ * Revisión monotónica del usuario (migración 026, sync_cursor). Un solo
+ * número que sube en cada escritura real a progress/activity_events — el
+ * cliente lo compara contra el último que vio para decidir "¿hace falta
+ * pull?" sin ambigüedad, en vez de las heurísticas (downloaded, cloudHydrated,
+ * hasLocalStatsCache) que hoy deciden eso y se desincronizan entre sí.
+ * Todavía no se llama desde ningún lado (fase 2 del plan de sync).
+ */
+export async function fetchSyncRevision() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return null;
+
+  const { data, error } = await supabase
+    .from('sync_cursor')
+    .select('revision')
+    .eq('user_id', session.user.id)
+    .maybeSingle();
+
+  if (error) return null;
+  return data?.revision ?? 0;
 }
 
 // === ACTIVITY EVENTS ===

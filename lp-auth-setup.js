@@ -7,7 +7,7 @@ import {
   markStatsDisplayReady,
   markLocalCacheBootstrapped,
   hasLocalStatsCache,
-  refreshFromCloudIfNeeded,
+  checkAndRefresh,
 } from './sync-engine.js';
 import { checkLevelAdvancement, LEVEL_ORDER } from './lp-progress-summary.js';
 
@@ -150,9 +150,12 @@ async function processAuthSession(session, onAfterLogin, onAfterLogout, event) {
     lpSupabase.cleanAuthParamsFromUrl?.();
     // El caché local puede estar desactualizado (progreso hecho en otro
     // dispositivo). markLocalCacheBootstrapped() solo evita bloquear el
-    // primer render; el pull real ocurre acá, en segundo plano, en vez de
-    // esperar al próximo visibilitychange/focus.
-    void refreshFromCloudIfNeeded({ force: true });
+    // primer render; el chequeo real ocurre acá, en segundo plano, en vez de
+    // esperar al próximo visibilitychange/focus. checkAndRefresh() consulta
+    // primero la revisión (migración 026) — si no hay nada nuevo no pullea
+    // progress/activity_events completos; si falla el chequeo, cae sola al
+    // pull de siempre.
+    void checkAndRefresh();
     return;
   }
 
@@ -169,7 +172,7 @@ function setupCrossTabLogoutListener() {
 // Ajustes) — para verificar sync multi-dispositivo sin esperar al próximo
 // visibility/focus. force:true en ambos pasos ignora los throttles normales.
 window.lpForceSync = async () => {
-  const pull = await refreshFromCloudIfNeeded({ force: true });
+  const pull = await checkAndRefresh({ force: true });
   const push = await runFullSync({ force: true });
   return { pull, push };
 };
