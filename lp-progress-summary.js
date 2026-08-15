@@ -843,6 +843,21 @@ export function computeHubflowLevelSummary(content, levels = HUBFLOW_LEVELS) {
 }
 
 /**
+ * Recalcula si una canción está realmente completa desde `activities`, en
+ * vez de confiar en `item.completed` — mismo motivo que isItemActuallyComplete
+ * para HubFlow, pero con la regla propia de LyricFlow (ver enrichLyricflowSongEntry):
+ * las 4 actividades completas, o las 3 "challenges" (dictation/challenge/quiz)
+ * sin exigir listen.
+ */
+function isLyricflowSongActuallyComplete(item) {
+  const activities = isRecord(item?.activities) ? item.activities : {};
+  if (!Object.keys(activities).length) return Boolean(item?.completed);
+  const completedCount = LYRICFLOW_ACTIVITY_IDS.filter((id) => activities[id]?.completed).length;
+  const challengesDone = ['dictation', 'challenge', 'quiz'].every((id) => activities[id]?.completed);
+  return completedCount === LYRICFLOW_ACTIVITY_IDS.length || challengesDone;
+}
+
+/**
  * Desglosa el progreso de LyricFlow por nivel CEFR. `levels` ya excluye
  * canciones fuera de la escala CEFR (Dernière Danse, "FR") — ver
  * scripts/generate-level-map.mjs. Un nivel sin canciones cuenta como 100%.
@@ -852,7 +867,12 @@ export function computeLyricflowLevelSummary(content, levels = LYRICFLOW_LEVELS)
   for (const [songId, level] of Object.entries(levels || {})) {
     if (!byLevel[level]) continue;
     byLevel[level].total++;
-    if (isRecord(content) && content[songId]?.completed === true) byLevel[level].completed++;
+    // isLyricflowSongActuallyComplete, no content[songId].completed crudo:
+    // misma defensa que computeHubflowLevelSummary (arriba) — hoy el
+    // pipeline de sync ya corrige `completed` vía enrichLyricflowSongEntry
+    // antes de llegar acá, pero esta función no debería depender de eso
+    // para ser correcta si algún día LyricFlow endurece su propia regla.
+    if (isRecord(content) && isLyricflowSongActuallyComplete(content[songId])) byLevel[level].completed++;
   }
   return Object.fromEntries(
     LEVEL_ORDER.map((level) => {
