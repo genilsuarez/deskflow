@@ -50,7 +50,7 @@ function isNonEmptyString(value) {
  * también para lectores cross-app (DeskFlow, LyricFlow) que pueden leer el
  * doc de otra app sin haberla abierto para autocorregirlo.
  */
-function isItemActuallyComplete(item) {
+export function isItemActuallyComplete(item) {
   const activities = isRecord(item?.activities) ? item.activities : {};
   const required = ['practice', 'study']
     .map((id) => activities[id])
@@ -776,7 +776,13 @@ export function recomputeProgressDocumentSummary(doc, app) {
       progressPct: items.length
         ? items.reduce((sum, item) => sum + (item.progressPct || 0), 0) / items.length
         : 0,
-      completedContent: items.filter((item) => item.completed).length,
+      // isItemActuallyComplete, no item.completed crudo: mismo motivo que
+      // computeHubflowLevelSummary (arriba) — el flag de raíz puede quedar
+      // pegado en true de una regla de completado vieja. Sin esta corrección,
+      // este total (usado en "X de Y" y el % de la tarjeta de módulo) queda
+      // inflado y por encima del desglose por nivel, algo que no debería
+      // pasar nunca (el desglose por nivel es un subconjunto de este total).
+      completedContent: items.filter((item) => isItemActuallyComplete(item)).length,
       totalContent: catalogTotal,
       attemptedContent: items.filter((item) => (item.attempts || 0) > 0).length,
       ...computeHubflowActivitySummary(doc.content),
