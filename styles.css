@@ -3009,10 +3009,15 @@ a:focus-visible,
   .resumen-dashboard { gap: 8px; }
   .resumen-hero { gap: 10px; margin-bottom: 0; }
 
+  /* Compacto en vez de oculto: es el atajo principal para retomar el
+     estudio y es donde más se usa. Se recorta la descripción para que
+     quepa en una fila junto al botón. */
   .continue-banner {
-    display: none;
+    padding: 10px 12px;
+    gap: 10px;
   }
 
+  .continue-banner p { display: none; }
   .continue-banner h2 { font-size: 1.1rem; }
   .continue-banner .lp-btn { white-space: nowrap; }
   .lp-btn .lp-btn__verb { display: none; }
