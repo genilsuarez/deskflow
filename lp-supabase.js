@@ -146,17 +146,13 @@ function toProgressRows(userId, app, content) {
     }));
 }
 
-async function upsertProgressBlind(rows) {
-  const { error } = await supabase
-    .from('progress')
-    .upsert(rows, { onConflict: 'user_id,app,content_id' });
-  return error;
-}
-
 /**
  * Sube progreso con merge monotónico en servidor (RPC upsert_progress_merge).
- * Si el RPC aún no está aplicado, cae a upsert clásico (el cliente ya hace
- * pull-merge-push y filtra filas vacías).
+ * Sin fallback a upsert clásico a propósito: ese upsert pisa la fila entera
+ * en vez de mergear (greatest()/OR por campo), que es exactamente la
+ * condición de carrera multi-dispositivo que la migración 019 vino a
+ * eliminar. Si el RPC falla, el ciclo falla limpio y se reintenta solo en
+ * el próximo scheduleSync/visibility-refresh del caller.
  */
 export async function syncProgress(app, localProgress) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -173,15 +169,7 @@ export async function syncProgress(app, localProgress) {
     return { synced: true, count: typeof data === 'number' ? data : rows.length, via: 'merge_rpc' };
   }
 
-  // RPC missing / not yet migrated → blind upsert (still filtered empty rows)
-  const message = rpcError.message || '';
-  const rpcMissing =
-    /could not find the function|function .* does not exist|PGRST202|404/i.test(message);
-  if (!rpcMissing) return { synced: false, reason: message };
-
-  const fallbackError = await upsertProgressBlind(rows);
-  if (fallbackError) return { synced: false, reason: fallbackError.message };
-  return { synced: true, count: rows.length, via: 'upsert_fallback' };
+  return { synced: false, reason: rpcError.message || 'rpc_failed' };
 }
 
 export async function fetchProgress(app) {
