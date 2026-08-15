@@ -165,6 +165,15 @@ function setupCrossTabLogoutListener() {
   });
 }
 
+// Pull-merge-push manual desde #devForceSyncBtn (panel "Desarrollador" en
+// Ajustes) — para verificar sync multi-dispositivo sin esperar al próximo
+// visibility/focus. force:true en ambos pasos ignora los throttles normales.
+window.lpForceSync = async () => {
+  const pull = await refreshFromCloudIfNeeded({ force: true });
+  const push = await runFullSync({ force: true });
+  return { pull, push };
+};
+
 export function setupSupabaseAuth({ onAfterLogin, onAfterLogout } = {}) {
   if (authListenerRegistered) return;
   authListenerRegistered = true;
