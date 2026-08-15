@@ -26,6 +26,9 @@
 .lp-dev-screen-grid div { padding: 7px 8px; border-radius: var(--lp-radius-sm); background: var(--lp-surface); }
 .lp-dev-screen-grid dt { margin: 0; color: var(--lp-muted); font-size: 0.62rem; text-transform: uppercase; }
 .lp-dev-screen-grid dd { margin: 2px 0 0; color: var(--lp-ink); font-family: var(--lp-font-mono); font-size: var(--lp-text-xs); }
+.lp-dev-panel__status { margin: 8px 0 0; color: var(--lp-muted); font-size: var(--lp-text-xs); }
+.lp-dev-panel__status[data-state="error"] { color: var(--lp-error); }
+.lp-dev-panel__status[data-state="ok"] { color: var(--lp-accent-dark); }
 .lp-dev-cache-confirm { margin-top: 8px; padding: 8px; border-radius: var(--lp-radius-md); background: var(--lp-error-soft); }
 .lp-dev-cache-confirm p { margin: 0; color: var(--lp-ink-soft); font-size: var(--lp-text-xs); line-height: 1.3; }
 .lp-dev-cache-confirm > div { display: flex; justify-content: flex-end; gap: 7px; margin-top: 6px; }

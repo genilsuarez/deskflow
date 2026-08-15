@@ -1,7 +1,7 @@
 import { APPS, ProgressReader, STATUS } from './progress-reader.js';
 import { buildContentTitleIndex, resolveContentTitle } from './content-title.js';
 import { repairLocalProjections, auditLocalProjections, auditCloudAlignment } from './sync-engine-audit.js';
-import { runFullSync, shouldDeferStatsDisplay, shouldDeferActivityDisplay, consumeStatsRevealAnimation, hydrateActivityFromCloud } from './sync-engine.js';
+import { runFullSync, refreshFromCloudIfNeeded, shouldDeferStatsDisplay, shouldDeferActivityDisplay, consumeStatsRevealAnimation, hydrateActivityFromCloud } from './sync-engine.js';
 import { animateText, animateCssVar, animateWidth } from './lp-stats-animate.js';
 import { setupSupabaseAuth } from './lp-auth-setup.js';
 import { getActiveLevel, getCombinedLevelProgress, LEVEL_ORDER } from './lp-progress-summary.js';
@@ -1344,6 +1344,16 @@ window.addEventListener('lp-sync-peer', () => scheduleRenderAll());
 window.addEventListener('lp-guest-reset', () => {
   scheduleRenderAll();
 });
+
+// Pull-merge-push manual desde #devForceSyncBtn (panel "Desarrollador" en
+// Ajustes) — para verificar sync multi-dispositivo sin esperar al próximo
+// visibility/focus. force:true en ambos pasos ignora los throttles normales.
+window.lpForceSync = async () => {
+  const pull = await refreshFromCloudIfNeeded({ force: true });
+  const push = await runFullSync({ force: true });
+  scheduleRenderAll();
+  return { pull, push };
+};
 
 if (new URLSearchParams(location.search).has('debug')) {
   document.getElementById('dataHealth').hidden = false;

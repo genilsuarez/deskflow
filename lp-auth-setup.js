@@ -7,6 +7,7 @@ import {
   markStatsDisplayReady,
   markLocalCacheBootstrapped,
   hasLocalStatsCache,
+  refreshFromCloudIfNeeded,
 } from './sync-engine.js';
 import { checkLevelAdvancement, LEVEL_ORDER } from './lp-progress-summary.js';
 
@@ -147,6 +148,11 @@ async function processAuthSession(session, onAfterLogin, onAfterLogout, event) {
     markLocalCacheBootstrapped();
     lastHandledUserId = session.user.id;
     lpSupabase.cleanAuthParamsFromUrl?.();
+    // El caché local puede estar desactualizado (progreso hecho en otro
+    // dispositivo). markLocalCacheBootstrapped() solo evita bloquear el
+    // primer render; el pull real ocurre acá, en segundo plano, en vez de
+    // esperar al próximo visibilitychange/focus.
+    void refreshFromCloudIfNeeded({ force: true });
     return;
   }
 

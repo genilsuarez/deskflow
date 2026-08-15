@@ -102,6 +102,8 @@ var lpDevTools = (function () {
     var panel = document.getElementById('devToolsPanel');
     var buildStampEl = document.getElementById('devBuildStamp');
     var recompileBtn = document.getElementById('devRecompileBtn');
+    var forceSyncBtn = document.getElementById('devForceSyncBtn');
+    var syncStatus = document.getElementById('devSyncStatus');
     var clearCacheBtn = document.getElementById('devClearCacheBtn');
     var cacheConfirm = document.getElementById('devCacheConfirm');
     var cacheCancelBtn = document.getElementById('devCacheCancelBtn');
@@ -120,6 +122,31 @@ var lpDevTools = (function () {
     recompileBtn.addEventListener('click', function () {
       window.location.reload();
     });
+
+    if (forceSyncBtn && syncStatus) {
+      forceSyncBtn.addEventListener('click', function () {
+        if (!window.lpForceSync) return;
+        forceSyncBtn.disabled = true;
+        syncStatus.hidden = false;
+        syncStatus.removeAttribute('data-state');
+        syncStatus.textContent = 'Sincronizando…';
+        window.lpForceSync()
+          .then(function (result) {
+            var pulled = !!(result && result.pull && result.pull.downloaded);
+            syncStatus.dataset.state = 'ok';
+            syncStatus.textContent = pulled
+              ? '✓ Sincronizado — se descargaron cambios de otro dispositivo'
+              : '✓ Sincronizado — sin cambios nuevos';
+          })
+          .catch(function () {
+            syncStatus.dataset.state = 'error';
+            syncStatus.textContent = '✕ No se pudo sincronizar — revisa tu conexión';
+          })
+          .finally(function () {
+            forceSyncBtn.disabled = false;
+          });
+      });
+    }
 
     clearCacheBtn.addEventListener('click', function () {
       var next = cacheConfirm.hidden;
