@@ -16,7 +16,7 @@
   //
   // Estuvo corta hasta el 2026-08-01: cubría 41 de 88, así que un reset de
   // invitado dejaba vivo el historial de los módulos con los otros 47 prefijos.
-  var HUB_SCORE_PREFIX_RE = /^(a1gapfill|a1match|a1q|a1sb|a2errspot|a2sentorder|advcoll|adverbs|advwordform|argument|art|aspect|blends|causative|clause|cleft|cohesion|coll|collmastery|comp|compound|cond|conf|connotation|contract|demonstr|dict|discourse|ed|ellipsis|errhunt|formalreg|fronting|future|futurepast|ger|hedging|idiomctx|imperative|ing|inver|irr|kwt|linking|listen|madeof|mixedcond|modaldeduct|modals|negaffix|nominal|noun|odd|paracloze|paraphrase|particip|passive|pastsimplecont|phonics|phrasal|plural|pluralposs|pos|pref|prep|pron|pronouns|punct|quant|regprecision|regswitch|reladv|rs|sbe|sentcomb|sentreorder|someany|stress|subjunctive|summarize|tense|tobehave|usedto|vchunks|vocab|wf|wordorder|wr)-/;
+  var HUB_SCORE_PREFIX_RE = /^(a1gapfill|a1match|a1q|a1sb|a2errspot|a2sentorder|advcoll|adverbs|advwordform|apos|argument|art|aspect|blends|causative|clause|cleft|cohesion|coll|collmastery|comp|compound|cond|connotation|contract|cverb|demonstr|dict|discourse|ed|ellipsis|errhunt|formalreg|fronting|future|futurepast|gconf|ger|hedging|idiomctx|imperative|ing|inver|irr|kwt|linking|listen|look|madeof|mixedcond|modaldeduct|modals|negaffix|nominal|noun|odd|paracloze|paraphrase|particip|passive|pastsimplecont|phonics|phrasal|plural|pluralposs|pos|pref|prep|pron|pronouns|punct|quant|regprecision|regswitch|reladv|rs|sbe|sentcomb|sentreorder|someany|stress|subjunctive|summarize|tense|tobehave|usedto|vchunks|vocab|wf|wordorder|wr)-/;
   var LOGOUT_FLAG_KEY = 'lp-explicit-logout';
   var LOGOUT_FLAG_TTL_MS = 5 * 60 * 1000;
   var PROGRESS_APPS = ['fluentflow', 'hubflow', 'lyricflow'];
