@@ -211,6 +211,37 @@ export async function fetchActivityEvents(app) {
 }
 
 /**
+ * Mejor puntaje por scoreKey, agregado server-side (migración 027).
+ *
+ * fetchActivityEvents() está capado a los 200 eventos más recientes a
+ * propósito (el ledger crece sin techo: ~700 en un mes). Pero las claves de
+ * score-history de HubFlow — las que alimentan la matriz categoría × modo —
+ * solo se pueden reconstruir desde esos eventos, así que todo lo practicado
+ * antes de esa ventana era invisible en cualquier otro dispositivo. Esta
+ * consulta devuelve el máximo por scoreKey en vez de los eventos: acotada por
+ * el catálogo (~87 filas), no por la cantidad de intentos.
+ *
+ * @param {string} app
+ * @returns {Promise<null | {contentId: string, scoreKey: string, bestScorePct: number, lastOccurredAt: string|null}[]>}
+ */
+export async function fetchScoreKeyBests(app) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return null; // ver nota en fetchProgress()
+
+  const { data, error } = await supabase.rpc('score_key_bests', { p_app: app });
+  if (error) return null;
+
+  return (data ?? [])
+    .filter((row) => typeof row?.score_key === 'string' && row.score_key)
+    .map((row) => ({
+      contentId: row.content_id,
+      scoreKey: row.score_key,
+      bestScorePct: Number(row.best_score_pct) || 0,
+      lastOccurredAt: row.last_occurred_at ?? null,
+    }));
+}
+
+/**
  * Invalidaciones de progreso más nuevas que `sinceIso` (migración 024).
  * El cliente las usa para purgar su propio localStorage antes de sincronizar,
  * así nunca re-sube un "completado" que un admin acaba de corregir.

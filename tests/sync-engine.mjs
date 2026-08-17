@@ -275,6 +275,70 @@ await check('sin clave de catálogo no descarta eventos (fail-open)', async () =
     'sin catálogo debe subir todo: filtrar acá perdería progreso legítimo');
 });
 
+// ── score_key_bests: el detalle granular no puede depender de los 200 ──────
+//
+// Las claves de score-history de HubFlow (vocab-<cat>-<modo>) solo se
+// reconstruyen desde activity_events, y fetchActivityEvents está capado a los
+// 200 eventos más recientes. Medido 2026-08-17: 686 eventos en la nube, 87
+// scoreKeys, 34 reconstruibles → House & Rooms marcaba 2/8 con 8/8 ganado.
+// La migración 027 agrega el máximo por scoreKey, acotado por catálogo.
+
+await check('cachea score_key_bests de hubflow al hidratar', async () => {
+  stub.reset();
+  const store = installStorage({
+    [catalogKey('hubflow')]: catalogValue(['h1']),
+    'learnflow:progress:hubflow:v1': progressDoc('hubflow', ['h1']),
+  });
+  stub.remote.scoreKeyBests.hubflow = [
+    { contentId: 'h1', scoreKey: 'vocab-kitchen-quiz', bestScorePct: 90, lastOccurredAt: iso() },
+    { contentId: 'h1', scoreKey: 'vocab-kitchen-match', bestScorePct: 100, lastOccurredAt: iso() },
+  ];
+  sync.resetDownloadState();
+  await sync.downloadOnLogin({ force: true });
+
+  const bests = sync.readScoreKeyBests('hubflow');
+  assertEqual(bests['vocab-kitchen-quiz'], 90, 'debe cachear el mejor puntaje por scoreKey');
+  assertEqual(bests['vocab-kitchen-match'], 100, 'debe cachear todas las claves devueltas');
+  assert(store['learnflow:score-key-bests:hubflow:v1'], 'debe persistir la caché en localStorage');
+});
+
+await check('no pide score_key_bests para apps que no lo usan', async () => {
+  stub.reset();
+  installStorage({ 'learnflow:progress:lyricflow:v1': progressDoc('lyricflow', ['s1']) });
+  stub.remote.scoreKeyBests.lyricflow = [
+    { contentId: 's1', scoreKey: 'no-deberia-guardarse', bestScorePct: 100, lastOccurredAt: iso() },
+  ];
+  sync.resetDownloadState();
+  await sync.downloadOnLogin({ force: true });
+
+  assertEqual(Object.keys(sync.readScoreKeyBests('lyricflow')).length, 0,
+    'solo HubFlow reconstruye claves de score-history');
+});
+
+await check('si la RPC falla, la hidratación igual completa', async () => {
+  stub.reset();
+  installStorage({
+    [catalogKey('hubflow')]: catalogValue(['h1']),
+    'learnflow:progress:hubflow:v1': progressDoc('hubflow', ['h1']),
+  });
+  // Emula la migración 027 sin aplicar: fetchScoreKeyBests devuelve null.
+  const original = stub.remote.scoreKeyBests;
+  Object.defineProperty(stub.remote, 'scoreKeyBests', {
+    get() { throw new Error('rpc missing'); }, configurable: true,
+  });
+  let result;
+  try {
+    sync.resetDownloadState();
+    result = await sync.downloadOnLogin({ force: true });
+  } finally {
+    Object.defineProperty(stub.remote, 'scoreKeyBests',
+      { value: original, writable: true, configurable: true, enumerable: true });
+  }
+
+  assert(result.hydrated,
+    'un fallo de score_key_bests no puede dejar cloudHydrated=false — rompería todo el sync');
+});
+
 // ── Reporte ────────────────────────────────────────────────────────────────
 
 console.log('');

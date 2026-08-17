@@ -598,6 +598,52 @@ async function downloadActivityAppOnce(app) {
   return { downloaded: true, count: remoteRows.length };
 }
 
+/** Caché local del agregado `score_key_bests` (migración 027). */
+export function scoreKeyBestsStorageKey(app) {
+  return `learnflow:score-key-bests:${app}:v1`;
+}
+
+/** Mejores puntajes por scoreKey ya cacheados (mapa scoreKey → pct). */
+export function readScoreKeyBests(app) {
+  const doc = readRaw(scoreKeyBestsStorageKey(app));
+  return doc && typeof doc.bests === 'object' && doc.bests ? doc.bests : {};
+}
+
+/**
+ * Baja el máximo por scoreKey desde Supabase (migración 027).
+ *
+ * No está gateado por sesión de pestaña como downloadActivityApp: es lo único
+ * que puede reconstruir el detalle categoría × modo de HubFlow en un
+ * dispositivo que no fue el que practicó, y es barato (una fila por scoreKey
+ * del catálogo, no por intento). El gate real ya lo pone checkAndRefresh()
+ * con el cursor de revisión (migración 026): esto solo corre en login o
+ * cuando el server dice que algo cambió.
+ */
+async function downloadScoreKeyBests(app) {
+  // try/catch además del null: mientras la migración 027 no esté aplicada
+  // esta RPC no existe, y nada de lo que pase acá puede tumbar la hidratación
+  // del resto del sync (ver nota en downloadOnLogin).
+  const rows = await lpSupabase.fetchScoreKeyBests(app).catch(() => null);
+  if (rows === null) return { downloaded: false, reason: 'fetch_error' };
+  if (!rows.length) return { downloaded: false, reason: 'no_remote_data' };
+
+  const bests = {};
+  for (const row of rows) {
+    if (!row?.scoreKey) continue;
+    const pct = Number(row.bestScorePct) || 0;
+    bests[row.scoreKey] = Math.max(bests[row.scoreKey] ?? 0, pct);
+  }
+
+  const key = scoreKeyBestsStorageKey(app);
+  const previous = readRaw(key);
+  if (previous && JSON.stringify(previous.bests || {}) === JSON.stringify(bests)) {
+    return { downloaded: false, reason: 'unchanged', count: rows.length };
+  }
+
+  writeRaw(key, { schemaVersion: 1, app, updatedAt: new Date().toISOString(), bests });
+  return { downloaded: true, count: rows.length };
+}
+
 // Se llama una sola vez por sesión, justo después de autenticarse.
 export function resetDownloadState() {
   downloaded = false;
@@ -643,9 +689,19 @@ export async function downloadOnLogin({ force = false } = {}) {
     if (shouldAbortCloudHydration()) return discardHydrationAfterLogout(perApp);
     const progress = await downloadApp(app);
     const activity = await downloadActivityApp(app);
-    perApp[app] = { progress, activity };
+    // Solo HubFlow reconstruye claves de score-history por categoría × modo
+    // (progress-store.js); FluentFlow y LyricFlow no las usan.
+    const bests = app === 'hubflow'
+      ? await downloadScoreKeyBests(app)
+      : { downloaded: false, reason: 'not_applicable' };
+    perApp[app] = { progress, activity, bests };
+    // bests NO cuenta como fetch_error a propósito: si la migración 027
+    // todavía no está aplicada, la RPC falla y esto degradaría a
+    // cloudHydrated=false permanente, rompiendo TODO el sync. Sin el
+    // agregado simplemente no se reconstruyen las claves granulares — el
+    // mismo estado que había antes de esta migración.
     if (progress.reason === 'fetch_error' || activity.reason === 'fetch_error') hadFetchError = true;
-    if (progress.downloaded || activity.downloaded) anyChanged = true;
+    if (progress.downloaded || activity.downloaded || bests.downloaded) anyChanged = true;
   }
 
   if (shouldAbortCloudHydration() || !(await lpSupabase.isAuthenticated().catch(() => false))) {

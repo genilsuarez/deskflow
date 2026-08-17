@@ -5,7 +5,7 @@
 // poder ejercitar el ciclo pull-merge-push de verdad, sin red.
 
 /** Filas que "devuelve la nube". Las setea cada prueba. */
-export const remote = { progress: {}, activity: {} };
+export const remote = { progress: {}, activity: {}, scoreKeyBests: {} };
 
 /** Lo que sync-engine intentó subir. Es lo que se verifica. */
 export const uploads = { progress: [], activity: [] };
@@ -13,6 +13,7 @@ export const uploads = { progress: [], activity: [] };
 export function reset() {
   remote.progress = {};
   remote.activity = {};
+  remote.scoreKeyBests = {};
   uploads.progress = [];
   uploads.activity = [];
 }
@@ -35,6 +36,10 @@ export async function fetchProgress(app) {
 
 export async function fetchActivityEvents(app) {
   return remote.activity[app] ?? [];
+}
+
+export async function fetchScoreKeyBests(app) {
+  return remote.scoreKeyBests[app] ?? [];
 }
 
 export async function fetchInvalidations(_app, _sinceIso) {
