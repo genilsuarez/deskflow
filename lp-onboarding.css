@@ -82,12 +82,20 @@ body.onboarding-open { overflow: hidden; }
 .onboarding-option--muted { align-items: center; text-align: center; background: transparent; border-style: dashed; }
 .onboarding-option--muted strong { font-weight: 500; color: var(--lp-muted); }
 .onboarding-option.is-selected { border-color: var(--lp-accent); background: var(--lp-accent-soft); }
+/* Distintivo de los niveles que no se auto-reportan (B1/B2): avisa del examen
+   antes de elegir, no después. Va dentro del <span> del hint para no sumar
+   una tercera línea a la opción (ver nota de altura más abajo). */
+.onboarding-option__exam {
+  font-style: normal; font-size: 0.68rem; font-weight: 600; white-space: nowrap;
+  color: var(--lp-accent); border: 1px solid var(--lp-accent); border-radius: 999px;
+  padding: 0 6px; margin-left: 4px;
+}
 
 /* Pantalla meta/motivo: dos grupos de chips añaden más filas que el resto
    de pantallas — se recorta el gap para igualar la altura del paso final. */
 .onboarding-body:has(.onboarding-chips) { gap: 12px; }
 
-/* Pantalla de nivel: 4 opciones de dos líneas (A1/A2/B1 + "B2 o más") son el
+/* Pantalla de nivel: 4 opciones de dos líneas (A1/A2/B1/B2) son el
    contenido más alto de todo el flujo — se comprime lo justo para caber en
    la misma altura fija que el resto sin volver a truncar el texto (eso ya
    se probó y se descartó: ver commit anterior). Solo se ajustan paddings/

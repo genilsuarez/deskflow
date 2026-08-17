@@ -1,58 +1,92 @@
 /**
- * Motor de scoring del examen de placement B2+ — two-stage fixed-form.
- * Ver docs/placement-test-b2plus-plan.md para el diseño completo.
+ * Motor de scoring del examen de nivel — gate de validación del nivel solicitado.
+ *
+ * No ubica al usuario: confirma (o no) el nivel que él mismo pidió en la encuesta.
+ * Pedir B1 evalúa el bloque B1; pedir B2 evalúa primero un piso B1 abreviado y
+ * luego el bloque B2. Si algún bloque se reprueba, el resultado cae a FALLBACK_LEVEL
+ * — no se otorga un nivel intermedio, porque el usuario no lo pidió ni lo demostró.
+ * A1/A2 no se validan: son encuesta pura y nunca llegan acá.
  *
  * Función pura: no toca localStorage, DOM ni red — solo recibe ítems + respuestas
  * y devuelve el resultado. Así es testeable de forma aislada (ver
- * DeskFlow/tests/placement-scoring-invariants.mjs).
+ * DeskFlow/tests/placement-scoring-invariants.mjs). El clamp contra el nivel ya
+ * ganado orgánicamente lo aplica el llamador (DeskFlow), que sí lee progreso.
  *
  * Canónica en Learn/scripts/; copy-shared.sh la distribuye a DeskFlow.
  */
 
-export const STAGE1_LEVEL = 'b1';
-export const STAGE1_PASS_THRESHOLD = 0.7;
-export const STAGE2_LEVELS = ['b2', 'c1', 'c2'];
-export const STAGE2_PASS_THRESHOLD = 0.6;
+/** Niveles que exigen examen. A1/A2 se auto-reportan sin validar. */
+export const VALIDATABLE_LEVELS = ['b1', 'b2'];
+
+/** Nivel al que se cae cuando el examen se reprueba o se abandona. */
+export const FALLBACK_LEVEL = 'a1';
+
+/** Ratio mínimo de aciertos por bloque para darlo por aprobado. */
+export const PASS_THRESHOLD = { b1: 0.7, b2: 0.6 };
+
+/**
+ * Tamaño del piso B1 cuando se pide B2. Quien pide B2 igual verifica un piso B1
+ * real, pero forzarle el bloque B1 completo es fricción innecesaria: se acorta
+ * la verificación en vez de eliminarla.
+ */
+export const FLOOR_BLOCK_SIZE = 5;
+
+/** Bloques a rendir, en orden, para validar `requestedLevel`. Vacío si no se valida. */
+export function blocksFor(requestedLevel) {
+  if (requestedLevel === 'b1') return ['b1'];
+  if (requestedLevel === 'b2') return ['b1', 'b2'];
+  return [];
+}
 
 function blockResult(level, items, answers) {
-  const indices = items
+  const entries = items
     .map((item, index) => ({ item, index }))
     .filter((entry) => entry.item.level === level);
-  const total = indices.length;
-  const correctCount = indices.reduce(
+  const total = entries.length;
+  const correctCount = entries.reduce(
     (count, entry) => count + (answers[entry.index] === entry.item.correct ? 1 : 0),
     0
   );
+  // Un bloque sin ítems rendidos (examen cortado antes de llegar) cuenta como
+  // reprobado: nunca se demostró, así que no otorga nivel.
   const ratio = total === 0 ? 0 : correctCount / total;
   return { level, correctCount, total, ratio };
 }
 
 /**
- * @param {Array<{level: string, correct: string}>} items - ítems del examen, en el orden rendido.
- * @param {Array<string|null>} answers - respuesta elegida por el usuario, mismo índice que `items`.
+ * @param {string} requestedLevel - nivel que el usuario pidió en la encuesta ('b1' | 'b2').
+ * @param {Array<{level: string, correct: string}>} items - ítems rendidos, en orden.
+ * @param {Array<string|null>} answers - respuesta elegida, mismo índice que `items`.
  * @returns {{
+ *   requested: string,
+ *   passed: boolean,
  *   level: string,
- *   stage1: { correctCount: number, total: number, ratio: number, passed: boolean },
- *   stage2Blocks: Array<{ level: string, correctCount: number, total: number, ratio: number, passed: boolean }>
+ *   blocks: Array<{ level: string, correctCount: number, total: number, ratio: number, passed: boolean }>
  * }}
  */
-export function scorePlacement(items, answers) {
-  const stage1Raw = blockResult(STAGE1_LEVEL, items, answers);
-  const stage1 = { ...stage1Raw, passed: stage1Raw.ratio >= STAGE1_PASS_THRESHOLD };
+export function scoreValidation(requestedLevel, items, answers) {
+  const blocks = [];
+  let passed = true;
 
-  if (!stage1.passed) {
-    return { level: STAGE1_LEVEL, stage1, stage2Blocks: [] };
-  }
-
-  const stage2Blocks = [];
-  let finalLevel = STAGE1_LEVEL;
-  for (const level of STAGE2_LEVELS) {
+  // Se corta en el primer bloque reprobado: si el piso B1 falla, el bloque B2
+  // ni se puntúa — el resultado ya está decidido.
+  for (const level of blocksFor(requestedLevel)) {
     const block = blockResult(level, items, answers);
-    const passed = block.ratio >= STAGE2_PASS_THRESHOLD;
-    stage2Blocks.push({ ...block, passed });
-    if (!passed) break;
-    finalLevel = level;
+    const blockPassed = block.ratio >= PASS_THRESHOLD[level];
+    blocks.push({ ...block, passed: blockPassed });
+    if (!blockPassed) {
+      passed = false;
+      break;
+    }
   }
 
-  return { level: finalLevel, stage1, stage2Blocks };
+  // blocksFor() vacío ⇒ nivel no validable: no hay nada que aprobar.
+  if (blocks.length === 0) passed = false;
+
+  return {
+    requested: requestedLevel,
+    passed,
+    level: passed ? requestedLevel : FALLBACK_LEVEL,
+    blocks,
+  };
 }

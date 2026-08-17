@@ -976,6 +976,25 @@ export function isCefrTrackComplete() {
 }
 
 /**
+ * Nivel más alto que el usuario tiene **ganado con trabajo real** — el más alto
+ * cuyos niveles anteriores cumplen todos la condición de avance. Se deriva del
+ * progreso, no de `lp-level`: un nivel auto-reportado (o confirmado por examen)
+ * no cuenta acá, solo el contenido efectivamente completado.
+ *
+ * Lo usa DeskFlow como piso al reprobar o abandonar el examen de nivel: fallar
+ * un intento de B2 nunca puede borrar un B1 que ya se ganó completando módulos
+ * (ver el invariante "el nivel nunca baja" en checkLevelAdvancement más abajo).
+ */
+export function getEarnedLevelFloor() {
+  let floor = LEVEL_ORDER[0];
+  for (let index = 0; index < LEVEL_ORDER.length - 1; index++) {
+    if (!meetsLevelCompletion(getCombinedLevelProgress(LEVEL_ORDER[index]))) break;
+    floor = LEVEL_ORDER[index + 1];
+  }
+  return floor;
+}
+
+/**
  * Evalúa si el nivel activo (`lp-level`) debe subir al siguiente y, si
  * corresponde, escribe el nuevo valor en localStorage. No llama a Supabase
  * — el caller decide si persiste (`updateCefrLevel()` en lp-supabase.js),

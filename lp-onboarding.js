@@ -15,23 +15,40 @@ var lpOnboarding = (function () {
   var DAILY_GOAL_KEY = 'lp-daily-goal-minutes';
   var MOTIVE_KEY = 'lp-motive';
   var BODY_TRANSIT_MS = 140;
-  var PLACEMENT_PENDING_KEY = 'lp-placement-test-pending';
+  var PLACEMENT_REQUEST_KEY = 'lp-placement-request';
+  var LEVEL_STEP = 3;
 
-  // Decisión de producto (2026-08-09, no un olvido): la autoevaluación de un solo
-  // clic solo llega hasta B1. FluentFlow vende profundidad real en idioms/phrasal
-  // verbs — un self-report para B2+ es demasiado poco confiable para eso (alguien
-  // puede "sentirse C1" leyendo bien y no conocer ni la mitad del vocabulario
-  // específico que le tocaría). B2+ va a tener un examen de verdad — pendiente de
-  // diseño en otra sesión — que valide con precisión antes de desbloquear ese
-  // contenido. Hasta que exista, quien se ubique por encima de B1 entra con techo
-  // B1 y queda marcado en PLACEMENT_PENDING_KEY para poder ofrecerle el examen
-  // real en cuanto esté listo, en vez de perderlo silenciosamente en "b1" para
-  // siempre.
+  // Decisión de producto: el self-report solo se acepta tal cual hasta A2. De B1
+  // en adelante hay que demostrarlo — FluentFlow vende profundidad real en
+  // idioms/phrasal verbs, y alguien puede "sentirse B2" leyendo bien sin conocer
+  // ni la mitad del vocabulario específico que le tocaría. Pedir B1 o B2 no
+  // escribe `lp-level`: escribe PLACEMENT_REQUEST_KEY y manda al examen, que es
+  // quien otorga el nivel. Reprobarlo o abandonarlo deja el nivel ganado, no el
+  // pedido (ver lp-placement-test.js § commitLevel).
   var LEVEL_OPTIONS = [
     { value: 'a1', label: 'A1', hint: 'Recién empiezo — nada o casi nada de inglés' },
     { value: 'a2', label: 'A2', hint: 'Puedo presentarme y hacer preguntas simples' },
-    { value: 'b1', label: 'B1', hint: 'Entiendo conversaciones cotidianas, me trabo con temas complejos' },
+    {
+      value: 'b1',
+      label: 'B1',
+      hint: 'Entiendo conversaciones cotidianas, me trabo con temas complejos',
+      exam: true,
+    },
+    {
+      value: 'b2',
+      label: 'B2',
+      hint: 'Me manejo con soltura, incluso en temas complejos',
+      exam: true,
+    },
   ];
+
+  /** B1 y B2 no se auto-reportan: hay que aprobar el examen para que se otorguen. */
+  function requiresExam(level) {
+    for (var i = 0; i < LEVEL_OPTIONS.length; i++) {
+      if (LEVEL_OPTIONS[i].value === level) return !!LEVEL_OPTIONS[i].exam;
+    }
+    return false;
+  }
 
   var GOAL_OPTIONS = [
     { value: '5', label: 'Casual', hint: '~5 min al día' },
@@ -69,7 +86,11 @@ var lpOnboarding = (function () {
     if (!forced && hasSeenOnboarding()) return;
     track(forced ? 'onboarding_replay_start' : 'onboarding_start');
 
-    var state = { step: 0, level: null, goal: null, motive: null, placementPending: false };
+    // startStep permite reabrir directo en el selector de nivel ("cambiar mi
+    // nivel") sin volver a pasar por el carrusel de bienvenida; minStep evita
+    // que el botón atrás lleve a pantallas que este flujo no pidió mostrar.
+    var minStep = Math.max(0, Math.min(options.startStep || 0, LEVEL_STEP));
+    var state = { step: minStep, minStep: minStep, level: null, goal: null, motive: null };
 
     var overlay = document.createElement('div');
     overlay.id = 'lpOnboarding';
@@ -189,8 +210,8 @@ var lpOnboarding = (function () {
     function updateNav() {
       var stepDef = STEPS[state.step];
 
-      backBtn.hidden = state.step === 0;
-      backBtn.disabled = state.step === 0;
+      backBtn.hidden = state.step <= state.minStep;
+      backBtn.disabled = state.step <= state.minStep;
 
       var showSkip = stepDef.skip !== false;
       skipBtn.style.display = showSkip ? '' : 'none';
@@ -314,7 +335,8 @@ var lpOnboarding = (function () {
       body.insertAdjacentHTML(
         'beforeend',
         '<h2 id="onboardingTitle">¿Cuál es tu nivel de inglés hoy?</h2>' +
-          '<p class="onboarding-body-text">No es examen — solo evita repetirte lo que ya sabes.</p>'
+          '<p class="onboarding-body-text">Elige el que más se te parezca. ' +
+          'De B1 en adelante te pedimos un examen corto para confirmarlo.</p>'
       );
       var list = document.createElement('div');
       list.className = 'onboarding-options onboarding-options--level';
@@ -323,31 +345,16 @@ var lpOnboarding = (function () {
         btn.type = 'button';
         btn.className = 'onboarding-option' + (state.level === opt.value ? ' is-selected' : '');
         btn.innerHTML =
-          '<strong>' + opt.label + '</strong><span>' + opt.hint + '</span>';
+          '<strong>' + opt.label + '</strong><span>' + opt.hint +
+          (opt.exam ? ' <em class="onboarding-option__exam">Requiere examen</em>' : '') +
+          '</span>';
         btn.addEventListener('click', function () {
           state.level = opt.value;
-          state.placementPending = false;
           track('onboarding_level_' + opt.value);
           goTo(4);
         });
         list.appendChild(btn);
       });
-      // No es un descarte silencioso: a quien ya sabe más de B1 no lo mandamos a
-      // "b1" sin avisar — lo marcamos para ofrecerle el examen real en cuanto
-      // exista (ver nota junto a LEVEL_OPTIONS más arriba).
-      var advancedBtn = document.createElement('button');
-      advancedBtn.type = 'button';
-      advancedBtn.className =
-        'onboarding-option' + (state.placementPending ? ' is-selected' : '');
-      advancedBtn.innerHTML =
-        '<strong>B2 o más</strong><span>Por ahora arrancas en B1 — pronto vas a poder confirmar tu nivel real con un examen</span>';
-      advancedBtn.addEventListener('click', function () {
-        state.level = 'b1';
-        state.placementPending = true;
-        track('onboarding_level_placement_pending');
-        goTo(4);
-      });
-      list.appendChild(advancedBtn);
       attachRoving(list, '.onboarding-option', { prev: 'ArrowUp', next: 'ArrowDown' });
       body.appendChild(list);
     }
@@ -394,14 +401,21 @@ var lpOnboarding = (function () {
     }
 
     function renderFirstValueStep(body) {
-      if (state.level) {
+      var needsExam = requiresExam(state.level);
+      if (state.level && !needsExam) {
+        // A1/A2 se otorgan tal cual: son encuesta, no hay nada que demostrar.
         localStorage.setItem('lp-level', state.level);
       }
-      if (state.placementPending) {
-        localStorage.setItem(PLACEMENT_PENDING_KEY, '1');
+      if (needsExam) {
+        // El nivel pedido NO se escribe en lp-level — lo otorga el examen solo
+        // si se aprueba. Hasta entonces queda registrada la petición y el
+        // usuario sigue en el nivel que ya tenía ganado.
+        localStorage.setItem(PLACEMENT_REQUEST_KEY, state.level);
       }
-      var readyCopy = state.placementPending
-        ? 'Arrancas en B1, pero ya podemos confirmar tu nivel real ahora mismo con un examen corto (empieza con una verificación rápida y sube de nivel si te va bien).'
+      var readyCopy = needsExam
+        ? 'Pediste nivel ' + state.level.toUpperCase() + '. Para confirmarlo te toca un examen corto: ' +
+          'si lo apruebas, tu contenido queda en ' + state.level.toUpperCase() + '; si no, sigues en el nivel ' +
+          'que ya tengas y puedes volver a intentarlo cuando quieras.'
         : 'Tu contenido ya está ajustado a nivel ' +
           (state.level || 'a1').toUpperCase() +
           '. Empieza con una primera actividad; tu progreso se guarda automáticamente en este dispositivo.';
@@ -414,18 +428,18 @@ var lpOnboarding = (function () {
       // El CTA y el link secundario van al pie fijo (mismo sitio que
       // Siguiente/Saltar en el resto de pasos) — no al body — para que no
       // cambien de posición según cuánto texto tenga la pantalla.
-      if (state.placementPending) {
-        // Encuesta → examen en la misma sesión: si se autoreportó B2+, el
-        // siguiente paso natural es confirmarlo ya, no diferirlo a una oferta
-        // posterior en el dashboard (eso queda solo como fallback si elige
-        // "Prefiero explorar primero" más abajo).
+      if (needsExam) {
+        // Encuesta → examen en la misma sesión: el siguiente paso natural es
+        // confirmarlo ya, no diferirlo a una oferta posterior en el dashboard
+        // (eso queda como fallback si elige "Prefiero explorar primero").
+        var requestedLevel = state.level;
         var placementCta = document.createElement('button');
         placementCta.type = 'button';
         placementCta.className = 'lp-btn lp-btn--primary onboarding-cta';
-        placementCta.innerHTML = 'Confirmar mi nivel ahora <span aria-hidden="true">→</span>';
+        placementCta.innerHTML = 'Hacer el examen ahora <span aria-hidden="true">→</span>';
         placementCta.addEventListener('click', function () {
           finish('start_placement', { reload: false });
-          if (typeof options.onPlacementReady === 'function') options.onPlacementReady();
+          if (typeof options.onPlacementReady === 'function') options.onPlacementReady(requestedLevel);
         });
         footer.appendChild(placementCta);
       } else {
@@ -483,5 +497,11 @@ var lpOnboarding = (function () {
     });
   }
 
-  return { open: open, hasSeenOnboarding: hasSeenOnboarding };
+  return {
+    open: open,
+    hasSeenOnboarding: hasSeenOnboarding,
+    requiresExam: requiresExam,
+    // Para reabrir directo en el selector de nivel: open({ force: true, startStep: lpOnboarding.LEVEL_STEP }).
+    LEVEL_STEP: LEVEL_STEP,
+  };
 })();

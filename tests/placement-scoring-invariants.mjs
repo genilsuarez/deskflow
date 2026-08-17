@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Invariantes del motor de scoring del placement test — prueba compartida.
+// Invariantes del motor de scoring del examen de nivel — prueba compartida.
 //
 // Canónica en Learn/scripts/; copy-shared.sh la distribuye a tests/ de cada app.
 // No editar las copias: el chequeo de deriva del build las revierte.
 //
-// Son pruebas funcionales: importan el módulo real (scorePlacement) y lo
+// Son pruebas funcionales: importan el módulo real (scoreValidation) y lo
 // ejecutan con ítems/respuestas sintéticas — no hacen grep sobre el fuente.
 //
 // Correr:  node tests/placement-scoring-invariants.mjs
@@ -33,7 +33,7 @@ if (!scoringPath) {
   process.exit(1);
 }
 
-const { scorePlacement } = await import(scoringPath);
+const { scoreValidation, blocksFor, FALLBACK_LEVEL } = await import(scoringPath);
 
 let failures = 0;
 function check(name, condition) {
@@ -59,79 +59,95 @@ function answersRatio(items, ratio) {
   return items.map((item, index) => (index < correctCount ? item.correct : 'WRONG'));
 }
 
-console.log('scorePlacement — reprueba etapa 1 (< 70% en B1)');
+console.log('blocksFor — qué bloques exige cada nivel solicitado');
 {
-  const items = levelItems('b1', 15);
-  const answers = answersRatio(items, 0.6); // 9/15 = 60%, por debajo del gate
-  const result = scorePlacement(items, answers);
-  check('nivel final es b1', result.level === 'b1');
-  check('stage1.passed es false', result.stage1.passed === false);
-  check('no evalúa stage2', result.stage2Blocks.length === 0);
+  check('a1 no se valida', blocksFor('a1').length === 0);
+  check('a2 no se valida', blocksFor('a2').length === 0);
+  check('b1 rinde solo el bloque b1', JSON.stringify(blocksFor('b1')) === JSON.stringify(['b1']));
+  check('b2 rinde piso b1 + bloque b2', JSON.stringify(blocksFor('b2')) === JSON.stringify(['b1', 'b2']));
 }
 
-console.log('scorePlacement — aprueba etapa 1 exacto en el umbral (70%)');
+console.log('scoreValidation — pide b1 y lo aprueba (≥ 70%)');
+{
+  const items = levelItems('b1', 15);
+  const answers = answersAllCorrect(items);
+  const result = scoreValidation('b1', items, answers);
+  check('otorga b1', result.level === 'b1');
+  check('passed es true', result.passed === true);
+}
+
+console.log('scoreValidation — pide b1 exacto en el umbral (70%)');
 {
   const items = levelItems('b1', 20);
   const answers = answersRatio(items, 0.7); // 14/20 = exactamente 70%
-  const result = scorePlacement(items, answers);
-  check('stage1.passed es true en el umbral', result.stage1.passed === true);
+  const result = scoreValidation('b1', items, answers);
+  check('el umbral es inclusivo — otorga b1', result.level === 'b1');
 }
 
-console.log('scorePlacement — aprueba etapa 1, reprueba el primer bloque de etapa 2 (queda en b1)');
+console.log('scoreValidation — pide b1 y lo reprueba (< 70%) → cae a a1');
 {
-  const items = [...levelItems('b1', 15), ...levelItems('b2', 5), ...levelItems('c1', 5), ...levelItems('c2', 5)];
-  const answers = [
-    ...answersAllCorrect(levelItems('b1', 15)),
-    ...answersRatio(levelItems('b2', 5), 0.4), // < 60%, corta acá
-    ...levelItems('c1', 5).map(() => 'WRONG'), // no debería ni importar
-    ...levelItems('c2', 5).map(() => 'WRONG'),
-  ];
-  const result = scorePlacement(items, answers);
-  check('nivel final es b1 (piso confirmado, techo no sube)', result.level === 'b1');
-  check('solo evalúa el bloque b2 antes de cortar', result.stage2Blocks.length === 1);
-  check('el bloque b2 queda marcado como no aprobado', result.stage2Blocks[0].passed === false);
+  const items = levelItems('b1', 15);
+  const answers = answersRatio(items, 0.6); // 9/15 = 60%
+  const result = scoreValidation('b1', items, answers);
+  check('NO otorga b1', result.level !== 'b1');
+  check('cae al nivel de fallback', result.level === FALLBACK_LEVEL);
+  check('passed es false', result.passed === false);
 }
 
-console.log('scorePlacement — sube hasta b2 (aprueba b2, reprueba c1)');
+console.log('scoreValidation — pide b2 y reprueba el piso b1 → a1, sin puntuar b2');
 {
-  const items = [...levelItems('b1', 15), ...levelItems('b2', 5), ...levelItems('c1', 5), ...levelItems('c2', 5)];
+  const items = [...levelItems('b1', 5), ...levelItems('b2', 5)];
   const answers = [
-    ...answersAllCorrect(levelItems('b1', 15)),
-    ...answersAllCorrect(levelItems('b2', 5)),
-    ...answersRatio(levelItems('c1', 5), 0.4),
-    ...levelItems('c2', 5).map(() => 'WRONG'),
+    ...answersRatio(levelItems('b1', 5), 0.4), // piso reprobado
+    ...answersAllCorrect(levelItems('b2', 5)), // no debería rescatarlo
   ];
-  const result = scorePlacement(items, answers);
-  check('nivel final es b2', result.level === 'b2');
-  check('evalúa b2 y c1, corta antes de c2', result.stage2Blocks.length === 2);
+  const result = scoreValidation('b2', items, answers);
+  check('cae a a1 aunque el bloque b2 esté perfecto', result.level === FALLBACK_LEVEL);
+  check('corta en el piso — solo puntúa un bloque', result.blocks.length === 1);
+  check('el bloque puntuado es el piso b1', result.blocks[0].level === 'b1');
 }
 
-console.log('scorePlacement — sube hasta c1 (aprueba b2 y c1, reprueba c2)');
+console.log('scoreValidation — pide b2, pasa el piso pero reprueba b2 → a1 (no queda en b1)');
 {
-  const items = [...levelItems('b1', 15), ...levelItems('b2', 5), ...levelItems('c1', 5), ...levelItems('c2', 5)];
+  const items = [...levelItems('b1', 5), ...levelItems('b2', 5)];
   const answers = [
-    ...answersAllCorrect(levelItems('b1', 15)),
-    ...answersAllCorrect(levelItems('b2', 5)),
-    ...answersAllCorrect(levelItems('c1', 5)),
-    ...answersRatio(levelItems('c2', 5), 0.2),
+    ...answersAllCorrect(levelItems('b1', 5)),
+    ...answersRatio(levelItems('b2', 5), 0.4), // 2/5 = 40%, bajo el 60%
   ];
-  const result = scorePlacement(items, answers);
-  check('nivel final es c1', result.level === 'c1');
-  check('evalúa los 3 bloques de etapa 2', result.stage2Blocks.length === 3);
+  const result = scoreValidation('b2', items, answers);
+  check('NO otorga b2', result.level !== 'b2');
+  check('tampoco otorga b1 de consuelo — el usuario pidió b2', result.level === FALLBACK_LEVEL);
+  check('puntúa ambos bloques', result.blocks.length === 2);
+  check('el bloque b2 queda como no aprobado', result.blocks[1].passed === false);
 }
 
-console.log('scorePlacement — sube hasta c2 (aprueba los tres bloques)');
+console.log('scoreValidation — pide b2 y aprueba piso + bloque → b2');
 {
-  const items = [...levelItems('b1', 15), ...levelItems('b2', 5), ...levelItems('c1', 5), ...levelItems('c2', 5)];
+  const items = [...levelItems('b1', 5), ...levelItems('b2', 5)];
   const answers = [
-    ...answersAllCorrect(levelItems('b1', 15)),
-    ...answersAllCorrect(levelItems('b2', 5)),
-    ...answersAllCorrect(levelItems('c1', 5)),
-    ...answersAllCorrect(levelItems('c2', 5)),
+    ...answersAllCorrect(levelItems('b1', 5)),
+    ...answersRatio(levelItems('b2', 5), 0.6), // 3/5 = exactamente 60%
   ];
-  const result = scorePlacement(items, answers);
-  check('nivel final es c2', result.level === 'c2');
-  check('los 3 bloques quedan aprobados', result.stage2Blocks.every((block) => block.passed));
+  const result = scoreValidation('b2', items, answers);
+  check('otorga b2 en el umbral exacto', result.level === 'b2');
+  check('passed es true', result.passed === true);
+  check('ambos bloques aprobados', result.blocks.every((block) => block.passed));
+}
+
+console.log('scoreValidation — examen cortado: bloque sin ítems rendidos no otorga nivel');
+{
+  const items = levelItems('b1', 5); // pidió b2 pero solo rindió el piso
+  const answers = answersAllCorrect(items);
+  const result = scoreValidation('b2', items, answers);
+  check('el bloque b2 vacío reprueba', result.passed === false);
+  check('cae a a1', result.level === FALLBACK_LEVEL);
+}
+
+console.log('scoreValidation — un nivel no validable nunca otorga nivel');
+{
+  const result = scoreValidation('a2', [], []);
+  check('sin bloques que rendir, passed es false', result.passed === false);
+  check('no otorga a2 por la vía del examen', result.level === FALLBACK_LEVEL);
 }
 
 if (failures > 0) {

@@ -4,9 +4,9 @@ import { repairLocalProjections, auditLocalProjections, auditCloudAlignment } fr
 import { runFullSync, refreshFromCloudIfNeeded, shouldDeferStatsDisplay, shouldDeferActivityDisplay, consumeStatsRevealAnimation, hydrateActivityFromCloud } from './sync-engine.js';
 import { animateText, animateCssVar, animateWidth } from './lp-stats-animate.js';
 import { setupSupabaseAuth } from './lp-auth-setup.js';
-import { getActiveLevel, getCombinedLevelProgress, LEVEL_ORDER } from './lp-progress-summary.js';
+import { getActiveLevel, getCombinedLevelProgress, getEarnedLevelFloor, LEVEL_ORDER } from './lp-progress-summary.js';
 import { warmAllCatalogTotals } from './lp-catalog-warmer.js';
-import { scorePlacement, STAGE1_LEVEL, STAGE2_LEVELS } from './lp-placement-scoring.js';
+import { scoreValidation, blocksFor, FALLBACK_LEVEL } from './lp-placement-scoring.js';
 
 const APP_CONFIG = Object.freeze({
   fluentflow: {
@@ -878,25 +878,56 @@ function renderAll() {
   maybeOfferPlacementTest();
 }
 
-// Examen de placement B2+ (ver docs/placement-test-b2plus-plan.md) — la función
-// pura scorePlacement vive en un módulo ESM (import arriba); la UI del examen
-// es un <script> plano (lp-placement-test.js, mismo patrón que lpOnboarding),
-// así que se le inyecta acá en vez de que ella importe el módulo directo.
+// Examen de validación de nivel — las funciones puras de scoring viven en un
+// módulo ESM (import arriba); la UI del examen es un <script> plano
+// (lp-placement-test.js, mismo patrón que lpOnboarding), así que se le inyectan
+// acá en vez de que ella importe el módulo directo.
 function placementTestOptions() {
-  return { score: scorePlacement, stage1Level: STAGE1_LEVEL, stage2Levels: STAGE2_LEVELS };
+  return {
+    score: scoreValidation,
+    blocksFor,
+    fallbackLevel: FALLBACK_LEVEL,
+    levelOrder: LEVEL_ORDER,
+    // Piso al reprobar/abandonar: nunca por debajo de lo ganado con trabajo real.
+    earnedFloor: getEarnedLevelFloor,
+    // El restore de login nunca baja el nivel por su cuenta, así que una bajada
+    // que no se sincroniza vuelve sola en el próximo inicio de sesión.
+    onLevelCommitted: (level) => {
+      window.lpSupabase?.updateCefrLevel(level).catch(() => {
+        /* best-effort: se reintenta en la próxima sesión autenticada */
+      });
+    },
+    // Salida "elegir otro nivel" del modal de reanudación: reabre la encuesta
+    // directo en el selector, sin repetir el carrusel de bienvenida.
+    onChooseAnotherLevel: openLevelSurvey,
+  };
 }
 
-// Puente encuesta → examen: lpOnboarding es un <script> plano sin acceso al
-// scorePlacement importado acá, así que le pasamos este callback en vez de
-// que abra el examen directo (mismo patrón de inyección que placementTestOptions).
-function openPlacementTestNow() {
-  if (window.lpPlacementTest) lpPlacementTest.open(placementTestOptions());
+// Puente encuesta → examen: lpOnboarding es un <script> plano sin acceso a los
+// módulos ESM importados acá, así que le pasamos este callback en vez de que
+// abra el examen directo (mismo patrón de inyección que placementTestOptions).
+function openPlacementTestNow(requestedLevel) {
+  if (window.lpPlacementTest) lpPlacementTest.open({ ...placementTestOptions(), requestedLevel });
 }
 
+// Reabrir la encuesta en el paso de nivel — permite cambiar de nivel sin pasar
+// otra vez por las pantallas de bienvenida.
+function openLevelSurvey() {
+  if (!window.lpOnboarding) return;
+  lpOnboarding.open({
+    force: true,
+    startStep: lpOnboarding.LEVEL_STEP,
+    onPlacementReady: openPlacementTestNow,
+  });
+}
+
+// La entrada está siempre disponible: cambiar de nivel no depende de tener un
+// examen pendiente. Solo cambia la etiqueta según haya algo que confirmar.
 function updatePlacementTestTrigger() {
   const trigger = document.getElementById('placementTestTrigger');
   if (!trigger || typeof lpPlacementTest === 'undefined') return;
-  trigger.hidden = !lpPlacementTest.isPending();
+  const label = trigger.querySelector('.nav-label');
+  if (label) label.textContent = lpPlacementTest.isPending() ? 'Confirma tu nivel' : 'Cambiar mi nivel';
 }
 
 // Fase P.3 — mismo criterio que B.5: se ofrece después de la primera actividad
@@ -904,6 +935,10 @@ function updatePlacementTestTrigger() {
 // ya es idempotente (guarda propia contra duplicados/sesión descartada).
 function maybeOfferPlacementTest() {
   if (typeof lpPlacementTest === 'undefined') return;
+  // Un examen dejado a medias se resuelve antes que cualquier oferta nueva, y
+  // sin esperar a la primera actividad: el usuario ya se comprometió con él.
+  // El modal nunca abre el examen solo — solo explica y ofrece salidas.
+  if (lpPlacementTest.maybeShowResumePrompt(placementTestOptions())) return;
   if (allValidEvents().length === 0) return;
   const container = document.getElementById('resumenDashboard');
   lpPlacementTest.maybeShowOffer(container, placementTestOptions());
@@ -1242,7 +1277,12 @@ function setupNavigation() {
   document.getElementById('placementTestTrigger').addEventListener('click', () => {
     closeSidebar();
     lpSettings.close();
-    if (window.lpPlacementTest) lpPlacementTest.open(placementTestOptions());
+    // Sin petición pendiente el botón está oculto, pero si se llega acá por
+    // teclado/DOM se cae a la encuesta en vez de abrir un examen sin nivel.
+    if (!window.lpPlacementTest) return;
+    const requested = lpPlacementTest.pendingRequest();
+    if (requested) lpPlacementTest.open({ ...placementTestOptions(), requestedLevel: requested });
+    else openLevelSurvey();
   });
   lpLogin.bindNavButton('#loginTrigger', {
     beforeOpen: () => { closeSidebar(); lpSettings.close(); },
