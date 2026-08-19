@@ -38,7 +38,7 @@ function isNonEmptyString(value) {
  * última sync de ese item, el flag de raíz puede quedar pegado en `true`
  * aunque ya no lo sea.
  *
- * Solo mira 'practice' y 'study' — los únicos activityId que HubFlow usa en
+ * Solo mira 'quiz' y 'study' — los únicos activityId que HubFlow usa en
  * PROGRESS_RULES (ver catalog.js). `item.activities` puede traer además
  * entradas "match"/"timed" (rastreadas para la matriz de progreso/Maestría,
  * no exigidas para Aprobado — ver resolveScoreActivity en progress-store.js);
@@ -50,9 +50,41 @@ function isNonEmptyString(value) {
  * también para lectores cross-app (DeskFlow, LyricFlow) que pueden leer el
  * doc de otra app sin haberla abierto para autocorregirlo.
  */
+/**
+ * El activityId del modo Quiz se llamó 'practice' hasta 2026-08-19. Ese nombre
+ * viaja dentro de los eventos del ledger y de los docs de progreso, tanto en
+ * localStorage como en Supabase, así que todo lo ya guardado sigue diciendo
+ * 'practice'. Se traduce al leer en vez de reescribir el histórico: los
+ * registros viejos siguen siendo válidos y un cliente antiguo no se rompe.
+ */
+export function normalizeLegacyActivityId(activityId) {
+  return activityId === 'practice' ? 'quiz' : activityId;
+}
+
+/** Aplica normalizeLegacyActivityId a un mapa `activities`, fusionando si ya
+ *  hubiera una entrada 'quiz' (dispositivo que grabó antes y después del cambio). */
+export function normalizeLegacyActivities(activities) {
+  if (!isRecord(activities) || !isRecord(activities.practice)) return activities;
+  const { practice, ...rest } = activities;
+  const existing = isRecord(rest.quiz) ? rest.quiz : null;
+  if (!existing) return { ...rest, quiz: practice };
+  return {
+    ...rest,
+    quiz: {
+      ...practice,
+      ...existing,
+      completedKeys: Math.max(practice.completedKeys ?? 0, existing.completedKeys ?? 0),
+      totalKeys: Math.max(practice.totalKeys ?? 0, existing.totalKeys ?? 0),
+      bestScorePct: Math.max(practice.bestScorePct ?? 0, existing.bestScorePct ?? 0) || null,
+      attempts: (practice.attempts ?? 0) + (existing.attempts ?? 0),
+      completed: Boolean(practice.completed || existing.completed),
+    },
+  };
+}
+
 export function isItemActuallyComplete(item) {
-  const activities = isRecord(item?.activities) ? item.activities : {};
-  const required = ['practice', 'study']
+  const activities = normalizeLegacyActivities(isRecord(item?.activities) ? item.activities : {});
+  const required = ['quiz', 'study']
     .map((id) => activities[id])
     .filter((activity) => isRecord(activity));
   if (!required.length) return Boolean(item?.completed);
@@ -452,7 +484,7 @@ export function enrichHubflowContentEntry(item) {
 
   const pct = Math.max(item.bestScorePct ?? 0, item.lastScorePct ?? 0, item.progressPct ?? 0, item.completed ? 70 : 0);
   item.activities = {
-    practice: {
+    quiz: {
       completed: Boolean(item.completed),
       completedKeys: item.completed ? 1 : 0,
       totalKeys: 1,
@@ -523,7 +555,7 @@ export function applyHubflowActivityEvents(content, events) {
   const grouped = new Map();
   for (const event of events) {
     if (!event?.contentId || !event?.activity) continue;
-    const groupKey = `${event.contentId}\u0000${event.activity}`;
+    const groupKey = `${event.contentId}\u0000${normalizeLegacyActivityId(event.activity)}`;
     if (!grouped.has(groupKey)) grouped.set(groupKey, []);
     grouped.get(groupKey).push(event);
   }
