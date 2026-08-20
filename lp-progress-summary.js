@@ -927,12 +927,22 @@ export function recomputeProgressDocumentSummary(doc, app) {
   }
 
   if (app === 'hubflow') {
+    // Con local-ready, HubFlow es dueño de la proyección (score-keys en vivo).
+    // Un recompute cross-app aquí dejaba summary=15 con flags completed=38
+    // (promote-only + cloud OR) y DeskFlow/otras pestañas veían el ping-pong.
+    if (readHubflowLocalReady()) {
+      if (doc.summary.totalContent !== catalogTotal) {
+        doc.summary.totalContent = catalogTotal;
+        return snapshotRecomputeState(doc, app) !== before;
+      }
+      return false;
+    }
     for (const item of items) {
       enrichHubflowContentEntry(item);
-      // Solo promover a completado — nunca bajar item.completed acá. HubFlow
-      // publica desde score-keys en vivo; un recompute cross-app (DeskFlow/
-      // sync) que bajaba flags era el ping-pong 15↔12 entre pestañas.
-      if (isItemActuallyComplete(item)) item.completed = true;
+      // Sin local-ready aún: alinear flag con activities (sí puede bajar).
+      // No hay publish de HubFlow que corrija, así que el doc debe ser coherente.
+      item.completed = isItemActuallyComplete(item);
+      if (!item.completed) item.completedAt = null;
     }
     doc.summary = {
       ...doc.summary,

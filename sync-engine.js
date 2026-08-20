@@ -432,6 +432,11 @@ export function reconcileLyricflowProgressFromEvents() {
 
 /** Reconstruye activities de HubFlow desde el ledger local de eventos. */
 export function reconcileHubflowProgressFromEvents() {
+  // HubFlow dueño: no reescribir la proyección desde el ledger en DeskFlow/
+  // otras apps — eso re-inflaba item.completed (flags stale) con summary fijo
+  // y provocaba 38↔15 en la UI.
+  if (hasHubflowLocalReadyFlag()) return false;
+
   const progressKey = 'learnflow:progress:hubflow:v1';
   const activityKey = 'learnflow:activity:hubflow:v1';
   const doc = readRaw(progressKey);
@@ -439,17 +444,10 @@ export function reconcileHubflowProgressFromEvents() {
   if (!doc || !activityDoc?.events?.length) return false;
 
   doc.content = doc.content || {};
-  const beforeCompleted = doc.summary?.completedContent ?? 0;
   const changed = applyHubflowActivityEvents(doc.content, activityDoc.events);
   if (!changed) return false;
 
   recomputeProgressDocumentSummary(doc, 'hubflow');
-  const afterCompleted = doc.summary?.completedContent ?? 0;
-  // La proyección publicada por HubFlow (score-keys en vivo) puede tener más
-  // completados que el ledger aislado — no persistir un downgrade que provoca
-  // ping-pong con publishHubFlowProgress en otra pestaña.
-  if (afterCompleted < beforeCompleted && hasHubflowLocalReadyFlag()) return false;
-
   doc.updatedAt = new Date().toISOString();
   writeRaw(progressKey, doc);
   return true;
@@ -504,6 +502,12 @@ async function downloadApp(app) {
   const remoteRows = await lpSupabase.fetchProgress(app);
   if (remoteRows === null) return { downloaded: false, reason: 'fetch_error' };
   if (!remoteRows.length) return { downloaded: false, reason: 'no_remote_data' };
+
+  // HubFlow ya publicó desde score-keys: no fusionar filas cloud que OR-ean
+  // completed stale (38 flags / summary 15). HubFlow sube la verdad en el push.
+  if (app === 'hubflow' && hasHubflowLocalReadyFlag()) {
+    return { downloaded: false, reason: 'hubflow_local_ready_owns_projection' };
+  }
 
   const key = `learnflow:progress:${app}:v1`;
   const doc = readRaw(key) || emptyProgressDoc(app);

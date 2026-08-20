@@ -5,6 +5,7 @@ import {
   computeLyricflowActivitySummary,
   enrichHubflowContentEntry,
   enrichLyricflowSongEntry,
+  isItemActuallyComplete,
   LYRICFLOW_ACTIVITY_IDS,
 } from './lp-progress-summary.js';
 
@@ -374,11 +375,19 @@ function validateProgress(document, app, storage = null) {
   // aparte a partir de document.content, así que su propio totalContent
   // (= content map en bruto) NO se usa — puede estar inflado con ids
   // huérfanos que el cloud-merge unió sin podar.
+  //
+  // HubFlow: no usar item.completed directamente (cloud-merge hace OR de flags
+  // stale). isItemActuallyComplete() es estricto (score-keys). Si ese conteo
+  // estricto supera el summary almacenado, prevalece — esto corrige documentos
+  // cuyo summary quedó en 0 (p. ej. creados con el doc() helper de los tests
+  // o guardados antes de que HubFlow publicara el summary canónico).
+  const hubflowStrict = app === 'hubflow'
+    ? Object.values(document.content).filter((item) => isItemActuallyComplete(item)).length
+    : null;
   const summaryCompleted = fluentflowSummary?.completedContent
-    ?? (app === 'hubflow'
-      ? Object.values(document.content).filter((item) => isRecord(item) && item.completed).length
-      : null)
-    ?? summary.completedContent;
+    ?? (hubflowStrict !== null && hubflowStrict > summary.completedContent
+      ? hubflowStrict
+      : summary.completedContent);
   const summaryTotal = summary.totalContent;
   const summaryProgressPct = fluentflowSummary
     ? (summaryTotal > 0 ? (summaryCompleted / summaryTotal) * 100 : 0)

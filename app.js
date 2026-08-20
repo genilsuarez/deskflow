@@ -222,7 +222,7 @@ function renderModuleCards(animateReveal = false) {
   APPS.forEach((app) => {
     const config = APP_CONFIG[app];
     const result = getAppResult(app);
-    const card = element('button', `module-card module-card--${config.color}`);
+    const card = element('button', `module-card module-card--path module-card--${config.color}`);
     card.type = 'button';
     card.dataset.view = app;
 
@@ -234,39 +234,26 @@ function renderModuleCards(animateReveal = false) {
     const hint = element(
       'span',
       'module-card__hint',
-      defer ? '0 de 0' : appMetric(result, config)
+      defer ? '0 de 0' : `${appMetric(result, config)} ${config.unit}`
     );
     copy.append(element('strong', 'module-card__label', config.name), hint);
-
-    const lastRow = element('span', 'module-card__last');
-    const lastLabel = element('span', 'module-card__last-label');
-    const lastTitle = element('span', 'module-card__last-title');
-    if (!defer && hasValidProgress(result) && result.progress.data.summary.lastContent) {
-      const last = result.progress.data.summary.lastContent;
-      lastLabel.textContent = `${config.lastLabel} ·`;
-      lastTitle.textContent = resolveContentTitle(last, contentTitleIndex);
-    } else {
-      lastRow.classList.add('module-card__last--reserved');
-      lastLabel.textContent = '\u00a0';
-      lastTitle.textContent = '\u00a0';
-    }
-    lastRow.append(lastLabel, lastTitle);
-    copy.append(lastRow);
 
     const pct = element('span', 'module-card__pct', defer ? '0%' : progressLabel(result));
     if (animateReveal && progressValue > 0) {
       animateText(pct, 0, progressValue, (v) => `${v}%`);
     }
 
-    const chevron = element('span', 'module-card__chevron', '→');
-    chevron.setAttribute('aria-hidden', 'true');
+    const cta = element('span', 'module-card__cta', 'Continuar aprendiendo ');
+    const ctaArrow = element('span', '', '→');
+    ctaArrow.setAttribute('aria-hidden', 'true');
+    cta.append(ctaArrow);
 
     const progress = createProgressBar(progressValue, `Progreso de ${config.name}`, {
       animate: animateReveal && progressValue > 0,
     });
     progress.classList.add('module-card__bar');
 
-    card.append(mark, copy, pct, chevron, progress);
+    card.append(mark, copy, pct, cta, progress);
     container.append(card);
   });
 }
@@ -375,6 +362,7 @@ function renderCefr() {
   const level = document.getElementById('cefrLevel');
   const description = document.getElementById('cefrDescription');
   const breakdown = document.getElementById('cefrBreakdown');
+  const stepper = document.getElementById('cefrStepper');
   if (!level || !description) return;
   // Diferido: no pisar con "A1" vacío — eso hacía flash A1→nivel real al hidratar.
   if (isStatsDeferred()) return;
@@ -402,7 +390,7 @@ function renderCefr() {
   } else if (descriptionKey === 'ready') {
     description.append(`${upperLevel} · cumples las 3 condiciones. Tu nivel sube al registrar la próxima actividad.`);
   } else {
-    description.append(`${upperLevel} · para subir de nivel falta: `);
+    description.append('Para subir de nivel te falta: ');
     pendingNames.forEach((name, index) => {
       if (index > 0) description.append(', ');
       description.append(element('strong', 'cefr-pending-name', name));
@@ -417,13 +405,26 @@ function renderCefr() {
       const config = APP_CONFIG[app];
       const chip = element('span', `cefr-chip cefr-chip--${config.color} ${met[app] ? 'cefr-chip--met' : 'cefr-chip--pending'}`);
       chip.setAttribute('title', `${config.name} ${upperLevel} ${pct}%${met[app] ? ' · completo' : ' · pendiente'}`);
-      // Nombre corto (sin el sufijo "Flow", redundante en este contexto) en vez
-      // de una sola inicial — con solo "F"/"H"/"L" no se entendía qué app era.
       const shortName = config.name.replace(/Flow$/, '');
       chip.append(element('span', 'cefr-chip__name', shortName), element('span', 'cefr-chip__value', `${pct}%`));
       breakdown.appendChild(chip);
     });
     breakdown.dataset.cefrSnapshot = snapshotKey;
+  }
+
+  if (stepper) {
+    const activeIdx = LEVEL_ORDER.indexOf(activeLevel);
+    stepper.replaceChildren();
+    LEVEL_ORDER.forEach((lvl, index) => {
+      const step = element('li', `cefr-stepper__step${index < activeIdx ? ' is-done' : index === activeIdx ? ' is-current' : ''}`);
+      const dot = element('span', 'cefr-stepper__dot', lvl.toUpperCase());
+      step.append(dot);
+      if (index < LEVEL_ORDER.length - 1) {
+        step.append(element('span', 'cefr-stepper__line'));
+      }
+      if (index === activeIdx) step.setAttribute('aria-current', 'step');
+      stepper.append(step);
+    });
   }
 }
 
@@ -634,10 +635,14 @@ function renderStreak() {
   const streak = allDeferred ? 0 : calculateStreak(latestValidEvents(Infinity));
 
   heading.textContent = streak === 1 ? '1 día' : `${streak} días`;
-  value.textContent = `🔥 ${streak}`;
   description.textContent = streak > 0
     ? 'Racha activa en tus tres módulos.'
     : 'Completa una actividad hoy para empezar tu racha.';
+  if (value) {
+    const count = value.querySelector('.streak-badge__count');
+    if (count) count.textContent = String(streak);
+    else value.textContent = `🔥 ${streak}`;
+  }
 }
 
 function renderContinue() {
@@ -788,18 +793,28 @@ function pickFallbackApp() {
 function renderPrimaryContinue() {
   const link = document.getElementById('primaryContinueLink');
   const bannerTitle = document.getElementById('continueTitle');
+  const bannerSubtitle = document.getElementById('continueSubtitle');
+  const bannerMark = document.getElementById('continueMark');
+  const exploreBtn = document.getElementById('exploreModulesBtn');
   const defaultApp = 'fluentflow';
   const defaultConfig = APP_CONFIG[defaultApp];
+
+  const setButtonLabel = (prefix, name) => {
+    link.textContent = '';
+    if (prefix) link.append(element('span', 'lp-btn__verb', prefix));
+    link.append(document.createTextNode(`${name} `));
+    const arrow = element('span', '', '→');
+    arrow.setAttribute('aria-hidden', 'true');
+    link.append(arrow);
+  };
 
   if (isStatsDeferred()) {
     link.href = defaultConfig.url;
     link.dataset.appLink = defaultApp;
     bannerTitle.textContent = 'Retoma donde lo dejaste';
-    link.textContent = '';
-    link.append(document.createTextNode('Continuar '));
-    const arrow = element('span', '', '→');
-    arrow.setAttribute('aria-hidden', 'true');
-    link.append(arrow);
+    if (bannerSubtitle) bannerSubtitle.textContent = 'Estás más cerca de tu siguiente nivel.';
+    if (bannerMark) bannerMark.textContent = 'L';
+    setButtonLabel('Abrir ', defaultConfig.name);
     return;
   }
 
@@ -810,24 +825,22 @@ function renderPrimaryContinue() {
   const config = APP_CONFIG[selectedApp];
   link.href = config.url;
   link.dataset.appLink = selectedApp;
+  if (bannerMark) bannerMark.textContent = config.name.charAt(0);
 
-  if (candidates.length && candidates[0].progress.data.summary.lastContent) {
-    const last = candidates[0].progress.data.summary.lastContent;
-    bannerTitle.textContent = resolveContentTitle(last, contentTitleIndex) || `Continuar en ${config.name}`;
-    link.textContent = '';
-    link.append(document.createTextNode(`Continuar `));
-    const arrow = element('span', '', '→');
-    arrow.setAttribute('aria-hidden', 'true');
-    link.append(arrow);
-  } else {
-    const selectedResult = appData.find((result) => result.app === selectedApp);
-    const alreadyStarted = selectedResult && hasValidProgress(selectedResult) && displayProgressPct(selectedResult) > 0;
-    bannerTitle.textContent = alreadyStarted ? `Sigue con ${config.name}` : 'Empieza a aprender';
-    link.textContent = '';
-    link.append(element('span', 'lp-btn__verb', 'Abrir '), document.createTextNode(`${config.name} `));
-    const arrow = element('span', '', '→');
-    arrow.setAttribute('aria-hidden', 'true');
-    link.append(arrow);
+  const selectedResult = appData.find((result) => result.app === selectedApp);
+  const alreadyStarted = selectedResult && hasValidProgress(selectedResult) && displayProgressPct(selectedResult) > 0;
+  bannerTitle.textContent = alreadyStarted ? `Sigue con ${config.name}` : 'Empieza a aprender';
+  if (bannerSubtitle) {
+    bannerSubtitle.textContent = alreadyStarted
+      ? 'Estás más cerca de tu siguiente nivel.'
+      : 'Elige un módulo y empieza tu primera actividad.';
+  }
+  setButtonLabel('Abrir ', config.name);
+
+  if (exploreBtn) {
+    exploreBtn.onclick = () => {
+      document.getElementById('summaryModules')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
   }
 }
 
