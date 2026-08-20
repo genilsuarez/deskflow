@@ -570,12 +570,13 @@ export class ProgressReader {
     }
     const parsed = parseStoredValue(raw);
     if (parsed.error) return result(STATUS.INVALID, null, parsed.error);
-    if (repairStoredDocument(parsed.value) || repairProgressDocument(parsed.value, key.split(':')[2], this.storage)) {
-      try {
-        this.storage.setItem(key, JSON.stringify(parsed.value));
-      } catch {
-        /* lectura sigue con el documento reparado en memoria */
-      }
+    // Reparar solo en memoria al leer. Persistir acá reescribía learnflow:progress:*
+    // en cada renderAll y disparaba storage/lp-sync-peer en otras pestañas →
+    // recálculo visible en DeskFlow (Progreso global / Ruta CEFR) y ping-pong
+    // con HubFlow/LyricFlow. La app dueña (o downloadApp/repair debug) escribe.
+    repairStoredDocument(parsed.value);
+    if (key.startsWith('learnflow:progress:')) {
+      repairProgressDocument(parsed.value, key.split(':')[2], this.storage);
     }
     return validator(parsed.value);
   }

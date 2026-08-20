@@ -298,16 +298,8 @@ function renderGlobalProgress(animateReveal = false) {
   const ring = document.getElementById('globalRing');
   const description = document.getElementById('globalDescription');
 
-  if (isStatsDeferred()) {
-    value.textContent = '0%';
-    unit.textContent = '0/3';
-    updateGlobalProgressMeta('0 de 3 fuentes');
-    ring.style.setProperty('--progress', '0');
-    ring.setAttribute('aria-label', 'Progreso global pendiente');
-    description.textContent = 'Contenido completado en A1–C2, promediado entre los tres módulos.';
-    updateGlobalProgressTrack(0, 'Progreso global pendiente');
-    return;
-  }
+  // Diferido: no resetear a 0% — el flash 0→N% parecía un recálculo en caliente.
+  if (isStatsDeferred()) return;
 
   const validResults = appData.filter(hasValidProgress);
 
@@ -354,11 +346,8 @@ function renderHeaderStats(animateReveal = false) {
   const completedEl = document.getElementById('headerStatsCompleted');
   const pctEl = document.getElementById('headerStatsPct');
   if (!completedEl || !pctEl) return;
-  if (isStatsDeferred()) {
-    completedEl.textContent = '0';
-    pctEl.textContent = '0%';
-    return;
-  }
+  // Diferido: conservar el último valor pintado (o el placeholder del HTML).
+  if (isStatsDeferred()) return;
   const validResults = appData.filter(hasValidProgress);
   const totalCompleted = validResults.reduce(
     (total, result) => total + progressDisplayMetrics(result).completed,
@@ -387,12 +376,8 @@ function renderCefr() {
   const description = document.getElementById('cefrDescription');
   const breakdown = document.getElementById('cefrBreakdown');
   if (!level || !description) return;
-  if (isStatsDeferred()) {
-    level.textContent = 'A1';
-    description.textContent = 'A1';
-    if (breakdown) breakdown.innerHTML = '';
-    return;
-  }
+  // Diferido: no pisar con "A1" vacío — eso hacía flash A1→nivel real al hidratar.
+  if (isStatsDeferred()) return;
 
   const activeLevel = getActiveLevel();
   const upperLevel = activeLevel.toUpperCase();
@@ -400,17 +385,25 @@ function renderCefr() {
   const apps = ['fluentflow', 'hubflow', 'lyricflow'];
   const met = Object.fromEntries(apps.map((app) => [app, progress[app].progressPct >= CEFR_APP_THRESHOLDS[app]]));
   const isTerminal = LEVEL_ORDER.indexOf(activeLevel) === LEVEL_ORDER.length - 1;
+  const pctByApp = Object.fromEntries(apps.map((app) => [app, rounded(progress[app].progressPct)]));
+  const pendingNames = apps.filter((app) => !met[app]).map((app) => APP_CONFIG[app].name);
+  const descriptionKey = isTerminal
+    ? 'terminal'
+    : apps.every((app) => met[app])
+      ? 'ready'
+      : `pending:${pendingNames.join(',')}`;
+  const snapshotKey = `${upperLevel}|${descriptionKey}|${apps.map((app) => `${app}:${pctByApp[app]}:${met[app] ? 1 : 0}`).join('|')}`;
+  if (breakdown?.dataset.cefrSnapshot === snapshotKey && level.textContent === upperLevel) return;
 
   level.textContent = upperLevel;
   description.textContent = '';
   if (isTerminal) {
     description.append(`${upperLevel} · nivel máximo alcanzado.`);
-  } else if (apps.every((app) => met[app])) {
+  } else if (descriptionKey === 'ready') {
     description.append(`${upperLevel} · cumples las 3 condiciones. Tu nivel sube al registrar la próxima actividad.`);
   } else {
-    const pending = apps.filter((app) => !met[app]).map((app) => APP_CONFIG[app].name);
     description.append(`${upperLevel} · para subir de nivel falta: `);
-    pending.forEach((name, index) => {
+    pendingNames.forEach((name, index) => {
       if (index > 0) description.append(', ');
       description.append(element('strong', 'cefr-pending-name', name));
     });
@@ -420,7 +413,7 @@ function renderCefr() {
   if (breakdown) {
     breakdown.innerHTML = '';
     apps.forEach((app) => {
-      const pct = rounded(progress[app].progressPct);
+      const pct = pctByApp[app];
       const config = APP_CONFIG[app];
       const chip = element('span', `cefr-chip cefr-chip--${config.color} ${met[app] ? 'cefr-chip--met' : 'cefr-chip--pending'}`);
       chip.setAttribute('title', `${config.name} ${upperLevel} ${pct}%${met[app] ? ' · completo' : ' · pendiente'}`);
@@ -430,6 +423,7 @@ function renderCefr() {
       chip.append(element('span', 'cefr-chip__name', shortName), element('span', 'cefr-chip__value', `${pct}%`));
       breakdown.appendChild(chip);
     });
+    breakdown.dataset.cefrSnapshot = snapshotKey;
   }
 }
 
@@ -858,7 +852,10 @@ function prepareAppLinks() {
 
 function renderAll() {
   const animateReveal = consumeStatsRevealAnimation();
-  repairLocalProjections();
+  // No repairLocalProjections() aquí: reescribir proyecciones en cada paint
+  // provocaba recálculo visible en Progreso global / Ruta CEFR (y ping-pong
+  // con HubFlow/LyricFlow abiertos). La reparación queda en el panel debug
+  // (?debug → lpSyncAudit.repair) y en el sync de cloud (downloadApp).
   appData = reader.readAll();
   contentTitleIndex = buildContentTitleIndex(appData);
   renderGlobalProgress(animateReveal);
