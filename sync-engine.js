@@ -155,11 +155,33 @@ function hasLocalProgressDoc(app) {
 
 /** HubFlow sets this when score/projection data is published to localStorage. */
 export const HUBFLOW_LOCAL_READY_KEY = 'learnflow:hubflow:local-ready:v1';
+/** LyricFlow sets this when progress is published to localStorage. */
+export const LYRICFLOW_LOCAL_READY_KEY = 'learnflow:lyricflow:local-ready:v1';
+/** FluentFlow sets this when publishLearnFlowIntegration runs. */
+export const FLUENTFLOW_LOCAL_READY_KEY = 'learnflow:fluentflow:local-ready:v1';
 
 function hasHubflowLocalReadyFlag() {
   if (typeof localStorage === 'undefined') return false;
   try {
     return localStorage.getItem(HUBFLOW_LOCAL_READY_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function hasLyricflowLocalReadyFlag() {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    return localStorage.getItem(LYRICFLOW_LOCAL_READY_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function hasFluentflowLocalReadyFlag() {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    return localStorage.getItem(FLUENTFLOW_LOCAL_READY_KEY) === '1';
   } catch {
     return false;
   }
@@ -393,10 +415,16 @@ export function reconcileLyricflowProgressFromEvents() {
   if (!doc || !activityDoc?.events?.length) return false;
 
   doc.content = doc.content || {};
+  const beforeActivities = doc.summary?.completedActivities ?? 0;
   const changed = applyLyricflowActivityEvents(doc.content, activityDoc.events);
   if (!changed) return false;
 
   recomputeProgressDocumentSummary(doc, 'lyricflow');
+  const afterActivities = doc.summary?.completedActivities ?? 0;
+  // La proyección publicada por LyricFlow (deriveSummary en vivo) puede tener
+  // más actividades completadas que el ledger aislado — no persistir downgrade.
+  if (afterActivities < beforeActivities && hasLyricflowLocalReadyFlag()) return false;
+
   doc.updatedAt = new Date().toISOString();
   writeRaw(progressKey, doc);
   return true;
@@ -411,10 +439,17 @@ export function reconcileHubflowProgressFromEvents() {
   if (!doc || !activityDoc?.events?.length) return false;
 
   doc.content = doc.content || {};
+  const beforeCompleted = doc.summary?.completedContent ?? 0;
   const changed = applyHubflowActivityEvents(doc.content, activityDoc.events);
   if (!changed) return false;
 
   recomputeProgressDocumentSummary(doc, 'hubflow');
+  const afterCompleted = doc.summary?.completedContent ?? 0;
+  // La proyección publicada por HubFlow (score-keys en vivo) puede tener más
+  // completados que el ledger aislado — no persistir un downgrade que provoca
+  // ping-pong con publishHubFlowProgress en otra pestaña.
+  if (afterCompleted < beforeCompleted && hasHubflowLocalReadyFlag()) return false;
+
   doc.updatedAt = new Date().toISOString();
   writeRaw(progressKey, doc);
   return true;
@@ -484,7 +519,38 @@ async function downloadApp(app) {
     }
   }
 
+  const beforeMetric = app === 'hubflow' || app === 'fluentflow'
+    ? (doc.summary?.completedContent ?? 0)
+    : app === 'lyricflow'
+      ? (doc.summary?.completedActivities ?? 0)
+      : 0;
   const summaryChanged = recomputeProgressDocumentSummary(doc, app);
+  const afterMetric = app === 'hubflow' || app === 'fluentflow'
+    ? (doc.summary?.completedContent ?? 0)
+    : app === 'lyricflow'
+      ? (doc.summary?.completedActivities ?? 0)
+      : 0;
+  if (
+    app === 'hubflow'
+    && hasHubflowLocalReadyFlag()
+    && afterMetric < beforeMetric
+  ) {
+    return { downloaded: false, reason: 'hubflow_downgrade_blocked' };
+  }
+  if (
+    app === 'lyricflow'
+    && hasLyricflowLocalReadyFlag()
+    && afterMetric < beforeMetric
+  ) {
+    return { downloaded: false, reason: 'lyricflow_downgrade_blocked' };
+  }
+  if (
+    app === 'fluentflow'
+    && hasFluentflowLocalReadyFlag()
+    && afterMetric < beforeMetric
+  ) {
+    return { downloaded: false, reason: 'fluentflow_downgrade_blocked' };
+  }
   if (changed || summaryChanged) {
     doc.updatedAt = new Date().toISOString();
     writeRaw(key, doc);

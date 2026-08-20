@@ -3,11 +3,8 @@ import {
   computeFluentflowProgressSummary,
   computeHubflowActivitySummary,
   computeLyricflowActivitySummary,
-  applyHubflowActivityEvents,
-  applyLyricflowActivityEvents,
   enrichHubflowContentEntry,
   enrichLyricflowSongEntry,
-  recomputeProgressDocumentSummary,
   LYRICFLOW_ACTIVITY_IDS,
 } from './lp-progress-summary.js';
 
@@ -239,6 +236,26 @@ function repairProgressDocument(document, app, storage = null) {
   // sin podar los que ya no están en el catálogo vigente — por eso
   // catalogTotalContent, que no pasa por ese merge, es la fuente de
   // verdad cuando existe.
+  // Podar ids huérfanos del content map cuando el catálogo está disponible
+  // (mismo criterio que recomputeProgressDocumentSummary en lp-progress-summary.js).
+  if (storage) {
+    const catalogRaw = storage.getItem(`learnflow:catalog:${app}:v1`);
+    if (catalogRaw) {
+      try {
+        const catalog = JSON.parse(catalogRaw);
+        if (Array.isArray(catalog?.ids) && catalog.ids.length > 0) {
+          const catalogIds = new Set(catalog.ids);
+          for (const contentId of Object.keys(document.content)) {
+            if (!catalogIds.has(contentId)) {
+              delete document.content[contentId];
+              repaired = true;
+            }
+          }
+        }
+      } catch { /* fail-open: si el catálogo no parsea, no podar */ }
+    }
+  }
+
   const contentCount = Object.keys(document.content).length;
   const summary = document.summary;
   const preservedTotal = Number.isInteger(document.catalogTotalContent) && document.catalogTotalContent > 0
@@ -263,27 +280,6 @@ function repairProgressDocument(document, app, storage = null) {
   }
 
   return repaired;
-}
-
-function reconcileProgressFromActivityLedger(storage, document, app) {
-  if (app !== 'hubflow' && app !== 'lyricflow') return false;
-  if (!isRecord(document?.content)) return false;
-
-  let activityRaw;
-  try {
-    activityRaw = storage.getItem(`learnflow:activity:${app}:v1`);
-  } catch {
-    return false;
-  }
-  if (activityRaw === null) return false;
-
-  const activityParsed = parseStoredValue(activityRaw);
-  if (activityParsed.error || !isRecord(activityParsed.value)) return false;
-  const events = activityParsed.value.events;
-  if (!Array.isArray(events) || events.length === 0) return false;
-
-  if (app === 'lyricflow') return applyLyricflowActivityEvents(document.content, events);
-  return applyHubflowActivityEvents(document.content, events);
 }
 
 function normalizeLastContent(summary) {
@@ -314,7 +310,7 @@ function isValidContentEntry(contentId, item) {
     && isInteger(item.attempts);
 }
 
-function validateProgress(document, app) {
+function validateProgress(document, app, storage = null) {
   const versionError = validateVersion(document);
   if (versionError) return versionError;
   if (document.app !== app) return result(STATUS.INVALID, null, 'La aplicación no coincide con la clave.');
@@ -322,7 +318,7 @@ function validateProgress(document, app) {
   if (!isRecord(document.summary)) return result(STATUS.INVALID, null, 'Falta el resumen de progreso.');
   if (!isRecord(document.content)) return result(STATUS.INVALID, null, 'content debe ser un objeto.');
 
-  repairProgressDocument(document, app);
+  repairProgressDocument(document, app, storage);
 
   if (app === 'hubflow') {
     for (const item of Object.values(document.content)) enrichHubflowContentEntry(item);
@@ -333,7 +329,10 @@ function validateProgress(document, app) {
     }
   }
 
-  recomputeProgressDocumentSummary(document, app);
+  // No recomputeProgressDocumentSummary acá: cada app dueña publica summary
+  // canónico (HubFlow publishHubFlowProgress, LyricFlow writeProgress,
+  // FluentFlow publishLearnFlowIntegration). Recontar/reescribir desde DeskFlow
+  // provocaba ping-pong entre pestañas (HubFlow 15↔12; LyricFlow actividades).
 
   const summary = document.summary;
   const fieldsAreValid = isPercentage(summary.progressPct)
@@ -360,7 +359,7 @@ function validateProgress(document, app) {
   ));
 
   const lyricflowActivities = app === 'lyricflow'
-    ? computeLyricflowActivitySummary(document.content, summary.totalContent)
+    ? computeLyricflowActivitySummary(document.content, readCatalogTotal(storage, app))
     : null;
   const hubflowActivities = app === 'hubflow'
     ? computeHubflowActivitySummary(document.content)
@@ -375,7 +374,11 @@ function validateProgress(document, app) {
   // aparte a partir de document.content, así que su propio totalContent
   // (= content map en bruto) NO se usa — puede estar inflado con ids
   // huérfanos que el cloud-merge unió sin podar.
-  const summaryCompleted = fluentflowSummary?.completedContent ?? summary.completedContent;
+  const summaryCompleted = fluentflowSummary?.completedContent
+    ?? (app === 'hubflow'
+      ? Object.values(document.content).filter((item) => isRecord(item) && item.completed).length
+      : null)
+    ?? summary.completedContent;
   const summaryTotal = summary.totalContent;
   const summaryProgressPct = fluentflowSummary
     ? (summaryTotal > 0 ? (summaryCompleted / summaryTotal) * 100 : 0)
@@ -393,12 +396,18 @@ function validateProgress(document, app) {
       completedContent: summaryCompleted,
       totalContent: summaryTotal,
       attemptedContent: summary.attemptedContent,
-      completedActivities: activitySummary?.completedActivities
-        ?? (isInteger(summary.completedActivities) ? summary.completedActivities : null),
-      totalActivities: activitySummary?.totalActivities
-        ?? (isInteger(summary.totalActivities) ? summary.totalActivities : null),
-      attemptedActivities: activitySummary?.attemptedActivities
-        ?? (isInteger(summary.attemptedActivities) ? summary.attemptedActivities : null),
+      completedActivities: app === 'lyricflow' && isInteger(summary.completedActivities)
+        ? summary.completedActivities
+        : (activitySummary?.completedActivities
+          ?? (isInteger(summary.completedActivities) ? summary.completedActivities : null)),
+      totalActivities: app === 'lyricflow' && isInteger(summary.totalActivities)
+        ? summary.totalActivities
+        : (activitySummary?.totalActivities
+          ?? (isInteger(summary.totalActivities) ? summary.totalActivities : null)),
+      attemptedActivities: app === 'lyricflow' && isInteger(summary.attemptedActivities)
+        ? summary.attemptedActivities
+        : (activitySummary?.attemptedActivities
+          ?? (isInteger(summary.attemptedActivities) ? summary.attemptedActivities : null)),
       lastContent: normalizeLastContent(summary)
     }),
     content: normalizedContent,
@@ -522,7 +531,7 @@ export class ProgressReader {
     if (!APPS.includes(app)) throw new TypeError(`Aplicación no admitida: ${app}`);
     return Object.freeze({
       app,
-      progress: this.#readKey(`learnflow:progress:${app}:v1`, (document) => validateProgress(document, app)),
+      progress: this.#readKey(`learnflow:progress:${app}:v1`, (document) => validateProgress(document, app, this.storage)),
       activity: this.#readKey(`learnflow:activity:${app}:v1`, (document) => validateActivity(document, app))
     });
   }
@@ -566,17 +575,6 @@ export class ProgressReader {
         this.storage.setItem(key, JSON.stringify(parsed.value));
       } catch {
         /* lectura sigue con el documento reparado en memoria */
-      }
-    }
-    if (key.startsWith('learnflow:progress:')) {
-      const app = key.split(':')[2];
-      if (reconcileProgressFromActivityLedger(this.storage, parsed.value, app)) {
-        recomputeProgressDocumentSummary(parsed.value, app);
-        try {
-          this.storage.setItem(key, JSON.stringify(parsed.value));
-        } catch {
-          /* lectura sigue con el documento reconciliado en memoria */
-        }
       }
     }
     return validator(parsed.value);

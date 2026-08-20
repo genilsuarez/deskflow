@@ -28,6 +28,69 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+/** HubFlow escribe esto al publicar score-keys en vivo — señal de proyección canónica. */
+function readHubflowLocalReady() {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    return localStorage.getItem('learnflow:hubflow:local-ready:v1') === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** LyricFlow escribe esto al publicar progreso en vivo — señal de proyección canónica. */
+function readLyricflowLocalReady() {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    return localStorage.getItem('learnflow:lyricflow:local-ready:v1') === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** FluentFlow escribe esto en publishLearnFlowIntegration — proyección canónica. */
+function readFluentflowLocalReady() {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    return localStorage.getItem('learnflow:fluentflow:local-ready:v1') === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** Conteo HubFlow para recompute cross-app: estricto, con tolerancia anti ping-pong. */
+function resolveHubflowCompletedContent(items, previousCompleted) {
+  const strict = items.filter((item) => isItemActuallyComplete(item)).length;
+  const previous = Number.isInteger(previousCompleted) ? previousCompleted : 0;
+  if (strict > previous) return strict;
+  // HubFlow puede publicar más completados que el JSON estricto (score-keys en vivo
+  // vs activities en doc). Tolerancia pequeña evita 15↔12. Si previous está muy
+  // inflado (p. ej. 38 por flags stale del cloud-merge), prevalece el estricto.
+  if (readHubflowLocalReady() && previous > strict && previous <= strict + 5) return previous;
+  return strict;
+}
+
+/** Conteo LyricFlow (actividades) para recompute cross-app: estricto, con tolerancia anti ping-pong. */
+function resolveLyricflowCompletedActivities(content, previousCompleted, catalogTotal) {
+  const strict = computeLyricflowActivitySummary(content, catalogTotal).completedActivities;
+  const previous = Number.isInteger(previousCompleted) ? previousCompleted : 0;
+  if (strict > previous) return strict;
+  // LyricFlow publica desde deriveSummary en vivo; un recompute cross-app desde
+  // el ledger puede quedar corto (p. ej. listen sin evento passed). Tolerancia
+  // pequeña evita ping-pong entre pestañas sin congelar inflaciones grandes.
+  if (readLyricflowLocalReady() && previous > strict && previous <= strict + 4) return previous;
+  return strict;
+}
+
+function isLyricflowSongComplete(item) {
+  if (!isRecord(item?.activities)) return false;
+  const completedCount = LYRICFLOW_ACTIVITY_IDS.filter((id) => item.activities[id]?.completed).length;
+  const challengesDone = ['dictation', 'challenge', 'quiz'].every(
+    (id) => item.activities[id]?.completed,
+  );
+  return completedCount === LYRICFLOW_ACTIVITY_IDS.length || challengesDone;
+}
+
 /**
  * Recalcula si un item está realmente completo a partir de sus `activities`
  * (completedKeys === totalKeys en las requeridas), en vez de confiar en el
@@ -557,24 +620,36 @@ function hubflowActivityFromEvents(events) {
   };
 }
 
-function rederiveHubflowExerciseFromActivities(item) {
-  const activityList = Object.values(item.activities || {}).filter(isRecord);
-  if (!activityList.length) return;
-  const totalKeys = activityList.reduce((sum, activity) => sum + (activity.totalKeys ?? 0), 0);
-  const completedKeys = activityList.reduce((sum, activity) => sum + (activity.completedKeys ?? 0), 0);
-  const completedActivities = activityList.filter((activity) => activity.completed).length;
-  item.progressPct = totalKeys > 0 ? (completedKeys / totalKeys) * 100 : 0;
-  item.completed = completedActivities === activityList.length;
-  item.attempts = activityList.reduce((sum, activity) => sum + (activity.attempts ?? 0), 0);
-  item.bestScorePct = activityList.reduce(
+/** Deriva flags agregados del ejercicio solo desde quiz/study (Aprobado). */
+function syncHubflowItemFromActivities(item) {
+  if (!isRecord(item)) return;
+  const activities = normalizeLegacyActivities(isRecord(item.activities) ? item.activities : {});
+  const required = ['quiz', 'study'].map((id) => activities[id]).filter(isRecord);
+  if (!required.length) return;
+
+  const totalKeys = required.reduce((sum, activity) => sum + (activity.totalKeys ?? 0), 0);
+  const completedKeys = required.reduce((sum, activity) => sum + (activity.completedKeys ?? 0), 0);
+  if (totalKeys > 0) item.progressPct = (completedKeys / totalKeys) * 100;
+  item.attempts = required.reduce((sum, activity) => sum + (activity.attempts ?? 0), 0);
+  item.bestScorePct = required.reduce(
     (best, activity) => mergeNumericMax(best, activity.bestScorePct),
     null,
   );
-  const completedAtCandidates = activityList
+  const completed = isItemActuallyComplete(item);
+  if (completed) item.completed = true;
+  const completedAtCandidates = required
     .map((activity) => activity.completedAt)
     .filter(Boolean)
     .sort();
-  item.completedAt = item.completed ? (completedAtCandidates.at(-1) || item.completedAt || null) : null;
+  if (completed) {
+    item.completedAt = completedAtCandidates.at(-1) || item.completedAt || null;
+  } else if (!item.completed) {
+    item.completedAt = null;
+  }
+}
+
+function rederiveHubflowExerciseFromActivities(item) {
+  syncHubflowItemFromActivities(item);
 }
 
 /**
@@ -593,6 +668,7 @@ export function applyHubflowActivityEvents(content, events) {
   }
 
   let changed = false;
+  const touchedItems = new Set();
   for (const [groupKey, activityEvents] of grouped.entries()) {
     const [contentId, activityId] = groupKey.split('\u0000');
     const fromEvents = hubflowActivityFromEvents(activityEvents);
@@ -616,8 +692,25 @@ export function applyHubflowActivityEvents(content, events) {
     if (!isRecord(item.activities)) item.activities = {};
     const before = JSON.stringify(item.activities[activityId] ?? null);
     item.activities[activityId] = mergeHubflowActivityEntry(item.activities[activityId], fromEvents);
-    rederiveHubflowExerciseFromActivities(item);
-    if (JSON.stringify(item.activities[activityId] ?? null) !== before) changed = true;
+    if (JSON.stringify(item.activities[activityId] ?? null) !== before) {
+      changed = true;
+      touchedItems.add(contentId);
+    }
+  }
+
+  for (const contentId of touchedItems) {
+    const item = content[contentId];
+    const beforeItem = JSON.stringify({
+      completed: item.completed,
+      completedAt: item.completedAt,
+      progressPct: item.progressPct,
+    });
+    syncHubflowItemFromActivities(item);
+    if (JSON.stringify({
+      completed: item.completed,
+      completedAt: item.completedAt,
+      progressPct: item.progressPct,
+    }) !== beforeItem) changed = true;
   }
 
   return changed;
@@ -836,26 +929,17 @@ export function recomputeProgressDocumentSummary(doc, app) {
   if (app === 'hubflow') {
     for (const item of items) {
       enrichHubflowContentEntry(item);
-      // Alinea el flag de raíz con la regla vigente — si no, LearnFlow
-      // (isItemActuallyComplete) y el flag `completed` que HubFlow publicó
-      // pueden discrepar tras un cloud-merge que OR-ea completed sin
-      // recalcular las scoreKeys (ver mergeHubflowActivityEntry).
-      const actuallyComplete = isItemActuallyComplete(item);
-      item.completed = actuallyComplete;
-      if (!actuallyComplete) item.completedAt = null;
+      // Solo promover a completado — nunca bajar item.completed acá. HubFlow
+      // publica desde score-keys en vivo; un recompute cross-app (DeskFlow/
+      // sync) que bajaba flags era el ping-pong 15↔12 entre pestañas.
+      if (isItemActuallyComplete(item)) item.completed = true;
     }
     doc.summary = {
       ...doc.summary,
       progressPct: items.length
         ? items.reduce((sum, item) => sum + (item.progressPct || 0), 0) / items.length
         : 0,
-      // isItemActuallyComplete, no item.completed crudo: mismo motivo que
-      // computeHubflowLevelSummary (arriba) — el flag de raíz puede quedar
-      // pegado en true de una regla de completado vieja. Sin esta corrección,
-      // este total (usado en "X de Y" y el % de la tarjeta de módulo) queda
-      // inflado y por encima del desglose por nivel, algo que no debería
-      // pasar nunca (el desglose por nivel es un subconjunto de este total).
-      completedContent: items.filter((item) => isItemActuallyComplete(item)).length,
+      completedContent: resolveHubflowCompletedContent(items, doc.summary?.completedContent),
       totalContent: catalogTotal,
       attemptedContent: items.filter((item) => (item.attempts || 0) > 0).length,
       ...computeHubflowActivitySummary(doc.content),
@@ -866,7 +950,16 @@ export function recomputeProgressDocumentSummary(doc, app) {
   if (app === 'lyricflow') {
     for (const [contentId, item] of Object.entries(doc.content)) {
       enrichLyricflowSongEntry(contentId, item);
+      // Solo promover a completado — LyricFlow publica desde deriveSong en vivo;
+      // un recompute cross-app que bajaba flags era ping-pong con DeskFlow/sync.
+      if (isLyricflowSongComplete(item)) item.completed = true;
     }
+    const activitySummary = computeLyricflowActivitySummary(doc.content, catalogTotal);
+    const resolvedActivities = resolveLyricflowCompletedActivities(
+      doc.content,
+      doc.summary?.completedActivities,
+      catalogTotal,
+    );
     doc.summary = {
       ...doc.summary,
       progressPct: items.length
@@ -875,7 +968,8 @@ export function recomputeProgressDocumentSummary(doc, app) {
       completedContent: items.filter((item) => item.completed).length,
       totalContent: catalogTotal,
       attemptedContent: items.filter((item) => (item.attempts || 0) > 0).length,
-      ...computeLyricflowActivitySummary(doc.content, catalogTotal),
+      ...activitySummary,
+      completedActivities: resolvedActivities,
     };
     return snapshotRecomputeState(doc, app) !== before;
   }
@@ -896,12 +990,22 @@ export function recomputeProgressDocumentSummary(doc, app) {
  * Un nivel sin módulos en el catálogo (hoy: C2) cuenta como 100% —
  * "nivel sin contenido en una app → condición satisfecha por vacío".
  */
+function isHubflowModuleCompleteForLevel(item) {
+  if (!isRecord(item)) return false;
+  // HubFlow publica item.completed desde score-keys en vivo; isItemActuallyComplete
+  // solo mira activities del JSON — subcontaba en el widget CEFR (p. ej. 47% vs 50%).
+  if (readHubflowLocalReady()) return item.completed === true;
+  return isItemActuallyComplete(item);
+}
+
 export function computeHubflowLevelSummary(content, levels = HUBFLOW_LEVELS) {
   const byLevel = Object.fromEntries(LEVEL_ORDER.map((level) => [level, { total: 0, completed: 0 }]));
   for (const [moduleId, level] of Object.entries(levels || {})) {
     if (!byLevel[level]) continue;
     byLevel[level].total++;
-    if (isRecord(content) && isItemActuallyComplete(content[moduleId])) byLevel[level].completed++;
+    if (isHubflowModuleCompleteForLevel(isRecord(content) ? content[moduleId] : null)) {
+      byLevel[level].completed++;
+    }
   }
   return Object.fromEntries(
     LEVEL_ORDER.map((level) => {
@@ -930,6 +1034,12 @@ function isLyricflowSongActuallyComplete(item) {
   return completedCount === LYRICFLOW_ACTIVITY_IDS.length || challengesDone;
 }
 
+function isLyricflowSongCompleteForLevel(item) {
+  if (!isRecord(item)) return false;
+  if (readLyricflowLocalReady()) return item.completed === true;
+  return isLyricflowSongActuallyComplete(item);
+}
+
 /**
  * Desglosa el progreso de LyricFlow por nivel CEFR. `levels` ya excluye
  * canciones fuera de la escala CEFR (Dernière Danse, "FR") — ver
@@ -940,12 +1050,9 @@ export function computeLyricflowLevelSummary(content, levels = LYRICFLOW_LEVELS)
   for (const [songId, level] of Object.entries(levels || {})) {
     if (!byLevel[level]) continue;
     byLevel[level].total++;
-    // isLyricflowSongActuallyComplete, no content[songId].completed crudo:
-    // misma defensa que computeHubflowLevelSummary (arriba) — hoy el
-    // pipeline de sync ya corrige `completed` vía enrichLyricflowSongEntry
-    // antes de llegar acá, pero esta función no debería depender de eso
-    // para ser correcta si algún día LyricFlow endurece su propia regla.
-    if (isRecord(content) && isLyricflowSongActuallyComplete(content[songId])) byLevel[level].completed++;
+    if (isLyricflowSongCompleteForLevel(isRecord(content) ? content[songId] : null)) {
+      byLevel[level].completed++;
+    }
   }
   return Object.fromEntries(
     LEVEL_ORDER.map((level) => {
@@ -1017,14 +1124,20 @@ export function getCombinedLevelProgress(level = readLpLevel()) {
   const hubflowDoc = readLocalProgressDoc('hubflow');
   const lyricflowDoc = readLocalProgressDoc('lyricflow');
 
-  const fluentflowSummary = computeFluentflowProgressSummary(fluentflowDoc?.content || {});
+  const upper = level.toUpperCase();
+  const fluentflowComputed = computeFluentflowProgressSummary(fluentflowDoc?.content || {});
   const hubflowSummary = computeHubflowLevelSummary(hubflowDoc?.content || {});
   const lyricflowSummary = computeLyricflowLevelSummary(lyricflowDoc?.content || {});
 
-  const upper = level.toUpperCase();
+  // FluentFlow estampa cefr en cada publish — preferirlo cuando la app dueña
+  // ya publicó, para alinear el widget con la app (mismo criterio que Hub/Lyric).
+  const fluentflowLevel = readFluentflowLocalReady() && isRecord(fluentflowDoc?.cefr?.[upper])
+    ? fluentflowDoc.cefr[upper]
+    : (fluentflowComputed.cefr[upper] ?? { progressPct: 0, completedModules: 0, totalModules: 0 });
+
   return {
     level,
-    fluentflow: fluentflowSummary.cefr[upper] ?? { progressPct: 0, completedModules: 0, totalModules: 0 },
+    fluentflow: fluentflowLevel,
     hubflow: hubflowSummary[level] ?? { progressPct: 0, completedModules: 0, totalModules: 0 },
     lyricflow: lyricflowSummary[level] ?? { progressPct: 0, completedSongs: 0, totalSongs: 0 },
   };
