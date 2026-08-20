@@ -274,17 +274,49 @@ export function mergeLyricflowActivities(existing, remote) {
 }
 
 function mergeHubflowActivityEntry(existing, remote) {
-  const left = isRecord(existing) ? existing : {};
-  const right = isRecord(remote) ? remote : {};
+  if (!isRecord(existing)) return isRecord(remote) ? { ...remote } : existing;
+  if (!isRecord(remote)) return { ...existing };
+
+  const left = existing;
+  const right = remote;
+  const leftTotal = left.totalKeys ?? 0;
+  const rightTotal = right.totalKeys ?? 0;
+  // Misma defensa que mergeHubflowProgressItem en HubFlow: si el catálogo
+  // creció (p. ej. 2 → 6 scoreKeys), un Math.max ciego de totalKeys +
+  // completedKeys reconstruye un "completo" fantasma (viejo 2/2 + total 6
+  // → completed=true con 2/6). Solo se puede heredar completedKeys entre
+  // formas iguales; si no, gana la forma con más totalKeys (catálogo actual).
+  const sameShape = leftTotal > 0 && leftTotal === rightTotal;
+  let totalKeys;
+  let completedKeys;
+  if (sameShape) {
+    totalKeys = leftTotal;
+    completedKeys = Math.max(left.completedKeys ?? 0, right.completedKeys ?? 0);
+  } else if (rightTotal > leftTotal) {
+    totalKeys = rightTotal;
+    completedKeys = right.completedKeys ?? 0;
+  } else if (leftTotal > rightTotal) {
+    totalKeys = leftTotal;
+    completedKeys = left.completedKeys ?? 0;
+  } else {
+    totalKeys = 0;
+    completedKeys = Math.max(left.completedKeys ?? 0, right.completedKeys ?? 0);
+  }
+  const completed = totalKeys > 0
+    ? completedKeys === totalKeys
+    : Boolean(left.completed || right.completed);
+
   return {
     ...left,
     ...right,
-    completed: Boolean(left.completed) || Boolean(right.completed),
-    completedKeys: Math.max(left.completedKeys ?? 0, right.completedKeys ?? 0),
-    totalKeys: Math.max(left.totalKeys ?? 0, right.totalKeys ?? 0),
+    completed,
+    completedKeys,
+    totalKeys,
     bestScorePct: mergeNumericMax(left.bestScorePct, right.bestScorePct),
     attempts: Math.max(left.attempts ?? 0, right.attempts ?? 0),
-    completedAt: pickLaterIso(left.completedAt, right.completedAt),
+    completedAt: completed
+      ? (pickLaterIso(left.completedAt, right.completedAt) || left.completedAt || right.completedAt || null)
+      : null,
     lastAttemptAt: pickLaterIso(left.lastAttemptAt, right.lastAttemptAt),
   };
 }
@@ -802,7 +834,16 @@ export function recomputeProgressDocumentSummary(doc, app) {
   }
 
   if (app === 'hubflow') {
-    for (const item of items) enrichHubflowContentEntry(item);
+    for (const item of items) {
+      enrichHubflowContentEntry(item);
+      // Alinea el flag de raíz con la regla vigente — si no, LearnFlow
+      // (isItemActuallyComplete) y el flag `completed` que HubFlow publicó
+      // pueden discrepar tras un cloud-merge que OR-ea completed sin
+      // recalcular las scoreKeys (ver mergeHubflowActivityEntry).
+      const actuallyComplete = isItemActuallyComplete(item);
+      item.completed = actuallyComplete;
+      if (!actuallyComplete) item.completedAt = null;
+    }
     doc.summary = {
       ...doc.summary,
       progressPct: items.length
