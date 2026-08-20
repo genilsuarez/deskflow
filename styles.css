@@ -1333,45 +1333,6 @@ body {
 }
 .module-card .progress-track__fill { background: var(--card-color); }
 
-/* Inicio — actividad reciente compacta */
-.resumen-recent__card {
-  padding: 10px 12px;
-  border: 1px solid var(--lp-border);
-  border-radius: var(--lp-radius-lg);
-  background: var(--lp-surface);
-}
-
-#view-resumen .activity-list {
-  gap: 4px;
-}
-
-#view-resumen .activity-item {
-  padding: 10px 12px;
-  border-radius: var(--lp-radius-md);
-}
-
-#view-resumen .activity-item__body h3 {
-  font-size: 0.8rem;
-}
-
-#view-resumen .activity-item__body p {
-  font-size: 0.66rem;
-}
-
-#view-resumen .activity-item__app {
-  font-size: 0.56rem;
-}
-
-#view-resumen .activity-item__time {
-  font-size: 0.64rem;
-}
-
-#view-resumen .activity-item__marker {
-  width: 24px;
-  height: 24px;
-  font-size: 0.58rem;
-}
-
 #view-actividad .activity-item__marker--purple,
 #view-actividad .activity-item__marker--amber,
 #view-actividad .activity-item__marker--teal {
@@ -2521,13 +2482,9 @@ body {
     line-height: 1.4;
   }
 
-  #view-resumen .section-block:not(.resumen-recent) {
+  #view-resumen .section-block {
     display: flex;
     flex-direction: column;
-    margin-bottom: 0;
-  }
-
-  #view-resumen .resumen-recent {
     margin-bottom: 0;
   }
 
@@ -2567,22 +2524,6 @@ body {
 
   #view-resumen .module-card__pct {
     font-size: 1rem;
-  }
-
-  #view-resumen .resumen-recent__card {
-    padding: 10px 14px;
-  }
-
-  #view-resumen .activity-item {
-    padding: 10px 12px;
-  }
-
-  #view-resumen .activity-item__body h3 {
-    font-size: 0.84rem;
-  }
-
-  #view-resumen .activity-item__body p {
-    font-size: 0.7rem;
   }
 }
 
@@ -3333,10 +3274,6 @@ a:focus-visible,
 
   #view-resumen .section-block {
     margin-bottom: 0;
-  }
-
-  #view-resumen .resumen-recent {
-    display: none;
   }
 
   #view-resumen .resumen-history-cta {

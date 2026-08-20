@@ -611,27 +611,13 @@ function renderActivity() {
   });
 }
 
-function renderRecentActivity() {
-  const allDeferred = APPS.every((app) => shouldDeferActivityDisplay(app));
-  if (allDeferred) {
-    renderActivityList(document.getElementById('recentActivity'), [], 3, {
-      emptyDescription: 'Tus sesiones recientes se mostrarán aquí al completar actividades en tus módulos.'
-    });
-    return;
-  }
-  renderActivityList(document.getElementById('recentActivity'), latestValidEvents(3), 3, {
-    emptyDescription: 'Tus sesiones recientes se mostrarán aquí al completar actividades en tus módulos.'
-  });
-}
-
 function renderStreak() {
   const heading = document.getElementById('streakHeading');
   const description = document.getElementById('streakDescription');
   const value = document.getElementById('streakValue');
   const allDeferred = APPS.every((app) => shouldDeferActivityDisplay(app));
   // Sin límite: el streak necesita el historial completo por app (hasta 200 eventos,
-  // ver MAX_ACTIVITY_EVENTS en progress-reader.js), no solo los 3-4 más recientes que
-  // usan renderRecentActivity()/allValidEvents() para la lista visible.
+  // ver MAX_ACTIVITY_EVENTS en progress-reader.js), no solo los de la vista Actividad.
   const streak = allDeferred ? 0 : calculateStreak(latestValidEvents(Infinity));
 
   heading.textContent = streak === 1 ? '1 día' : `${streak} días`;
@@ -876,7 +862,6 @@ function renderAll() {
   renderCefr();
   renderStreak();
   renderModuleCards(animateReveal);
-  renderRecentActivity();
   renderContinue();
   APPS.forEach(renderModuleDetail);
   renderActivity();
