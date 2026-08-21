@@ -6,6 +6,19 @@
   <script src="lp-input-zoom.min.js" defer></script>
   <title>LearnFlow · Aprende idiomas gratis con estructura, práctica y música</title>
   <meta name="description" content="Aprende idiomas gratis y sin registro obligatorio: cursos estructurados, ejercicios interactivos y práctica con canciones, todo conectado por nivel.">
+  <!-- Precarga del grafo de módulos del entry point (evita cascada de round-trips) -->
+  <link rel="modulepreload" href="./progress-reader.js">
+  <link rel="modulepreload" href="./content-title.js">
+  <link rel="modulepreload" href="./sync-engine-audit.js">
+  <link rel="modulepreload" href="./sync-engine.js">
+  <link rel="modulepreload" href="./lp-supabase.js">
+  <link rel="modulepreload" href="./vendor/supabase-js.min.js">
+  <link rel="modulepreload" href="./lp-stats-animate.js">
+  <link rel="modulepreload" href="./lp-auth-setup.js">
+  <link rel="modulepreload" href="./lp-progress-summary.js">
+  <link rel="modulepreload" href="./lp-catalog-warmer.js">
+  <link rel="modulepreload" href="./lp-placement-scoring.js">
+  <link rel="modulepreload" href="./app.js">
   <meta name="theme-color" content="#ffffff">
   <meta name="color-scheme" content="light">
   <meta property="og:title" content="LearnFlow — Aprende idiomas gratis">
@@ -27,7 +40,11 @@
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <!-- Fuentes sin bloquear el render: se cargan como preload y se
+       promueven a stylesheet al llegar. display=swap ya estaba puesto. -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+        onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"></noscript>
   <script src="lp-theme.min.js"></script>
   <script src="lp-platform-urls.min.js" defer></script>
   <script src="lp-nav-icons.min.js" defer></script>

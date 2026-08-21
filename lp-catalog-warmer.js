@@ -38,7 +38,10 @@ function needsWarm(app) {
 async function fetchCatalogInfo(source) {
   let list;
   if (source.kind === 'json') {
-    const res = await fetch(source.url, { cache: 'no-store' });
+    // cache: 'default' — los catálogos cambian rara vez y GitHub Pages sirve
+    // ETag/Last-Modified, así que un 304 evita re-descargarlos. needsWarm() ya
+    // corta la mayoría de visitas antes de llegar aquí.
+    const res = await fetch(source.url, { cache: 'default' });
     if (!res.ok) return null;
     list = await res.json();
   } else {
