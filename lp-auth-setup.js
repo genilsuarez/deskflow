@@ -8,6 +8,7 @@ import {
   markLocalCacheBootstrapped,
   hasLocalStatsCache,
   checkAndRefresh,
+  forceCloudSync,
 } from './sync-engine.js';
 import { checkLevelAdvancement, LEVEL_ORDER } from './lp-progress-summary.js';
 
@@ -21,7 +22,8 @@ async function hydrateFromCloud(onAfterLogin, { forceDownload = false } = {}) {
   const result = await downloadOnLogin({ force: forceDownload });
   if (!result.hydrated) return result;
   onAfterLogin?.();
-  await runFullSync({ force: true });
+  // Push en segundo plano — no bloquear login si el RPC tarda o cuelga.
+  void runFullSync({ force: true, skipPull: true }).catch(() => {});
   return result;
 }
 
@@ -130,13 +132,25 @@ async function processAuthSession(session, onAfterLogin, onAfterLogout, event) {
     return;
   }
 
+  // Supabase dispara INITIAL_SESSION y luego SIGNED_IN en cada recarga con sesión
+  // persistida. Sin este guard, SIGNED_IN llama resetDownloadState() y vuelve a
+  // ejecutar downloadOnLogin completo — minutos de carga redundante.
+  if (event === 'SIGNED_IN' && lastHandledUserId === session.user.id) {
+    lpSupabase.cleanAuthParamsFromUrl?.();
+    return;
+  }
+
   const oauthReturn = !!lpSupabase.isOAuthReturnUrl?.();
   const forceDownload =
-    event === 'SIGNED_IN' ||
+    (event === 'SIGNED_IN' && lastHandledUserId !== session.user.id) ||
     (event === 'INITIAL_SESSION' && oauthReturn) ||
     (event === 'INITIAL_SESSION' && !!window.lpGuestReset?.shouldForceCloudDownload?.());
 
-  if (event === 'SIGNED_IN' || forceDownload) {
+  const shouldResetDownloadState =
+    (event === 'SIGNED_IN' && lastHandledUserId !== session.user.id) ||
+    (event === 'INITIAL_SESSION' && forceDownload);
+
+  if (shouldResetDownloadState) {
     resetDownloadState();
   }
 
@@ -168,14 +182,8 @@ function setupCrossTabLogoutListener() {
   });
 }
 
-// Pull-merge-push manual desde #devForceSyncBtn (panel "Desarrollador" en
-// Ajustes) — para verificar sync multi-dispositivo sin esperar al próximo
-// visibility/focus. force:true en ambos pasos ignora los throttles normales.
-window.lpForceSync = async () => {
-  const pull = await checkAndRefresh({ force: true });
-  const push = await runFullSync({ force: true });
-  return { pull, push };
-};
+// Pull-merge-push manual desde #devForceSyncBtn — un solo ciclo con timeout (45s).
+window.lpForceSync = () => forceCloudSync();
 
 export function setupSupabaseAuth({ onAfterLogin, onAfterLogout } = {}) {
   if (authListenerRegistered) return;

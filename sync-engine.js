@@ -45,8 +45,32 @@ let multiSessionSetup = false;
 let syncChannel = null;
 let refreshingFromCloud = false;
 let revisionPollTimer = null;
+let downloadInFlight = null;
 
-const STATS_DEFERRAL_TIMEOUT_MS = 8000;
+const SESSION_FETCH_RETRY_MS = [150, 350, 600];
+const CLOUD_FETCH_TIMEOUT_MS = 8_000;
+const DOWNLOAD_LOGIN_TIMEOUT_MS = 25_000;
+const FULL_SYNC_TIMEOUT_MS = 25_000;
+
+function withTimeout(promise, ms, label) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label}_timeout`));
+    }, ms);
+    Promise.resolve(promise).then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
+const STATS_DEFERRAL_TIMEOUT_MS = 3000;
 let statsDisplayReady = !hasStoredSupabaseSession() || hasLocalStatsCache();
 let statsDeferralTimer = null;
 let statsRevealPending = false;
@@ -183,6 +207,10 @@ function beginStatsDeferral() {
   }
   statsDisplayReady = false;
   setStatsSyncingAttribute(true);
+  if (statsDeferralTimer) {
+    clearTimeout(statsDeferralTimer);
+    statsDeferralTimer = null;
+  }
   scheduleStatsDeferralTimeout();
 }
 
@@ -293,6 +321,14 @@ export function readLocalActivityEvents(app) {
 export async function hydrateActivityFromCloud(app) {
   if (!APPS.includes(app)) return { hydrated: false, reason: 'unknown_app' };
   if (!hasStoredSupabaseSession()) return { hydrated: false, reason: 'guest' };
+  if (downloadInFlight) {
+    return { hydrated: hasLocalActivityLedger(app), reason: 'download_in_flight' };
+  }
+  if (hasLocalActivityLedger(app)) {
+    markActivityFetched(app);
+    notifyActivityReady(app);
+    return { hydrated: true, reason: 'local_ledger' };
+  }
   if (wasActivityFetched(app)) {
     notifyActivityReady(app);
     return { hydrated: hasLocalActivityLedger(app), reason: 'session_cached' };
@@ -537,8 +573,26 @@ async function purgeInvalidatedLocal(app) {
   return changed;
 }
 
+/** Reintenta fetch cuando getSession() aún no restauró el token (arranque en frío). */
+async function fetchWithSessionRetry(fetchFn) {
+  for (let i = 0; i <= SESSION_FETCH_RETRY_MS.length; i += 1) {
+    let result = null;
+    try {
+      result = await withTimeout(fetchFn(), CLOUD_FETCH_TIMEOUT_MS, 'cloud_fetch');
+    } catch (err) {
+      if (!(err instanceof Error) || !err.message.endsWith('_timeout')) throw err;
+      result = null;
+    }
+    if (result !== null) return result;
+    if (i >= SESSION_FETCH_RETRY_MS.length) return null;
+    if (!(await lpSupabase.isAuthenticated().catch(() => false))) return null;
+    await new Promise((resolve) => setTimeout(resolve, SESSION_FETCH_RETRY_MS[i]));
+  }
+  return null;
+}
+
 async function downloadApp(app) {
-  const remoteRows = await lpSupabase.fetchProgress(app);
+  const remoteRows = await fetchWithSessionRetry(() => lpSupabase.fetchProgress(app));
   if (remoteRows === null) return { downloaded: false, reason: 'fetch_error' };
   if (!remoteRows.length) return { downloaded: false, reason: 'no_remote_data' };
 
@@ -677,7 +731,7 @@ async function downloadActivityAppOnce(app) {
     return { downloaded: false, reason: 'session_cached' };
   }
 
-  const remoteRows = await lpSupabase.fetchActivityEvents(app);
+  const remoteRows = await fetchWithSessionRetry(() => lpSupabase.fetchActivityEvents(app));
   if (remoteRows === null) return { downloaded: false, reason: 'fetch_error' };
 
   // Eventos que ya están en la nube no hace falta re-subirlos en el push.
@@ -781,6 +835,9 @@ async function discardHydrationAfterLogout(perApp) {
 }
 
 export async function downloadOnLogin({ force = false } = {}) {
+  if (downloadInFlight) return downloadInFlight;
+
+  downloadInFlight = withTimeout((async () => {
   if (downloaded && !force) return { downloaded: false, reason: 'already_downloaded_this_session' };
   if (shouldAbortCloudHydration()) {
     return { downloaded: false, reason: 'explicit_logout', hydrated: false };
@@ -800,8 +857,10 @@ export async function downloadOnLogin({ force = false } = {}) {
   let anyChanged = false;
   const appResults = await Promise.all(APPS.map(async (app) => {
     if (shouldAbortCloudHydration()) return null;
-    const progress = await downloadApp(app);
-    const activity = await downloadActivityApp(app);
+    const [progress, activity] = await Promise.all([
+      downloadApp(app),
+      downloadActivityApp(app),
+    ]);
     const bests = app === 'hubflow'
       ? await downloadScoreKeyBests(app)
       : { downloaded: false, reason: 'not_applicable' };
@@ -821,6 +880,10 @@ export async function downloadOnLogin({ force = false } = {}) {
     if (progress.downloaded || activity.downloaded || bests.downloaded) anyChanged = true;
   }
 
+  const anyAppFetched = Object.values(perApp).some(
+    (row) => row.progress?.reason !== 'fetch_error' && row.activity?.reason !== 'fetch_error'
+  );
+
   if (shouldAbortCloudHydration() || !(await lpSupabase.isAuthenticated().catch(() => false))) {
     return discardHydrationAfterLogout(perApp);
   }
@@ -829,6 +892,9 @@ export async function downloadOnLogin({ force = false } = {}) {
     if (reconcileLyricflowProgressFromEvents()) anyChanged = true;
     if (reconcileHubflowProgressFromEvents()) anyChanged = true;
     downloaded = true;
+    cloudHydrated = true;
+  } else if (hasLocalStatsCache() || anyAppFetched) {
+    // Pull parcial o fallido — no bloquear push; downloaded queda false para reintentar pull.
     cloudHydrated = true;
   }
 
@@ -840,6 +906,23 @@ export async function downloadOnLogin({ force = false } = {}) {
     }
   }
   return { downloaded: anyChanged, hydrated: cloudHydrated, perApp };
+  })(), DOWNLOAD_LOGIN_TIMEOUT_MS, 'download_on_login').catch((err) => {
+    markStatsDisplayReady();
+    if (hasLocalStatsCache()) {
+      cloudHydrated = true;
+      notifyCloudHydrated();
+    }
+    if (err instanceof Error && err.message === 'download_on_login_timeout') {
+      return { downloaded: false, reason: 'timeout', hydrated: cloudHydrated, perApp: {} };
+    }
+    throw err;
+  });
+
+  try {
+    return await downloadInFlight;
+  } finally {
+    downloadInFlight = null;
+  }
 }
 
 /**
@@ -931,6 +1014,13 @@ export async function checkAndRefresh({ force = false } = {}) {
     return result;
   }
 
+  // Hidratación fallida en arranque (fetch_error por sesión en carrera) dejaba
+  // cloudHydrated=false para siempre si la revisión ya estaba al día — el sync
+  // nunca terminaba porque scheduleCloudSync esperaba lp-cloud-hydrated.
+  if (!cloudHydrated && (await lpSupabase.isAuthenticated().catch(() => false))) {
+    return refreshFromCloudIfNeeded({ force: true });
+  }
+
   const revision = await lpSupabase.fetchSyncRevision();
   if (revision === null) return refreshFromCloudIfNeeded();
   if (revision <= readLastSeenRevision()) {
@@ -940,6 +1030,12 @@ export async function checkAndRefresh({ force = false } = {}) {
   const result = await refreshFromCloudIfNeeded({ force: true });
   if (result.refreshed) writeLastSeenRevision(revision);
   return result;
+}
+
+/** Dispara reintento de hidratación si el pull inicial falló (p. ej. desde scheduleCloudSync). */
+export function ensureCloudHydrated() {
+  if (cloudHydrated) return;
+  void checkAndRefresh();
 }
 
 /**
@@ -1094,13 +1190,20 @@ export async function runFullSync({ force = false, skipPull = false } = {}) {
 
   syncing = true;
   try {
-    const entries = await Promise.all(
-      APPS.map(async (app) => [app, await syncApp(app, { skipPull })])
+    const entries = await withTimeout(
+      Promise.all(APPS.map(async (app) => [app, await syncApp(app, { skipPull })])),
+      FULL_SYNC_TIMEOUT_MS,
+      'full_sync'
     );
     const perApp = Object.fromEntries(entries);
     await lpSupabase.updateUserStreakOnce().catch(() => {});
     lastSyncAt = Date.now();
     return { synced: true, perApp };
+  } catch (err) {
+    if (err instanceof Error && err.message === 'full_sync_timeout') {
+      return { synced: false, reason: 'timeout' };
+    }
+    throw err;
   } finally {
     syncing = false;
   }
