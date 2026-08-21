@@ -96,7 +96,7 @@
       <div class="topbar-greeting">
         <p class="eyebrow topbar-eyebrow" id="topbarEyebrow">Tu plataforma de aprendizaje</p>
         <h1 class="topbar-title" id="summaryTitle">Learn<em>Flow</em></h1>
-        <p class="topbar-sub" id="topbarSub">Tres módulos, un hilo: estructura, práctica y música conectados.</p>
+        <p class="topbar-sub" id="topbarSub">Tres módulos, un hilo.</p>
       </div>
       <div class="lp-header-stats" role="status" aria-label="Progreso combinado de tus tres módulos">
         <span class="lp-header-stats__group">
@@ -126,7 +126,6 @@
             </div>
             <div class="continue-banner__actions">
               <a class="lp-btn lp-btn--primary" id="primaryContinueLink" href="https://genilsuarez.github.io/fluentflow/" rel="noopener">Continuar <span aria-hidden="true">→</span></a>
-              <button class="text-action continue-banner__explore" type="button" data-view="fluentflow" id="exploreModulesBtn">Explorar todos los módulos <span aria-hidden="true">→</span></button>
             </div>
           </section>
 
@@ -138,7 +137,6 @@
               <div class="context-card__copy">
                 <h2 id="globalTitle">Progreso global</h2>
                 <p id="globalDescription">Contenido completado en A1–C2, promediado entre los tres módulos.</p>
-                <a class="text-action context-card__link" href="#cefrHeading">Ver detalle por nivel <span aria-hidden="true">→</span></a>
                 <span class="context-card__meta" id="globalMeta" aria-hidden="true"></span>
               </div>
               <div class="progress-track context-card__track" id="globalProgressTrack" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso global"><span class="progress-track__fill" style="width:0%"></span></div>
@@ -149,7 +147,6 @@
                 <span class="section-kicker">Nivel LearnFlow</span>
                 <h2 id="cefrHeading">Ruta <span id="cefrLevel">A1</span></h2>
                 <p id="cefrDescription">A1</p>
-                <div class="cefr-app-breakdown" id="cefrBreakdown"></div>
                 <ol class="cefr-stepper" id="cefrStepper" aria-label="Progresión CEFR"></ol>
               </div>
             </section>
@@ -170,7 +167,7 @@
 
         <section class="section-block" aria-labelledby="modulesTitle">
           <div class="section-heading">
-            <h2 id="modulesTitle"><span class="section-kicker">Tus tres caminos</span><span class="section-heading__sep" aria-hidden="true">·</span>Progreso total por módulo</h2>
+            <h2 id="modulesTitle"><span class="section-kicker">Tus tres caminos</span><span class="section-heading__sep" aria-hidden="true">·</span><span id="modulesTitleProgress">Progreso en tu nivel</span></h2>
             <button class="text-action" type="button" data-view="actividad" id="compareModulesBtn">Comparar módulos <span aria-hidden="true">→</span></button>
           </div>
           <div class="module-grid module-grid--paths" id="summaryModules">

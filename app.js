@@ -121,6 +121,13 @@ const PRIMARY_PROGRESS_METRICS = Object.freeze({
   lyricflow: { unit: 'actividades', source: 'activities' },
 });
 
+/** Unidades del nivel CEFR activo — mismas claves que getCombinedLevelProgress(). */
+const LEVEL_PROGRESS_METRICS = Object.freeze({
+  fluentflow: { unit: 'módulos', singular: 'módulo', completedKey: 'completedModules', totalKey: 'totalModules' },
+  hubflow: { unit: 'ejercicios', singular: 'ejercicio', completedKey: 'completedModules', totalKey: 'totalModules' },
+  lyricflow: { unit: 'canciones', singular: 'canción', completedKey: 'completedSongs', totalKey: 'totalSongs' },
+});
+
 function progressDisplayMetrics(result) {
   const summary = result.progress.data.summary;
   const config = PRIMARY_PROGRESS_METRICS[result.app];
@@ -151,18 +158,35 @@ function displayProgressPct(result) {
   return Math.round((completed / total) * 100);
 }
 
-function appMetric(result, config) {
-  if (hasValidProgress(result)) {
-    const { completed, total } = progressDisplayMetrics(result);
-    return `${completed} de ${total}`;
-  }
-  if (result.progress.status === STATUS.UNAVAILABLE) return `0 ${config.unit}`;
-  return STATUS_COPY[result.progress.status];
-}
-
 function progressLabel(result) {
   if (hasValidProgress(result)) return `${displayProgressPct(result)}%`;
   return '0%';
+}
+
+function levelProgressMetrics(app, combined) {
+  const spec = LEVEL_PROGRESS_METRICS[app];
+  const slice = combined[app] || {};
+  const completed = Number(slice[spec.completedKey]) || 0;
+  const total = Number(slice[spec.totalKey]) || 0;
+  const pct = total > 0 ? Math.round((completed / total) * 100) : rounded(slice.progressPct ?? 0);
+  return { completed, total, pct, unit: spec.unit, singular: spec.singular };
+}
+
+/** Small-area: al inicio lo hecho; pasado el 50%, lo que falta. */
+function levelProgressHint(metrics) {
+  const { completed, total, pct, unit, singular } = metrics;
+  if (!total) return `Sin ${unit} en este nivel`;
+  if (pct >= 50 && pct < 100) {
+    const remaining = total - completed;
+    return remaining === 1 ? `Falta 1 ${singular}` : `Faltan ${remaining} ${unit}`;
+  }
+  return `${completed} de ${total} ${unit}`;
+}
+
+function updatePathCardsHeading(level) {
+  const heading = document.getElementById('modulesTitleProgress');
+  if (!heading) return;
+  heading.textContent = `Progreso en ${level.toUpperCase()}`;
 }
 
 function completedMetric(result) {
@@ -218,10 +242,14 @@ function renderModuleCards(animateReveal = false) {
   const container = document.getElementById('summaryModules');
   container.replaceChildren();
   const defer = isStatsDeferred();
+  const activeLevel = getActiveLevel();
+  const upperLevel = activeLevel.toUpperCase();
+  updatePathCardsHeading(activeLevel);
+  const combined = defer ? null : getCombinedLevelProgress(activeLevel);
 
   APPS.forEach((app) => {
     const config = APP_CONFIG[app];
-    const result = getAppResult(app);
+    const metrics = combined ? levelProgressMetrics(app, combined) : { completed: 0, total: 0, pct: 0, unit: LEVEL_PROGRESS_METRICS[app].unit, singular: LEVEL_PROGRESS_METRICS[app].singular };
     const card = element('button', `module-card module-card--path module-card--${config.color}`);
     card.type = 'button';
     card.dataset.view = app;
@@ -230,15 +258,11 @@ function renderModuleCards(animateReveal = false) {
     mark.setAttribute('aria-hidden', 'true');
 
     const copy = element('div', 'module-card__copy');
-    const progressValue = defer ? 0 : (hasValidProgress(result) ? displayProgressPct(result) : 0);
-    const hint = element(
-      'span',
-      'module-card__hint',
-      defer ? '0 de 0' : `${appMetric(result, config)} ${config.unit}`
-    );
+    const progressValue = defer ? 0 : metrics.pct;
+    const hint = element('span', 'module-card__hint', defer ? '0 de 0' : levelProgressHint(metrics));
     copy.append(element('strong', 'module-card__label', config.name), hint);
 
-    const pct = element('span', 'module-card__pct', defer ? '0%' : progressLabel(result));
+    const pct = element('span', 'module-card__pct', defer ? '0%' : `${progressValue}%`);
     if (animateReveal && progressValue > 0) {
       animateText(pct, 0, progressValue, (v) => `${v}%`);
     }
@@ -248,7 +272,7 @@ function renderModuleCards(animateReveal = false) {
     ctaArrow.setAttribute('aria-hidden', 'true');
     cta.append(ctaArrow);
 
-    const progress = createProgressBar(progressValue, `Progreso de ${config.name}`, {
+    const progress = createProgressBar(progressValue, `Progreso de ${config.name} en ${upperLevel}`, {
       animate: animateReveal && progressValue > 0,
     });
     progress.classList.add('module-card__bar');
@@ -361,7 +385,6 @@ const CEFR_APP_THRESHOLDS = Object.freeze({ fluentflow: 100, hubflow: 50, lyricf
 function renderCefr() {
   const level = document.getElementById('cefrLevel');
   const description = document.getElementById('cefrDescription');
-  const breakdown = document.getElementById('cefrBreakdown');
   const stepper = document.getElementById('cefrStepper');
   if (!level || !description) return;
   // Diferido: no pisar con "A1" vacío — eso hacía flash A1→nivel real al hidratar.
@@ -373,15 +396,14 @@ function renderCefr() {
   const apps = ['fluentflow', 'hubflow', 'lyricflow'];
   const met = Object.fromEntries(apps.map((app) => [app, progress[app].progressPct >= CEFR_APP_THRESHOLDS[app]]));
   const isTerminal = LEVEL_ORDER.indexOf(activeLevel) === LEVEL_ORDER.length - 1;
-  const pctByApp = Object.fromEntries(apps.map((app) => [app, rounded(progress[app].progressPct)]));
   const pendingNames = apps.filter((app) => !met[app]).map((app) => APP_CONFIG[app].name);
   const descriptionKey = isTerminal
     ? 'terminal'
     : apps.every((app) => met[app])
       ? 'ready'
       : `pending:${pendingNames.join(',')}`;
-  const snapshotKey = `${upperLevel}|${descriptionKey}|${apps.map((app) => `${app}:${pctByApp[app]}:${met[app] ? 1 : 0}`).join('|')}`;
-  if (breakdown?.dataset.cefrSnapshot === snapshotKey && level.textContent === upperLevel) return;
+  const snapshotKey = `${upperLevel}|${descriptionKey}`;
+  if (stepper?.dataset.cefrSnapshot === snapshotKey && level.textContent === upperLevel) return;
 
   level.textContent = upperLevel;
   description.textContent = '';
@@ -398,20 +420,6 @@ function renderCefr() {
     description.append('.');
   }
 
-  if (breakdown) {
-    breakdown.innerHTML = '';
-    apps.forEach((app) => {
-      const pct = pctByApp[app];
-      const config = APP_CONFIG[app];
-      const chip = element('span', `cefr-chip cefr-chip--${config.color} ${met[app] ? 'cefr-chip--met' : 'cefr-chip--pending'}`);
-      chip.setAttribute('title', `${config.name} ${upperLevel} ${pct}%${met[app] ? ' · completo' : ' · pendiente'}`);
-      const shortName = config.name.replace(/Flow$/, '');
-      chip.append(element('span', 'cefr-chip__name', shortName), element('span', 'cefr-chip__value', `${pct}%`));
-      breakdown.appendChild(chip);
-    });
-    breakdown.dataset.cefrSnapshot = snapshotKey;
-  }
-
   if (stepper) {
     const activeIdx = LEVEL_ORDER.indexOf(activeLevel);
     stepper.replaceChildren();
@@ -425,6 +433,7 @@ function renderCefr() {
       if (index === activeIdx) step.setAttribute('aria-current', 'step');
       stepper.append(step);
     });
+    stepper.dataset.cefrSnapshot = snapshotKey;
   }
 }
 
@@ -781,7 +790,6 @@ function renderPrimaryContinue() {
   const bannerTitle = document.getElementById('continueTitle');
   const bannerSubtitle = document.getElementById('continueSubtitle');
   const bannerMark = document.getElementById('continueMark');
-  const exploreBtn = document.getElementById('exploreModulesBtn');
   const defaultApp = 'fluentflow';
   const defaultConfig = APP_CONFIG[defaultApp];
 
@@ -822,12 +830,6 @@ function renderPrimaryContinue() {
       : 'Elige un módulo y empieza tu primera actividad.';
   }
   setButtonLabel('Abrir ', config.name);
-
-  if (exploreBtn) {
-    exploreBtn.onclick = () => {
-      document.getElementById('summaryModules')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
-  }
 }
 
 function isLocalEnvironment() {
@@ -1121,7 +1123,7 @@ function applyTopbarSub(subEl, content, viewName) {
 }
 
 const RESUMEN_HINTS = [
-  { full: 'Tres módulos, un hilo: estructura, práctica y música conectados.', short: 'Tres módulos, un hilo conectado.' },
+  { full: 'Tres módulos, un hilo.', short: 'Tres módulos, un hilo.' },
   { full: 'Tu progreso vive aquí, en tu navegador. Sin cuentas, sin excusas.', short: 'Tu progreso vive en tu navegador.' },
   { full: 'Cada sesión cuenta. Vuelve cuando quieras, todo sigue donde lo dejaste.', short: 'Cada sesión cuenta. Todo sigue donde lo dejaste.' },
 ];
