@@ -7,8 +7,14 @@
 // vive en RLS, no en ocultar estos valores). Se hardcodean directo: no hay paso
 // de build en las apps vanilla que pueda sustituir placeholders.
 
-// @ts-ignore — import por URL (sin build step); tsc no puede resolver tipos remotos.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// @ts-ignore — bundle vendorizado local (esbuild); tsc no puede resolver tipos remotos.
+// Vendorizado desde esm.sh para sacar el CDN externo del critical path de arranque
+// (DNS+TLS+descarga de esm.sh bloqueaba el primer render). Regenerar con
+// scripts/regenerate-supabase-vendor.sh — el bundle vive en <app>/vendor/
+// (DeskFlow, LyricFlow) o <app>/js/vendor/ (HubFlow), mismo nivel relativo
+// que este archivo en cada copia, así el import relativo funciona igual en
+// las 3 apps.
+import { createClient } from './vendor/supabase-js.min.js';
 
 const SUPABASE_URL = 'https://dfbokwebquvgsjgpnikw.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_rhGQoQfqjBsBR6fg9RLMig_fnDDP3Rx';
