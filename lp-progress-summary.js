@@ -2,7 +2,7 @@
 // Canonical progress summary helpers — copy to DeskFlow/, HubFlow/js/, LyricFlow/.
 // DeskFlow imports this module directly; keep all copies in sync (no build step).
 
-import { HUBFLOW_LEVELS, LYRICFLOW_LEVELS } from './lp-level-map.js';
+import { HUBFLOW_LEVELS, LYRICFLOW_LEVELS, FLUENTFLOW_LEVELS as FLUENTFLOW_LEVEL_CATALOG } from './lp-level-map.js';
 
 /** Nivel CEFR compartido entre las 3 apps de contenido (minúsculas, distinto de FLUENTFLOW_LEVELS). */
 export const LEVEL_ORDER = Object.freeze(['a1', 'a2', 'b1', 'b2', 'c1', 'c2']);
@@ -195,8 +195,31 @@ function isFluentflowPreviousLevelComplete(cefrLevel, byLevel) {
   return previousModules.every((item) => item.completed === true);
 }
 
-export function computeFluentflowProgressSummary(content) {
+/**
+ * Catálogo real de FluentFlow por nivel (FLUENTFLOW_LEVEL_CATALOG, generado
+ * desde learningModules.json) — denominador estático, igual que HubFlow/
+ * LyricFlow. Sin esto, totalModules salía del progreso local del usuario
+ * (grupo `byLevel`), que empieza vacío: un usuario nuevo veía "0 de 0" en
+ * vez del total real del nivel.
+ */
+function countFluentflowCatalogByLevel() {
+  const totals = Object.fromEntries(FLUENTFLOW_LEVELS.map((level) => [level, 0]));
+  for (const level of Object.values(FLUENTFLOW_LEVEL_CATALOG || {})) {
+    const upper = level.toUpperCase();
+    if (totals[upper] !== undefined) totals[upper]++;
+  }
+  return totals;
+}
+
+/**
+ * @param {Record<string,unknown>} content - content map del progreso (ya podado de huérfanos si aplica)
+ * @param {Record<string,number>} [dynamicCatalogTotals] - conteo por nivel derivado del catálogo
+ *   dinámico de localStorage; cuando se provee, sobreescribe el catálogo estático de lp-level-map.js
+ *   para que totalModules refleje el catálogo vigente en vez del hardcoded.
+ */
+export function computeFluentflowProgressSummary(content, dynamicCatalogTotals) {
   const byLevel = groupFluentflowContentByLevel(content);
+  const catalogTotals = dynamicCatalogTotals ?? countFluentflowCatalogByLevel();
   let completedContent = 0;
 
   for (const level of FLUENTFLOW_LEVELS) {
@@ -214,7 +237,7 @@ export function computeFluentflowProgressSummary(content) {
       const completedModules = levelModules.filter(
         (item) => item.completed === true && isFluentflowPreviousLevelComplete(level, byLevel)
       ).length;
-      const totalModules = levelModules.length;
+      const totalModules = catalogTotals[level] || levelModules.length;
       const progressPct = totalModules > 0 ? (completedModules / totalModules) * 100 : 0;
       const status =
         completedModules === 0
@@ -1135,7 +1158,29 @@ export function getCombinedLevelProgress(level = readLpLevel()) {
   const lyricflowDoc = readLocalProgressDoc('lyricflow');
 
   const upper = level.toUpperCase();
-  const fluentflowComputed = computeFluentflowProgressSummary(fluentflowDoc?.content || {});
+  // Podar huérfanos antes de calcular el progreso por nivel CEFR; sin esto un id
+  // eliminado del catálogo infla totalModules y puede bloquear un ascenso legítimo.
+  const fluentflowCatalogIds = readCatalogIdsFallback('fluentflow');
+  const fluentflowContent = fluentflowDoc?.content
+    ? (fluentflowCatalogIds
+        ? Object.fromEntries(
+            Object.entries(fluentflowDoc.content).filter(([id]) => fluentflowCatalogIds.has(id))
+          )
+        : fluentflowDoc.content)
+    : {};
+  // Cuando hay catálogo dinámico, derivar totalModules por nivel desde él para que
+  // coincida con recomputeProgressDocumentSummary (catálogo vigente > catálogo estático).
+  const fluentflowDynamicTotals = fluentflowCatalogIds
+    ? (() => {
+        const totals = Object.fromEntries(FLUENTFLOW_LEVELS.map((l) => [l, 0]));
+        for (const id of fluentflowCatalogIds) {
+          const l = inferFluentflowCefrLevel(id);
+          if (l && totals[l] !== undefined) totals[l]++;
+        }
+        return totals;
+      })()
+    : undefined;
+  const fluentflowComputed = computeFluentflowProgressSummary(fluentflowContent, fluentflowDynamicTotals);
   const hubflowSummary = computeHubflowLevelSummary(hubflowDoc?.content || {});
   const lyricflowSummary = computeLyricflowLevelSummary(lyricflowDoc?.content || {});
 

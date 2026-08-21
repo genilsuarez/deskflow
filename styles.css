@@ -378,8 +378,8 @@ body {
 @media (min-width: 769px) {
   [data-navigation-mode="sidebar"] .lp-drawer-scrim { display: none !important; }
 
-  /* Vistas secundarias (módulo / actividad / continuar): solo ← en la barra;
-     el launcher flotante duplicaría el ☰ junto al back y rompe el patrón L2. */
+  /* Vistas secundarias (módulo / actividad / continuar): ☰ en la barra;
+     el launcher flotante duplicaría el menú y rompe el patrón L2. */
   [data-navigation-mode="floating"] .app-shell:has(.topbar.topbar--module) .navigation-launcher {
     display: none !important;
   }
@@ -389,28 +389,23 @@ body {
     --topbar-leading-inset: var(--lp-header-pad-x);
   }
 
-  /* L2 web: [←] saludo … [☰] — menú anclado a la derecha (el launcher flotante sigue oculto arriba) */
-  .topbar.topbar--module {
-    padding-right: calc(var(--lp-header-pad-x) + var(--lp-navbtn-size) + 10px);
-  }
-
+  /* L2 web: [☰] saludo — sin ←; volver al resumen vía sidebar / nav */
   .topbar.topbar--module .topbar-back {
-    order: 1;
-  }
-
-  .topbar.topbar--module .topbar-greeting {
-    order: 2;
+    display: none !important;
   }
 
   .topbar.topbar--module .topbar-menu {
     display: flex;
-    position: absolute;
-    right: var(--lp-header-pad-x);
-    top: 50%;
-    transform: translateY(-50%);
+    order: 1;
+    position: static;
+    transform: none;
     margin-left: 0;
     flex-shrink: 0;
     z-index: 4;
+  }
+
+  .topbar.topbar--module .topbar-greeting {
+    order: 2;
   }
 
   /* Drawer flotante: el header no debe quedar por encima del scrim durante la transición */
@@ -573,6 +568,16 @@ body {
 .nav-dot--amber::after { background: var(--lp-cat-amber); }
 .nav-dot--teal::after { background: var(--lp-cat-teal); }
 
+.nav-progress {
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--lp-muted);
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .nav-mode-toggle {
   flex-shrink: 0;
   font-size: 1rem;
@@ -662,10 +667,8 @@ body {
     flex-direction: column;
     align-items: flex-start;
     min-width: 0;
-    flex: 0 1 auto;
-    max-width: calc(
-      50% - var(--lp-score-pill-half-min) - var(--lp-topbar-score-clearance) - var(--lp-header-pad-x)
-    );
+    flex: 1;
+    max-width: none;
   }
 
   /* Vistas con ← : el pill va centrado (absolute); saludo junto al back, no al borde derecho */
@@ -682,11 +685,8 @@ body {
   .topbar.topbar--module .topbar-greeting {
     text-align: left;
     min-width: 0;
-    flex: 0 1 auto;
-    max-width: calc(
-      50% - var(--lp-score-pill-half-min) - var(--lp-topbar-score-clearance) - var(--lp-navbtn-size) -
-        1rem - var(--topbar-leading-inset, var(--lp-header-pad-x))
-    );
+    flex: 1;
+    max-width: none;
   }
 }
 
@@ -710,39 +710,6 @@ body {
   display: none;
   flex-shrink: 0;
   font-size: 1rem;
-}
-
-/* ─── HEADER STATS (pill homologado con FluentFlow/HubFlow/LyricFlow) ─── */
-.lp-header-stats {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  height: var(--lp-score-height);
-  min-width: var(--lp-score-min-width);
-  padding: 0 var(--lp-score-padding-x);
-  border: var(--lp-score-border-width) solid var(--lp-score-border);
-  border-radius: var(--lp-score-radius);
-  background: var(--lp-score-bg);
-  color: var(--lp-score-label-color);
-  font-family: var(--lp-score-font-family);
-  font-size: var(--lp-score-font-size);
-  font-weight: var(--lp-score-font-weight);
-  flex-shrink: 0;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: var(--lp-score-shadow);
-}
-.lp-header-stats__group { display: flex; align-items: center; gap: var(--lp-score-group-gap); }
-.lp-header-stats__divider { align-self: stretch; width: var(--lp-score-divider-width); margin: 0 var(--lp-score-divider-gap); background: var(--lp-score-border); }
-.lp-header-stats__value { color: var(--lp-score-value-color); font-size: var(--lp-score-value-size); font-weight: var(--lp-score-value-weight); }
-.lp-header-stats__label { color: var(--lp-score-label-color); }
-.lp-header-stats__icon { width: var(--lp-score-icon-size); height: var(--lp-score-icon-size); flex-shrink: 0; }
-.lp-header-stats__icon--trophy, .lp-header-stats__icon--target { color: var(--lp-score-icon-color); }
-
-@media (max-width: 860px) {
-  .lp-header-stats { display: none; }
 }
 
 /* ─── MAIN CONTENT ─── */
@@ -2826,8 +2793,6 @@ a:focus-visible,
   }
   .app-shell[data-view="actividad"] .main,
   .app-shell[data-view="continuar"] .main { grid-row: 2; }
-  .app-shell[data-view="actividad"] .topbar .lp-header-stats,
-  .app-shell[data-view="continuar"] .topbar .lp-header-stats { display: none; }
 
   /* Módulos: el topbar compacto sustituye al mobile-header */
   .app-shell[data-view="fluentflow"],
@@ -2911,7 +2876,6 @@ a:focus-visible,
     letter-spacing: var(--lp-header-title-tracking);
     line-height: var(--lp-header-title-line-height);
   }
-  .topbar.topbar--module .lp-header-stats { display: none; }
   /* El mobile-header sticky ya da la marca; el eyebrow, el copy largo del
      saludo y la fecha son ruido secundario que en mobile desbordaba el
      topbar hasta ocupar ~25% de pantalla. Se deja solo el título (identifica

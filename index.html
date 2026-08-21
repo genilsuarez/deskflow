@@ -77,9 +77,9 @@
 
       <nav class="sidebar__nav">
         <button class="nav-item is-active" type="button" data-view="resumen" aria-current="page"><span class="nav-icon" data-lp-icon="home" aria-hidden="true"></span><span class="nav-label">Inicio</span></button>
-        <button class="nav-item" type="button" data-view="fluentflow"><span class="nav-dot nav-dot--purple" aria-hidden="true"></span><span class="nav-label">FluentFlow</span></button>
-        <button class="nav-item" type="button" data-view="hubflow"><span class="nav-dot nav-dot--amber" aria-hidden="true"></span><span class="nav-label">HubFlow</span></button>
-        <button class="nav-item" type="button" data-view="lyricflow"><span class="nav-dot nav-dot--teal" aria-hidden="true"></span><span class="nav-label">LyricFlow</span></button>
+        <button class="nav-item" type="button" data-view="fluentflow"><span class="nav-dot nav-dot--purple" aria-hidden="true"></span><span class="nav-label">FluentFlow</span><span class="nav-progress" data-nav-progress="fluentflow"></span></button>
+        <button class="nav-item" type="button" data-view="hubflow"><span class="nav-dot nav-dot--amber" aria-hidden="true"></span><span class="nav-label">HubFlow</span><span class="nav-progress" data-nav-progress="hubflow"></span></button>
+        <button class="nav-item" type="button" data-view="lyricflow"><span class="nav-dot nav-dot--teal" aria-hidden="true"></span><span class="nav-label">LyricFlow</span><span class="nav-progress" data-nav-progress="lyricflow"></span></button>
         <button class="nav-item" type="button" data-view="actividad"><span class="nav-icon" data-lp-icon="activity" aria-hidden="true"></span><span class="nav-label">Actividad</span></button>
       </nav>
 
@@ -97,18 +97,6 @@
         <p class="eyebrow topbar-eyebrow" id="topbarEyebrow">Tu plataforma de aprendizaje</p>
         <h1 class="topbar-title" id="summaryTitle">Learn<em>Flow</em></h1>
         <p class="topbar-sub" id="topbarSub">Tres módulos, un hilo.</p>
-      </div>
-      <div class="lp-header-stats" role="status" aria-label="Progreso combinado de tus tres módulos">
-        <span class="lp-header-stats__group">
-          <svg class="lp-header-stats__icon lp-header-stats__icon--trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"/><path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"/><path d="M18 9h1.5a1 1 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6 9H4.5a1 1 0 0 1 0-5H6"/></svg>
-          <strong class="lp-header-stats__value" id="headerStatsCompleted">0</strong>
-          <span class="lp-header-stats__label">completados</span>
-        </span>
-        <span class="lp-header-stats__divider" aria-hidden="true"></span>
-        <span class="lp-header-stats__group">
-          <strong class="lp-header-stats__value" id="headerStatsPct">0%</strong>
-          <svg class="lp-header-stats__icon lp-header-stats__icon--target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-        </span>
       </div>
     </div>
 
@@ -168,7 +156,7 @@
         <section class="section-block" aria-labelledby="modulesTitle">
           <div class="section-heading">
             <h2 id="modulesTitle"><span class="section-kicker">Tus tres caminos</span><span class="section-heading__sep" aria-hidden="true">·</span><span id="modulesTitleProgress">Progreso en tu nivel</span></h2>
-            <button class="text-action" type="button" data-view="actividad" id="compareModulesBtn">Comparar módulos <span aria-hidden="true">→</span></button>
+            <button class="text-action" type="button" data-view="actividad" id="compareModulesBtn">Ver histórico <span aria-hidden="true">→</span></button>
           </div>
           <div class="module-grid module-grid--paths" id="summaryModules">
             <button type="button" class="module-card module-card--path module-card--purple module-card--placeholder" tabindex="-1" disabled aria-hidden="true">

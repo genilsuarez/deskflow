@@ -158,11 +158,6 @@ function displayProgressPct(result) {
   return Math.round((completed / total) * 100);
 }
 
-function progressLabel(result) {
-  if (hasValidProgress(result)) return `${displayProgressPct(result)}%`;
-  return '0%';
-}
-
 function levelProgressMetrics(app, combined) {
   const spec = LEVEL_PROGRESS_METRICS[app];
   const slice = combined[app] || {};
@@ -187,14 +182,6 @@ function updatePathCardsHeading(level) {
   const heading = document.getElementById('modulesTitleProgress');
   if (!heading) return;
   heading.textContent = `Progreso en ${level.toUpperCase()}`;
-}
-
-function completedMetric(result) {
-  if (hasValidProgress(result)) {
-    const { completed, total } = progressDisplayMetrics(result);
-    return `${completed} / ${total}`;
-  }
-  return '0';
 }
 
 function createStatusPill(status) {
@@ -282,6 +269,18 @@ function renderModuleCards(animateReveal = false) {
   });
 }
 
+function renderNavProgress() {
+  const defer = isStatsDeferred();
+  const combined = defer ? null : getCombinedLevelProgress(getActiveLevel());
+
+  APPS.forEach((app) => {
+    const el = document.querySelector(`[data-nav-progress="${app}"]`);
+    if (!el) return;
+    const pct = combined ? levelProgressMetrics(app, combined).pct : 0;
+    el.textContent = `${pct}%`;
+  });
+}
+
 function updateGlobalProgressTrack(value, label, animate = false) {
   const track = document.getElementById('globalProgressTrack');
   if (!track) return;
@@ -351,27 +350,6 @@ function renderGlobalProgress(animateReveal = false) {
   description.textContent = partial
     ? 'Contenido completado en A1–C2, promediado entre los tres módulos.'
     : `${validResults.length} de 3 fuentes válidas.`;
-}
-
-function renderHeaderStats(animateReveal = false) {
-  const completedEl = document.getElementById('headerStatsCompleted');
-  const pctEl = document.getElementById('headerStatsPct');
-  if (!completedEl || !pctEl) return;
-  // Diferido: conservar el último valor pintado (o el placeholder del HTML).
-  if (isStatsDeferred()) return;
-  const validResults = appData.filter(hasValidProgress);
-  const totalCompleted = validResults.reduce(
-    (total, result) => total + progressDisplayMetrics(result).completed,
-    0
-  );
-  const average = validResults.length > 0
-    ? validResults.reduce((total, result) => total + displayProgressPct(result), 0) / validResults.length
-    : 0;
-  const pctValue = rounded(average);
-  if (animateReveal && totalCompleted > 0) animateText(completedEl, 0, totalCompleted);
-  else completedEl.textContent = String(totalCompleted);
-  if (animateReveal && pctValue > 0) animateText(pctEl, 0, pctValue, (v) => `${v}%`);
-  else pctEl.textContent = `${pctValue}%`;
 }
 
 // LearnFlow Progression System — docs/to-do/learnflow-progression-system.md.
@@ -671,7 +649,7 @@ function renderContinue() {
   });
 }
 
-function buildModuleInsight(app, result, config) {
+function buildModuleInsight(app, result, config, levelMetrics) {
   const insight = element('section', `detail-insight detail-insight--${config.color}`);
   const kickers = {
     fluentflow: 'Lectura CEFR',
@@ -681,19 +659,9 @@ function buildModuleInsight(app, result, config) {
 
   insight.append(element('p', 'detail-insight__kicker section-kicker', kickers[app]));
 
-  if (app === 'fluentflow') {
-    const cefr = hasValidProgress(result) ? result.progress.data.cefr : null;
-    const headline = cefr ? `Ruta ${cefr.level}` : 'Sin nivel CEFR';
-    insight.append(element('h2', 'detail-insight__title', headline));
-  } else if (app === 'hubflow') {
-    const metrics = hasValidProgress(result) ? progressDisplayMetrics(result) : null;
-    const headline = metrics?.total ? `${metrics.total} ejercicios` : 'Práctica temática';
-    insight.append(element('h2', 'detail-insight__title', headline));
-  } else {
-    const metrics = hasValidProgress(result) ? progressDisplayMetrics(result) : null;
-    const headline = metrics?.total ? `${metrics.total} actividades` : 'Catálogo musical';
-    insight.append(element('h2', 'detail-insight__title', headline));
-  }
+  const unit = levelMetrics.total === 1 ? levelMetrics.singular : levelMetrics.unit;
+  const headline = levelMetrics.total ? `${levelMetrics.total} ${unit}` : levelProgressHint(levelMetrics);
+  insight.append(element('h2', 'detail-insight__title', headline));
 
   return insight;
 }
@@ -712,7 +680,11 @@ function renderModuleDetail(app) {
   const actionLabel = hasValidProgress(result) ? `Continuar en ${config.name}` : `Explorar ${config.name}`;
   actionBar.append(element('span', 'module-detail__label', actionLabel));
 
-  const insight = buildModuleInsight(app, result, config);
+  const defer = isStatsDeferred();
+  const combined = defer ? null : getCombinedLevelProgress(getActiveLevel());
+  const levelMetrics = combined ? levelProgressMetrics(app, combined) : { completed: 0, total: 0, pct: 0, unit: LEVEL_PROGRESS_METRICS[app].unit, singular: LEVEL_PROGRESS_METRICS[app].singular };
+
+  const insight = buildModuleInsight(app, result, config, levelMetrics);
   const hero = element('div', `module-detail__hero module-detail__hero--${config.color}`);
   const mark = element('span', 'module-detail__mark', config.name.charAt(0));
   mark.setAttribute('aria-hidden', 'true');
@@ -726,14 +698,14 @@ function renderModuleDetail(app) {
   statsHeader.append(statsTitle);
   statsCard.append(statsHeader);
 
-  const progressValue = hasValidProgress(result) ? displayProgressPct(result) : 0;
-  statsCard.append(createProgressBar(progressValue, `Progreso de ${config.name}`));
+  const progressValue = defer ? 0 : levelMetrics.pct;
+  statsCard.append(createProgressBar(progressValue, `Progreso de ${config.name} en el nivel actual`));
 
   const stats = element('div', 'detail-stats');
   const progressStat = element('article', 'detail-stat');
-  progressStat.append(element('span', '', 'Progreso'), element('strong', '', progressLabel(result)), createStatusPill(result.progress.status));
+  progressStat.append(element('span', '', 'Progreso'), element('strong', '', `${progressValue}%`), createStatusPill(result.progress.status));
   const contentStat = element('article', 'detail-stat');
-  contentStat.append(element('span', '', 'Completado'), element('strong', '', completedMetric(result)), element('p', '', progressDisplayMetrics(result).unit));
+  contentStat.append(element('span', '', 'Completado'), element('strong', '', `${levelMetrics.completed} / ${levelMetrics.total}`), element('p', '', levelMetrics.unit));
   stats.append(progressStat, contentStat);
   statsCard.append(stats);
   statsSection.append(statsCard);
@@ -860,10 +832,10 @@ function renderAll() {
   appData = reader.readAll();
   contentTitleIndex = buildContentTitleIndex(appData);
   renderGlobalProgress(animateReveal);
-  renderHeaderStats(animateReveal);
   renderCefr();
   renderStreak();
   renderModuleCards(animateReveal);
+  renderNavProgress();
   renderContinue();
   APPS.forEach(renderModuleDetail);
   renderActivity();
@@ -1129,7 +1101,7 @@ const RESUMEN_HINTS = [
 ];
 
 const MODULE_VIEWS = new Set(['fluentflow', 'hubflow', 'lyricflow']);
-/** Vistas con header secundario mobile: [←] título [☰] */
+/** Vistas con header secundario: web [☰] título · mobile [←] título [☰] */
 const SECONDARY_TOPBAR_VIEWS = new Set(['actividad', 'continuar', ...MODULE_VIEWS]);
 
 function setTopbarTitle(titleEl, title) {
@@ -1156,7 +1128,7 @@ function updateTopbar(viewName) {
   topbar.dataset.view = resolvedView;
   topbar.classList.toggle('topbar--module', isSecondaryTopbar);
   topbar.classList.remove('topbar--compact');
-  if (backBtn) backBtn.hidden = !isSecondaryTopbar;
+  if (backBtn) backBtn.hidden = !isSecondaryTopbar || !MOBILE_SIDEBAR_MQ.matches;
   const content = TOPBAR_CONTENT[resolvedView];
   if (!content) {
     topbar.classList.add('topbar--compact');
