@@ -1303,7 +1303,7 @@ function setupTheme() {
       if (newTheme === 'dark') document.documentElement.dataset.theme = 'dark';
       else document.documentElement.removeAttribute('data-theme');
       localStorage.setItem('lp-theme', newTheme);
-      setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 350);
+      setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 200);
     }
     update();
   }));

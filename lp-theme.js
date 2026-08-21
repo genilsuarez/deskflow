@@ -90,7 +90,7 @@
     if (options.transition) {
       setTimeout(function () {
         html.classList.remove('theme-transitioning');
-      }, 350);
+      }, 200);
     }
   }
 

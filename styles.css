@@ -2676,12 +2676,17 @@ a:focus-visible,
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* Theme smooth transition */
+/* Theme smooth transition — scoped to root only (not *) for perf */
 .theme-transitioning,
-.theme-transitioning *,
-.theme-transitioning *::before,
-.theme-transitioning *::after {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+.theme-transitioning body {
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-transitioning,
+  .theme-transitioning body {
+    transition: none;
+  }
 }
 
 /* Noscript fallback */

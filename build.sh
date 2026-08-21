@@ -39,6 +39,10 @@ echo "🎨 Minificando CSS..."
 scripts/minify-css.sh
 echo ""
 
+echo "🎨 Minificando JS (scripts clásicos)..."
+scripts/minify-js.sh
+echo ""
+
 # ─── Commit & Push ──────────────────────────────────────────────────────────────
 
 if [ -n "$(git status --porcelain)" ]; then
