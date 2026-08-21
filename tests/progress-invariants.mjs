@@ -33,8 +33,11 @@ function locate(...candidates) {
 }
 
 const summaryPath = locate(
-  '../lp-progress-summary.js', // DeskFlow, LyricFlow
-  '../js/lp-progress-summary.js', // HubFlow
+  // `js/` primero: LyricFlow arrastró durante un tiempo una copia vieja en su
+  // raíz, y con el orden inverso esta prueba corría contra ella en vez de
+  // contra el archivo que index.html despacha.
+  '../js/lp-progress-summary.js', // HubFlow, LyricFlow
+  '../lp-progress-summary.js', // DeskFlow
   '../public/lp-progress-summary.js', // FluentFlow
   './lp-progress-summary.js' // Learn/scripts (canónico)
 );
