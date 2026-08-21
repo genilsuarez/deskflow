@@ -155,10 +155,10 @@ function toProgressRows(userId, app, content) {
  * el próximo scheduleSync/visibility-refresh del caller.
  */
 export async function syncProgress(app, localProgress) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { synced: false, reason: 'not_authenticated' };
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return { synced: false, reason: 'not_authenticated' };
 
-  const rows = toProgressRows(user.id, app, localProgress.content);
+  const rows = toProgressRows(session.user.id, app, localProgress.content);
   if (!rows.length) return { synced: true, count: 0, reason: 'nothing_to_sync' };
 
   const { data, error: rpcError } = await supabase.rpc('upsert_progress_merge', {
@@ -285,12 +285,13 @@ export async function fetchSyncRevision() {
 
 // === ACTIVITY EVENTS ===
 
-export async function syncActivityEvents(app, events) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { synced: false };
+export async function syncActivityEvents(app, events, { updateStreak = true } = {}) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return { synced: false, reason: 'not_authenticated' };
+  if (!events?.length) return { synced: true, count: 0, reason: 'nothing_to_sync' };
 
   const rows = events.map(event => ({
-    user_id: user.id,
+    user_id: session.user.id,
     event_id: event.eventId,
     run_id: event.runId,
     app,
@@ -305,15 +306,28 @@ export async function syncActivityEvents(app, events) {
     metrics: event.metrics || {},
   }));
 
-  const { error } = await supabase
-    .from('activity_events')
-    .upsert(rows, { onConflict: 'user_id,event_id', ignoreDuplicates: true });
+  const CHUNK_SIZE = 50;
+  for (let offset = 0; offset < rows.length; offset += CHUNK_SIZE) {
+    const chunk = rows.slice(offset, offset + CHUNK_SIZE);
+    const { error } = await supabase
+      .from('activity_events')
+      .upsert(chunk, { onConflict: 'user_id,event_id', ignoreDuplicates: true });
+    if (error) return { synced: false, reason: error.message };
+  }
 
-  if (error) return { synced: false, reason: error.message };
-
-  await supabase.rpc('update_streak', { p_user_id: user.id });
+  if (updateStreak) {
+    await supabase.rpc('update_streak', { p_user_id: session.user.id }).catch(() => {});
+  }
 
   return { synced: true, count: rows.length };
+}
+
+/** Una sola llamada al final del ciclo de sync multi-app (evita 3× RPC). */
+export async function updateUserStreakOnce() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return { updated: false, reason: 'not_authenticated' };
+  const { error } = await supabase.rpc('update_streak', { p_user_id: session.user.id });
+  return { updated: !error, reason: error?.message };
 }
 
 // === SETTINGS ===

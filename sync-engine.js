@@ -101,6 +101,45 @@ function clearActivityFetchedFlags() {
   }
 }
 
+const ACTIVITY_UPLOAD_CURSOR_MAX = 600;
+
+function activityUploadCursorKey(app) {
+  return `lp-activity-uploaded-ids:${app}:v1`;
+}
+
+function readUploadedActivityIds(app) {
+  const doc = readRaw(activityUploadCursorKey(app));
+  if (!doc?.ids || !Array.isArray(doc.ids)) return new Set();
+  return new Set(doc.ids.filter(Boolean));
+}
+
+function noteActivityEventsUploaded(app, eventIds) {
+  const incoming = (eventIds || []).filter(Boolean);
+  if (!incoming.length) return;
+  const set = readUploadedActivityIds(app);
+  for (const id of incoming) set.add(id);
+  const ids = [...set];
+  const trimmed = ids.length > ACTIVITY_UPLOAD_CURSOR_MAX
+    ? ids.slice(ids.length - ACTIVITY_UPLOAD_CURSOR_MAX)
+    : ids;
+  writeRaw(activityUploadCursorKey(app), {
+    schemaVersion: 1,
+    app,
+    ids: trimmed,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+function clearActivityUploadCursors() {
+  for (const app of APPS) {
+    try {
+      localStorage.removeItem(activityUploadCursorKey(app));
+    } catch {
+      /* noop */
+    }
+  }
+}
+
 function notifyActivityReady(app) {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent('lp-activity-ready', { detail: { app } }));
@@ -641,6 +680,9 @@ async function downloadActivityAppOnce(app) {
   const remoteRows = await lpSupabase.fetchActivityEvents(app);
   if (remoteRows === null) return { downloaded: false, reason: 'fetch_error' };
 
+  // Eventos que ya están en la nube no hace falta re-subirlos en el push.
+  noteActivityEventsUploaded(app, remoteRows.map((row) => row.event_id));
+
   const key = activityStorageKey(app);
   const doc = readRaw(key) || emptyActivityDoc(app);
 
@@ -719,6 +761,7 @@ export function resetDownloadState() {
   downloaded = false;
   cloudHydrated = false;
   clearActivityFetchedFlags();
+  clearActivityUploadCursors();
   beginStatsDeferral();
 }
 
@@ -755,15 +798,19 @@ export async function downloadOnLogin({ force = false } = {}) {
   const perApp = {};
   let hadFetchError = false;
   let anyChanged = false;
-  for (const app of APPS) {
-    if (shouldAbortCloudHydration()) return discardHydrationAfterLogout(perApp);
+  const appResults = await Promise.all(APPS.map(async (app) => {
+    if (shouldAbortCloudHydration()) return null;
     const progress = await downloadApp(app);
     const activity = await downloadActivityApp(app);
-    // Solo HubFlow reconstruye claves de score-history por categoría × modo
-    // (progress-store.js); FluentFlow y LyricFlow no las usan.
     const bests = app === 'hubflow'
       ? await downloadScoreKeyBests(app)
       : { downloaded: false, reason: 'not_applicable' };
+    return { app, progress, activity, bests };
+  }));
+
+  for (const row of appResults) {
+    if (!row) return discardHydrationAfterLogout(perApp);
+    const { app, progress, activity, bests } = row;
     perApp[app] = { progress, activity, bests };
     // bests NO cuenta como fetch_error a propósito: si la migración 027
     // todavía no está aplicada, la RPC falla y esto degradaría a
@@ -814,6 +861,7 @@ export async function refreshFromCloudIfNeeded({ force = false } = {}) {
   refreshingFromCloud = true;
   lastVisibilityRefreshAt = Date.now();
   try {
+    if (force) clearActivityFetchedFlags();
     const result = await downloadOnLogin({ force: true });
     if (result.hydrated) {
       notifyCloudHydrated();
@@ -974,9 +1022,13 @@ async function pullMergeLocal(app) {
   };
 }
 
-async function syncApp(app) {
+async function syncApp(app, { skipPull = false } = {}) {
   // Pull-merge-push: absorb peer/device writes before uploading local deltas.
-  await pullMergeLocal(app);
+  if (skipPull) {
+    await purgeInvalidatedLocal(app);
+  } else {
+    await pullMergeLocal(app);
+  }
 
   const progressKey = `learnflow:progress:${app}:v1`;
   const progressDoc = readRaw(progressKey);
@@ -1003,7 +1055,16 @@ async function syncApp(app) {
       writeRaw(`learnflow:activity:${app}:v1`, activityDoc);
     }
     if (uploadable.length) {
-      results.activity = await lpSupabase.syncActivityEvents(app, uploadable);
+      const uploadedIds = readUploadedActivityIds(app);
+      const pending = uploadable.filter((event) => event.eventId && !uploadedIds.has(event.eventId));
+      if (pending.length) {
+        results.activity = await lpSupabase.syncActivityEvents(app, pending, { updateStreak: false });
+        if (results.activity?.synced) {
+          noteActivityEventsUploaded(app, pending.map((event) => event.eventId));
+        }
+      } else {
+        results.activity = { synced: true, count: 0, reason: 'already_uploaded' };
+      }
     }
   }
 
@@ -1020,7 +1081,7 @@ export async function syncSingleApp(app) {
   return syncApp(app);
 }
 
-export async function runFullSync({ force = false } = {}) {
+export async function runFullSync({ force = false, skipPull = false } = {}) {
   if (syncing) return { synced: false, reason: 'already_syncing' };
   if (shouldAbortCloudHydration()) return { synced: false, reason: 'explicit_logout' };
   if (!force && Date.now() - lastSyncAt < SYNC_INTERVAL_MS) {
@@ -1033,13 +1094,65 @@ export async function runFullSync({ force = false } = {}) {
 
   syncing = true;
   try {
-    const perApp = {};
-    for (const app of APPS) {
-      perApp[app] = await syncApp(app);
-    }
+    const entries = await Promise.all(
+      APPS.map(async (app) => [app, await syncApp(app, { skipPull })])
+    );
+    const perApp = Object.fromEntries(entries);
+    await lpSupabase.updateUserStreakOnce().catch(() => {});
     lastSyncAt = Date.now();
     return { synced: true, perApp };
   } finally {
     syncing = false;
+  }
+}
+
+/**
+ * Ciclo manual pull→push (botón Dev «Forzar sync»). Un solo pull global y
+ * subida sin volver a bajar progress/activity por app — el patrón anterior
+ * (refreshFromCloudIfNeeded + runFullSync) duplicaba 3× downloadApp,
+ * 3× reconcile y varios round-trips a Supabase.
+ */
+export async function forceCloudSync() {
+  if (syncing || refreshingFromCloud) {
+    return { ok: false, reason: 'already_in_progress' };
+  }
+  if (shouldAbortCloudHydration()) {
+    return { ok: false, reason: 'explicit_logout' };
+  }
+
+  const authed = await lpSupabase.isAuthenticated();
+  if (!authed) return { ok: false, reason: 'not_authenticated' };
+
+  const startedAt = Date.now();
+  const timeoutMs = 45000;
+
+  try {
+    const result = await Promise.race([
+      (async () => {
+        clearActivityFetchedFlags();
+        const pull = await refreshFromCloudIfNeeded({ force: true });
+        const push = await runFullSync({ force: true, skipPull: true });
+        const revision = await lpSupabase.fetchSyncRevision();
+        if (revision !== null) writeLastSeenRevision(revision);
+        return {
+          ok: true,
+          pull,
+          push,
+          downloaded: !!(/** @type {any} */ (pull)?.downloaded),
+          durationMs: Date.now() - startedAt,
+        };
+      })(),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('force_sync_timeout')), timeoutMs);
+      }),
+    ]);
+    return result;
+  } catch (err) {
+    if (err instanceof Error && err.message === 'force_sync_timeout') {
+      syncing = false;
+      refreshingFromCloud = false;
+      return { ok: false, reason: 'timeout', durationMs: Date.now() - startedAt };
+    }
+    throw err;
   }
 }

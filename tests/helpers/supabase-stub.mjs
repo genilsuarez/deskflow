@@ -56,6 +56,7 @@ export async function syncActivityEvents(app, events) {
   return { synced: true, count: events.length };
 }
 
+export async function updateUserStreakOnce() { return { updated: false, reason: 'stub' }; }
 export async function syncSettings() { return { synced: true }; }
 export async function fetchSettings() { return null; }
 export async function fetchStreak() { return null; }

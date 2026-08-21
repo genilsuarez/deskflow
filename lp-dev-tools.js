@@ -132,11 +132,23 @@ var lpDevTools = (function () {
         syncStatus.textContent = 'Sincronizando…';
         window.lpForceSync()
           .then(function (result) {
-            var pulled = !!(result && result.pull && result.pull.downloaded);
+            if (result && result.ok === false) {
+              syncStatus.dataset.state = 'error';
+              if (result.reason === 'not_authenticated') {
+                syncStatus.textContent = '✕ Inicia sesión para sincronizar';
+              } else if (result.reason === 'timeout') {
+                syncStatus.textContent = '✕ Sync superó 45 s — revisa red o Supabase';
+              } else {
+                syncStatus.textContent = '✕ No se pudo sincronizar — ' + (result.reason || 'error desconocido');
+              }
+              return;
+            }
+            var pulled = !!(result && (result.downloaded || (result.pull && result.pull.downloaded)));
+            var secs = result && result.durationMs ? (result.durationMs / 1000).toFixed(1) : null;
             syncStatus.dataset.state = 'ok';
             syncStatus.textContent = pulled
-              ? '✓ Sincronizado — se descargaron cambios de otro dispositivo'
-              : '✓ Sincronizado — sin cambios nuevos';
+              ? '✓ Sincronizado — se descargaron cambios de otro dispositivo' + (secs ? ' (' + secs + ' s)' : '')
+              : '✓ Sincronizado — sin cambios nuevos' + (secs ? ' (' + secs + ' s)' : '');
           })
           .catch(function () {
             syncStatus.dataset.state = 'error';

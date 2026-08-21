@@ -31,6 +31,14 @@ fi
 echo "✅ Validaciones OK"
 echo ""
 
+# ─── Minificar CSS ──────────────────────────────────────────────────────────────
+# Regenera *.min.css desde el fuente legible antes de cada commit, así el
+# minificado nunca queda desactualizado. Ver scripts/minify-css.sh.
+
+echo "🎨 Minificando CSS..."
+scripts/minify-css.sh
+echo ""
+
 # ─── Commit & Push ──────────────────────────────────────────────────────────────
 
 if [ -n "$(git status --porcelain)" ]; then
