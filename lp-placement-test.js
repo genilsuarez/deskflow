@@ -155,7 +155,12 @@ var lpPlacementTest = (function () {
   // --- Composición del examen -------------------------------------------
 
   function fetchItemBank() {
-    return fetch(ITEMS_URL, { cache: 'no-store' }).then(function (res) {
+    // cache: 'default' — el banco es un JSON estático que cambia rara vez y
+    // GitHub Pages lo sirve con ETag + max-age, así que revalidar sale un 304
+    // en vez de re-bajar los ~12 KB en cada intento. Que el banco cambie no se
+    // cubre acá: lo cubre `version`, revalidado contra resume.itemsVersion en
+    // renderExam(), que descarta el intento guardado y arranca limpio.
+    return fetch(ITEMS_URL, { cache: 'default' }).then(function (res) {
       if (!res.ok) throw new Error('lp-placement-items.json fetch failed: ' + res.status);
       return res.json();
     });
