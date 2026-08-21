@@ -33,8 +33,37 @@ const SYNC_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_ACTIVITY_EVENTS = 200;
 const VISIBILITY_REFRESH_MIN_MS = 12_000;
 const SYNC_CHANNEL_NAME = 'lp-sync';
-const SYNC_REVISION_KEY = 'lp-sync-revision';
 const REVISION_POLL_MS = 25_000;
+
+// ── Cursor de revisión (migración 026): por USUARIO y por MOTOR ─────────────
+//
+// La clave era una sola global, `lp-sync-revision`, y eso rompía el gate de
+// dos formas distintas:
+//
+// 1. Entre motores. Las 4 apps viven en un mismo origin (localhost:3000 en dev,
+//    genilsuarez.github.io en prod) y por lo tanto comparten localStorage —
+//    pero NO comparten motor de sync: FluentFlow corre el suyo
+//    (src/services/syncEngine.ts) y solo pullea `fluentflow`, mientras este
+//    pullea las 3 apps vanilla de una vez. Con una clave común, un pull de
+//    FluentFlow marcaba la revisión N como "ya vista" y HubFlow/LyricFlow/
+//    DeskFlow concluían `up_to_date` sin haber bajado nunca lo suyo.
+// 2. Entre cuentas. `sync_cursor.revision` es por usuario: si en el mismo
+//    navegador entra otra cuenta con una revisión más baja que la que quedó
+//    guardada, `revision <= lastSeen` da "al día" desde el arranque y ese
+//    dispositivo no pullea jamás. La clave global tampoco la borraba nadie —
+//    ni resetDownloadState(), ni clearGuestLocalProgress(), ni el SIGNED_OUT.
+//
+// Namespacear por (userId, scope) elimina las dos: cada motor lleva su propia
+// cuenta de "hasta dónde bajé YO para ESTE usuario". El contador remoto sigue
+// siendo uno solo y global al usuario, así que una escritura de HubFlow
+// también despierta el pull de FluentFlow — pulls de más, nunca de menos.
+const SYNC_REVISION_SCOPE = 'vanilla';
+const SYNC_REVISION_KEY_PREFIX = 'lp-sync-revision';
+const LEGACY_SYNC_REVISION_KEY = 'lp-sync-revision';
+
+function syncRevisionKey(userId) {
+  return `${SYNC_REVISION_KEY_PREFIX}:${userId}:${SYNC_REVISION_SCOPE}`;
+}
 
 let lastSyncAt = 0;
 let syncing = false;
@@ -682,7 +711,13 @@ function rowToActivityEvent(row, app) {
   };
 }
 
-function mergeActivityEvents(localEvents, remoteRows, app) {
+/**
+ * @param {*[]} localEvents
+ * @param {*[]} remoteRows
+ * @param {string} app
+ * @param {Set<string>|null} [uploadedIds] ids que ya están en la nube.
+ */
+function mergeActivityEvents(localEvents, remoteRows, app, uploadedIds = null) {
   const byId = new Map();
   for (const event of localEvents || []) {
     if (event?.eventId && event?.occurredAt) byId.set(event.eventId, event);
@@ -695,9 +730,36 @@ function mergeActivityEvents(localEvents, remoteRows, app) {
   // Poda acá para que el ledger local se auto-limpie: si no, los eventos
   // huérfanos que bajan de Supabase se vuelven a escribir en localStorage y
   // syncApp() los re-sube en el siguiente ciclo.
-  return pruneActivityEventsToCatalog([...byId.values()], app)
-    .sort((first, second) => second.occurredAt.localeCompare(first.occurredAt))
-    .slice(0, MAX_ACTIVITY_EVENTS);
+  const ordered = pruneActivityEventsToCatalog([...byId.values()], app)
+    .sort((first, second) => second.occurredAt.localeCompare(first.occurredAt));
+
+  if (!uploadedIds) return ordered.slice(0, MAX_ACTIVITY_EVENTS);
+
+  // Un evento local que todavía NO está en la nube nunca se poda por la
+  // ventana de 200, por más viejo que sea.
+  //
+  // El orden dentro de syncApp() es pull → merge → push, y el push lee el
+  // ledger que este merge acaba de escribir. Un `.slice(0, 200)` ciego sobre
+  // la unión local+remoto borraba, antes de subirlos, los eventos propios que
+  // hubieran quedado fuera del top-200 por fecha — el caso concreto: este
+  // dispositivo practica sin conexión (o con el push fallando) mientras otro
+  // sube 200 eventos más nuevos; al reconectar, lo propio queda debajo del
+  // corte y desaparece del localStorage sin haber llegado nunca a Supabase.
+  //
+  // Y lo que se pierde ahí no es cosmético: activity_events es el ÚNICO
+  // portador de metrics.scoreKey, del que score_key_bests (migración 027)
+  // deriva la matriz categoría × modo. El agregado por módulo sobrevive
+  // porque viaja aparte en `progress`, así que el síntoma es justamente el
+  // que veníamos persiguiendo — el otro dispositivo muestra el módulo con
+  // menos categorías ganadas de las que realmente tiene.
+  const pending = [];
+  const synced = [];
+  for (const event of ordered) {
+    (uploadedIds.has(event.eventId) ? synced : pending).push(event);
+  }
+  const keepSynced = Math.max(0, MAX_ACTIVITY_EVENTS - pending.length);
+  return [...pending, ...synced.slice(0, keepSynced)]
+    .sort((first, second) => second.occurredAt.localeCompare(first.occurredAt));
 }
 
 async function downloadActivityApp(app) {
@@ -746,7 +808,10 @@ async function downloadActivityAppOnce(app) {
     return { downloaded: false, reason: 'no_remote_data' };
   }
 
-  const merged = mergeActivityEvents(doc.events, remoteRows, app);
+  // readUploadedActivityIds() DESPUÉS de noteActivityEventsUploaded() de
+  // arriba: así el set ya incluye lo que acaba de bajar de la nube, y solo
+  // queda como "pendiente" lo que de verdad no subió nunca.
+  const merged = mergeActivityEvents(doc.events, remoteRows, app, readUploadedActivityIds(app));
   const unchanged =
     merged.length === (doc.events?.length || 0) &&
     merged.every((event, index) => event.eventId === doc.events?.[index]?.eventId);
@@ -816,6 +881,12 @@ export function resetDownloadState() {
   cloudHydrated = false;
   clearActivityFetchedFlags();
   clearActivityUploadCursors();
+  // El cursor de revisión también: si sobrevive a un logout, la próxima cuenta
+  // (o el próximo invitado que vuelve a loguearse) arranca comparando contra
+  // un número que no le corresponde. Con el cursor namespaced por userId esto
+  // ya casi no puede morder, pero borrarlo deja el arranque en frío en su
+  // estado honesto: -1, "nunca chequeé nada".
+  clearSyncRevisionCursors();
   beginStatsDeferral();
 }
 
@@ -831,25 +902,32 @@ async function discardHydrationAfterLogout(perApp) {
   // downloadApp may have rewritten local keys while signOut was in flight.
   window.lpGuestReset?.clearGuestLocalProgress?.();
   resetDownloadState();
-  return { downloaded: false, reason: 'aborted_logout', hydrated: false, perApp };
+  return { downloaded: false, reason: 'aborted_logout', hydrated: false, complete: false, perApp };
 }
 
 export async function downloadOnLogin({ force = false } = {}) {
   if (downloadInFlight) return downloadInFlight;
 
   downloadInFlight = withTimeout((async () => {
-  if (downloaded && !force) return { downloaded: false, reason: 'already_downloaded_this_session' };
+  // `complete` (acá y en cada salida de esta función) significa "bajé TODO lo
+  // que había que bajar, sin errores": es lo único con lo que checkAndRefresh
+  // puede avanzar el cursor de revisión sin arriesgarse a saltear un cambio.
+  // Ojo con no confundirlo con `hydrated`, que solo dice "ya puedo pintar
+  // algo en pantalla" y es true incluso con un pull a medias.
+  if (downloaded && !force) {
+    return { downloaded: false, reason: 'already_downloaded_this_session', complete: false };
+  }
   if (shouldAbortCloudHydration()) {
-    return { downloaded: false, reason: 'explicit_logout', hydrated: false };
+    return { downloaded: false, reason: 'explicit_logout', hydrated: false, complete: false };
   }
 
   const authed = await lpSupabase.isAuthenticated();
   if (!authed) {
     markStatsDisplayReady();
-    return { downloaded: false, reason: 'not_authenticated' };
+    return { downloaded: false, reason: 'not_authenticated', complete: false };
   }
   if (shouldAbortCloudHydration()) {
-    return { downloaded: false, reason: 'explicit_logout', hydrated: false };
+    return { downloaded: false, reason: 'explicit_logout', hydrated: false, complete: false };
   }
 
   const perApp = {};
@@ -905,7 +983,7 @@ export async function downloadOnLogin({ force = false } = {}) {
       postSyncMessage({ type: 'cloud-refreshed' });
     }
   }
-  return { downloaded: anyChanged, hydrated: cloudHydrated, perApp };
+  return { downloaded: anyChanged, hydrated: cloudHydrated, complete: !hadFetchError, perApp };
   })(), DOWNLOAD_LOGIN_TIMEOUT_MS, 'download_on_login').catch((err) => {
     markStatsDisplayReady();
     if (hasLocalStatsCache()) {
@@ -913,7 +991,7 @@ export async function downloadOnLogin({ force = false } = {}) {
       notifyCloudHydrated();
     }
     if (err instanceof Error && err.message === 'download_on_login_timeout') {
-      return { downloaded: false, reason: 'timeout', hydrated: cloudHydrated, perApp: {} };
+      return { downloaded: false, reason: 'timeout', hydrated: cloudHydrated, complete: false, perApp: {} };
     }
     throw err;
   });
@@ -930,16 +1008,16 @@ export async function downloadOnLogin({ force = false } = {}) {
  * Debounced so focus thrashing doesn't spam Supabase.
  */
 export async function refreshFromCloudIfNeeded({ force = false } = {}) {
-  if (refreshingFromCloud) return { refreshed: false, reason: 'already_refreshing' };
-  if (shouldAbortCloudHydration()) return { refreshed: false, reason: 'explicit_logout' };
-  if (!cloudHydrated && !force) return { refreshed: false, reason: 'not_hydrated' };
+  if (refreshingFromCloud) return { refreshed: false, reason: 'already_refreshing', complete: false };
+  if (shouldAbortCloudHydration()) return { refreshed: false, reason: 'explicit_logout', complete: false };
+  if (!cloudHydrated && !force) return { refreshed: false, reason: 'not_hydrated', complete: false };
   if (!force && Date.now() - lastVisibilityRefreshAt < VISIBILITY_REFRESH_MIN_MS) {
-    return { refreshed: false, reason: 'too_soon' };
+    return { refreshed: false, reason: 'too_soon', complete: false };
   }
 
   const authed = await lpSupabase.isAuthenticated();
-  if (!authed) return { refreshed: false, reason: 'not_authenticated' };
-  if (shouldAbortCloudHydration()) return { refreshed: false, reason: 'explicit_logout' };
+  if (!authed) return { refreshed: false, reason: 'not_authenticated', complete: false };
+  if (shouldAbortCloudHydration()) return { refreshed: false, reason: 'explicit_logout', complete: false };
 
   refreshingFromCloud = true;
   lastVisibilityRefreshAt = Date.now();
@@ -954,7 +1032,7 @@ export async function refreshFromCloudIfNeeded({ force = false } = {}) {
         }));
       }
     }
-    return { refreshed: true, ...result };
+    return { refreshed: true, complete: false, ...result };
   } finally {
     refreshingFromCloud = false;
   }
@@ -969,9 +1047,13 @@ export async function refreshFromCloudIfNeeded({ force = false } = {}) {
 // el bug que esto reemplaza. Con -1, el primer chequeo en cualquier
 // dispositivo siempre gatilla un pull real sin importar qué número
 // devuelva el server, y de ahí en más las comparaciones ya son correctas.
-function readLastSeenRevision() {
+function readLastSeenRevision(userId) {
   try {
-    const raw = localStorage.getItem(SYNC_REVISION_KEY);
+    // La clave global vieja pudo haberla escrito el motor de FluentFlow (que
+    // no pullea nada de estas 3 apps) o una cuenta distinta — su valor no
+    // dice nada sobre lo que ESTE motor bajó. Se descarta, no se migra.
+    localStorage.removeItem(LEGACY_SYNC_REVISION_KEY);
+    const raw = localStorage.getItem(syncRevisionKey(userId));
     if (raw === null) return -1;
     const n = Number(raw);
     return Number.isFinite(n) ? n : -1;
@@ -980,9 +1062,21 @@ function readLastSeenRevision() {
   }
 }
 
-function writeLastSeenRevision(revision) {
+function writeLastSeenRevision(userId, revision) {
   try {
-    localStorage.setItem(SYNC_REVISION_KEY, String(revision));
+    localStorage.setItem(syncRevisionKey(userId), String(revision));
+  } catch {
+    /* localStorage no disponible */
+  }
+}
+
+/** Borra los cursores de revisión de todos los usuarios vistos en este device. */
+function clearSyncRevisionCursors() {
+  try {
+    localStorage.removeItem(LEGACY_SYNC_REVISION_KEY);
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith(`${SYNC_REVISION_KEY_PREFIX}:`)) localStorage.removeItem(key);
+    }
   } catch {
     /* localStorage no disponible */
   }
@@ -1005,12 +1099,26 @@ function writeLastSeenRevision(revision) {
  * Si fetchSyncRevision() falla (sesión en carrera, red, RLS) cae al
  * comportamiento de siempre (refreshFromCloudIfNeeded con su propio
  * throttle) — nunca es peor que antes de esta migración.
+ *
+ * INVARIANTE: la revisión solo se registra si el pull terminó COMPLETO
+ * (`result.complete`). Antes bastaba con `result.refreshed`, que es true
+ * incluso cuando downloadOnLogin devolvió `reason:'timeout'` o cortó con
+ * hadFetchError — ambos casos salen con `hydrated:true` si hay caché local,
+ * porque hidratado significa "puedo mostrar algo", no "bajé todo". El efecto
+ * era que un fallo transitorio de red quemaba esa revisión para siempre: el
+ * dispositivo pasaba a responder `up_to_date` y esa escritura del peer no se
+ * volvía a pedir nunca, salvo que otro dispositivo subiera el contador otra
+ * vez. Un pull incompleto tiene que dejar el cursor donde estaba para que el
+ * próximo poll lo reintente.
  */
 export async function checkAndRefresh({ force = false } = {}) {
+  const userId = await lpSupabase.getUserId().catch(() => null);
+
   if (force) {
     const result = await refreshFromCloudIfNeeded({ force: true });
+    if (!userId || !result.complete) return result;
     const revision = await lpSupabase.fetchSyncRevision();
-    if (result.refreshed && revision !== null) writeLastSeenRevision(revision);
+    if (revision !== null) writeLastSeenRevision(userId, revision);
     return result;
   }
 
@@ -1021,14 +1129,18 @@ export async function checkAndRefresh({ force = false } = {}) {
     return refreshFromCloudIfNeeded({ force: true });
   }
 
+  // Sin userId no hay cursor con el que comparar (sesión en carrera): pullear
+  // de más es siempre preferible a saltarse un cambio real.
+  if (!userId) return refreshFromCloudIfNeeded({ force: true });
+
   const revision = await lpSupabase.fetchSyncRevision();
   if (revision === null) return refreshFromCloudIfNeeded();
-  if (revision <= readLastSeenRevision()) {
-    return { refreshed: false, reason: 'up_to_date', revision };
+  if (revision <= readLastSeenRevision(userId)) {
+    return { refreshed: false, reason: 'up_to_date', revision, complete: true };
   }
 
   const result = await refreshFromCloudIfNeeded({ force: true });
-  if (result.refreshed) writeLastSeenRevision(revision);
+  if (result.complete) writeLastSeenRevision(userId, revision);
   return result;
 }
 
@@ -1235,8 +1347,13 @@ export async function forceCloudSync() {
         clearActivityFetchedFlags();
         const pull = await refreshFromCloudIfNeeded({ force: true });
         const push = await runFullSync({ force: true, skipPull: true });
-        const revision = await lpSupabase.fetchSyncRevision();
-        if (revision !== null) writeLastSeenRevision(revision);
+        // Mismo invariante que checkAndRefresh: solo un pull completo autoriza
+        // a marcar la revisión como vista.
+        const userId = pull.complete ? await lpSupabase.getUserId().catch(() => null) : null;
+        if (userId) {
+          const revision = await lpSupabase.fetchSyncRevision();
+          if (revision !== null) writeLastSeenRevision(userId, revision);
+        }
         return {
           ok: true,
           pull,

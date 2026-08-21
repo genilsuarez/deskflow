@@ -138,6 +138,18 @@
         k.indexOf('learnflow:progress:') === 0
         || k.indexOf('learnflow:activity:') === 0
         || k.indexOf('learnflow:score-key-bests:') === 0
+        // Las flags "esta app ya publicó su proyección local". Sin borrarlas,
+        // hasLocalStatsCache() (sync-engine.js) sigue diciendo true sobre un
+        // localStorage que acabamos de vaciar, y downloadOnLogin marca
+        // cloudHydrated=true en su rama de error — o sea, habilita el push
+        // con estado vacío. HubFlow ya limpiaba la suya en su listener de
+        // 'lp-guest-reset', pero ese listener solo existe en páginas de
+        // HubFlow: un reset hecho desde DeskFlow o LyricFlow la dejaba viva.
+        || (k.indexOf('learnflow:') === 0 && k.indexOf(':local-ready:') > 0)
+        // Cursor de revisión (migración 026). Es por usuario y por motor; un
+        // residuo de la sesión anterior hace que el arranque compare contra un
+        // número ajeno y concluya "al día" sin pullear nada.
+        || k.indexOf('lp-sync-revision') === 0
       ) {
         localStorage.removeItem(k);
         continue;

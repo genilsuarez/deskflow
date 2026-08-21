@@ -76,6 +76,19 @@ export async function isAuthenticated() {
   return !!session?.user;
 }
 
+/**
+ * id del usuario autenticado, o null. Barato: getSession() resuelve contra el
+ * token ya restaurado en localStorage, no hace round-trip a Supabase.
+ *
+ * sync_cursor.revision es POR USUARIO, así que el cursor local que lo compara
+ * tiene que estar namespaced por este id — ver syncRevisionKey() en
+ * sync-engine.js.
+ */
+export async function getUserId() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user?.id ?? null;
+}
+
 export function buildGoogleOAuthUrl(redirectTo) {
   const target =
     redirectTo || window.location.origin + window.location.pathname + window.location.search;

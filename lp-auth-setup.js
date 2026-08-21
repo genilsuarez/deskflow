@@ -169,7 +169,18 @@ async function processAuthSession(session, onAfterLogin, onAfterLogout, event) {
     // primero la revisión (migración 026) — si no hay nada nuevo no pullea
     // progress/activity_events completos; si falla el chequeo, cae sola al
     // pull de siempre.
-    void checkAndRefresh();
+    //
+    // El push va encadenado detrás porque esta rama rápida se saltea
+    // hydrateFromCloud(), que es donde vive el runFullSync() de arranque: sin
+    // esto, progreso local que no llegó a subir (offline, RPC caído, pestaña
+    // cerrada antes del debounce) no se reintentaba al recargar — solo la
+    // próxima vez que el usuario completara un ejercicio. skipPull:true
+    // porque checkAndRefresh ya resolvió la bajada, y el merge del servidor
+    // (upsert_progress_merge, migración 019) es monotónico, así que re-subir
+    // un estado ya conocido no puede hacer retroceder nada.
+    void checkAndRefresh()
+      .then(() => runFullSync({ force: true, skipPull: true }))
+      .catch(() => {});
     return;
   }
 
