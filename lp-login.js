@@ -576,7 +576,7 @@ html.dark .lp-login {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--lp-border, #e8e0d4);
+  border: 1px solid var(--lp-border, #e7e3dc);
   border-radius: var(--lp-radius-lg, 16px);
   background: var(--lp-bg-paper, var(--lp-surface, #fff));
   box-shadow:
@@ -594,7 +594,7 @@ html.dark .lp-login {
   align-items: center;
   gap: 12px;
   padding: 16px 16px 14px;
-  border-bottom: 1px solid var(--lp-border, #e8e0d4);
+  border-bottom: 1px solid var(--lp-border, #e7e3dc);
   flex-shrink: 0;
 }
 
@@ -680,8 +680,8 @@ html.dark .lp-login {
   padding: 4px;
   margin-bottom: 16px;
   border-radius: var(--lp-radius-md, 10px);
-  background: var(--lp-surface-sunken, #f0ede7);
-  border: 1px solid var(--lp-border, #e8e0d4);
+  background: var(--lp-surface-sunken, #f2f1ed);
+  border: 1px solid var(--lp-border, #e7e3dc);
 }
 
 .lp-login__tab {
@@ -735,8 +735,8 @@ html.dark .lp-login {
   margin-bottom: 14px;
   padding: 12px 14px;
   border-radius: var(--lp-radius-md, 10px);
-  background: var(--lp-surface-sunken, #f0ede7);
-  border: 1px solid var(--lp-border, #e8e0d4);
+  background: var(--lp-surface-sunken, #f2f1ed);
+  border: 1px solid var(--lp-border, #e7e3dc);
 }
 .lp-login__value {
   margin: 6px 0 0;
@@ -750,8 +750,8 @@ html.dark .lp-login {
   margin: 12px 0 0;
   padding: 10px 12px;
   border-radius: var(--lp-radius-md, 10px);
-  background: var(--lp-surface-sunken, #f0ede7);
-  border: 1px dashed var(--lp-border, #e8e0d4);
+  background: var(--lp-surface-sunken, #f2f1ed);
+  border: 1px dashed var(--lp-border, #e7e3dc);
   font-size: 0.75rem;
   line-height: 1.45;
   color: var(--lp-muted, #9c8e7c);
@@ -772,9 +772,9 @@ html.dark .lp-login {
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
-  border: 1px solid var(--lp-border, #e8e0d4);
+  border: 1px solid var(--lp-border, #e7e3dc);
   border-radius: var(--lp-radius-md, 10px);
-  background: var(--lp-surface-sunken, #f0ede7);
+  background: var(--lp-surface-sunken, #f2f1ed);
   color: var(--lp-ink, #2c2418);
   font-family: var(--lp-font-body, system-ui, sans-serif);
   font-size: 0.9375rem;
@@ -819,7 +819,7 @@ html.dark .lp-login {
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--lp-border, #e8e0d4);
+  background: var(--lp-border, #e7e3dc);
 }
 
 .lp-login__magic-submit,
@@ -864,8 +864,8 @@ html.dark .lp-login {
   margin-top: 4px;
   padding: 12px 14px;
   border-radius: var(--lp-radius-md, 10px);
-  background: color-mix(in srgb, var(--lp-accent, #2563eb) 6%, var(--lp-surface-sunken, #f0ede7));
-  border: 1px solid color-mix(in srgb, var(--lp-accent, #2563eb) 12%, var(--lp-border, #e8e0d4));
+  background: color-mix(in srgb, var(--lp-accent, #2563eb) 6%, var(--lp-surface-sunken, #f2f1ed));
+  border: 1px solid color-mix(in srgb, var(--lp-accent, #2563eb) 12%, var(--lp-border, #e7e3dc));
 }
 .lp-login__inline-icon {
   flex: 0 0 16px;
@@ -892,7 +892,7 @@ html.dark .lp-login {
   flex-direction: column;
   gap: 8px;
   padding: 12px 18px 18px;
-  border-top: 1px solid var(--lp-border, #e8e0d4);
+  border-top: 1px solid var(--lp-border, #e7e3dc);
   flex-shrink: 0;
 }
 .lp-login__footer[hidden] { display: none !important; }
@@ -962,18 +962,18 @@ html.dark .lp-login {
 .lp-login .lp-btn--ghost {
   background: var(--lp-surface, #fff);
   color: var(--lp-ink-soft, #5e5041);
-  border: 1.5px solid var(--lp-border, #e8e0d4);
+  border: 1.5px solid var(--lp-border, #e7e3dc);
   box-shadow: none;
 }
 .lp-login .lp-btn--provider {
   width: 100%;
   background: var(--lp-surface, #fff);
   color: var(--lp-ink, #2c2418);
-  border: 1.5px solid var(--lp-border, #e8e0d4);
+  border: 1.5px solid var(--lp-border, #e7e3dc);
   box-shadow: 0 1px 3px color-mix(in srgb, var(--lp-ink, #2c2418) 6%, transparent);
 }
 .lp-login .lp-btn--provider:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--lp-ink, #2c2418) 18%, var(--lp-border, #e8e0d4));
+  border-color: color-mix(in srgb, var(--lp-ink, #2c2418) 18%, var(--lp-border, #e7e3dc));
   box-shadow: 0 4px 14px color-mix(in srgb, var(--lp-ink, #2c2418) 8%, transparent);
 }
 .lp-login .lp-btn:focus-visible {

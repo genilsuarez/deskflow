@@ -4,8 +4,8 @@
   "description": "LearnFlow — aprende idiomas gratis con estructura, práctica y música.",
   "start_url": "/deskflow/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#fcfbf9",
+  "theme_color": "#fcfbf9",
   "icons": [
     {
       "src": "./icon-192.png",
