@@ -3181,7 +3181,7 @@ a:focus-visible,
 
   /* Home hero (bienvenida + progreso de nivel) — mobile */
   .home-welcome__title { font-size: 1.15rem; }
-  .home-welcome__sub { font-size: 0.76rem; }
+  .home-welcome__sub { display: none; }
 
   .level-progress-banner {
     padding: 12px 14px;
