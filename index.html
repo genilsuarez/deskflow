@@ -121,31 +121,35 @@
 
         <div class="resumen-dashboard" id="resumenDashboard">
         <div class="resumen-hero">
-          <section class="continue-banner" aria-labelledby="continueTitle">
-            <div class="continue-banner__mark" id="continueMark" aria-hidden="true">L</div>
-            <div class="continue-banner__copy">
-              <span class="section-kicker">Siguiente paso</span>
-              <h2 id="continueTitle">Retoma donde lo dejaste</h2>
-              <p id="continueSubtitle">Estás más cerca de tu siguiente nivel.</p>
+          <div class="home-hero-top">
+            <div class="home-welcome">
+              <h2 class="home-welcome__title">Bienvenido a Learn<em>Flow</em> <span aria-hidden="true">👋</span></h2>
+              <p class="home-welcome__sub">Tu portal de aprendizaje, con tres módulos conectados por nivel.</p>
             </div>
-            <div class="continue-banner__actions">
-              <a class="lp-btn lp-btn--primary" id="primaryContinueLink" href="https://genilsuarez.github.io/fluentflow/" rel="noopener">Continuar <span aria-hidden="true">→</span></a>
-            </div>
-          </section>
 
-          <div class="context-row">
-            <section class="context-card context-card--progress" aria-labelledby="globalTitle">
-              <div class="context-card__visual" id="globalRing" style="--progress: 0" role="img" aria-label="Progreso global pendiente">
+            <section class="level-progress-banner" aria-labelledby="globalTitle">
+              <div class="level-progress-banner__visual" id="globalRing" style="--progress: 0" role="img" aria-label="Progreso global pendiente">
                 <div><strong id="globalValue">0%</strong><span id="globalUnit">0/3</span></div>
               </div>
-              <div class="context-card__copy">
-                <h2 id="globalTitle">Progreso global</h2>
+              <div class="level-progress-banner__copy">
+                <h2 id="globalTitle">Tu progreso en el nivel <span id="heroLevelValue">A1</span></h2>
                 <p id="globalDescription">Contenido completado en A1–C2, promediado entre los tres módulos.</p>
-                <span class="context-card__meta" id="globalMeta" aria-hidden="true"></span>
+                <span class="level-progress-banner__meta" id="globalMeta" aria-hidden="true"></span>
               </div>
-              <div class="progress-track context-card__track" id="globalProgressTrack" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso global"><span class="progress-track__fill" style="width:0%"></span></div>
+              <span class="level-progress-banner__art" aria-hidden="true">
+                <svg viewBox="0 0 120 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 66 L38 22 L58 48 L74 30 L114 66 Z" fill="currentColor" opacity=".16"/>
+                  <path d="M38 22 L52 40 L44 44 L30 34 Z" fill="currentColor" opacity=".3"/>
+                  <path d="M74 30 L74 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>
+                  <path d="M74 7 L96 12 L74 19 Z" fill="currentColor" opacity=".55"/>
+                  <path d="M100 30 l7 -7 M104 42 l9 0 M99 51 l7 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity=".35"/>
+                </svg>
+              </span>
+              <a class="lp-btn lp-btn--primary level-progress-banner__cta" id="primaryContinueLink" href="https://genilsuarez.github.io/fluentflow/" rel="noopener">Continuar <span aria-hidden="true">→</span></a>
             </section>
+          </div>
 
+          <div class="context-row context-row--secondary">
             <section class="context-card context-card--cefr" aria-labelledby="cefrHeading">
               <div class="context-card__copy">
                 <span class="section-kicker">Nivel LearnFlow</span>

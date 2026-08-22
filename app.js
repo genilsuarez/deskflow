@@ -246,8 +246,9 @@ function renderModuleCards(animateReveal = false) {
 
     const copy = element('div', 'module-card__copy');
     const progressValue = defer ? 0 : metrics.pct;
+    const desc = element('span', 'module-card__desc', config.description);
     const hint = element('span', 'module-card__hint', defer ? '0 de 0' : levelProgressHint(metrics));
-    copy.append(element('strong', 'module-card__label', config.name), hint);
+    copy.append(element('strong', 'module-card__label', config.name), desc, hint);
 
     const pct = element('span', 'module-card__pct', defer ? '0%' : `${progressValue}%`);
     if (animateReveal && progressValue > 0) {
@@ -384,6 +385,8 @@ function renderCefr() {
   if (stepper?.dataset.cefrSnapshot === snapshotKey && level.textContent === upperLevel) return;
 
   level.textContent = upperLevel;
+  const heroLevel = document.getElementById('heroLevelValue');
+  if (heroLevel) heroLevel.textContent = upperLevel;
   description.textContent = '';
   if (isTerminal) {
     description.append(`${upperLevel} · nivel máximo alcanzado.`);
@@ -759,9 +762,6 @@ function pickFallbackApp() {
 
 function renderPrimaryContinue() {
   const link = document.getElementById('primaryContinueLink');
-  const bannerTitle = document.getElementById('continueTitle');
-  const bannerSubtitle = document.getElementById('continueSubtitle');
-  const bannerMark = document.getElementById('continueMark');
   const defaultApp = 'fluentflow';
   const defaultConfig = APP_CONFIG[defaultApp];
 
@@ -777,9 +777,6 @@ function renderPrimaryContinue() {
   if (isStatsDeferred()) {
     link.href = defaultConfig.url;
     link.dataset.appLink = defaultApp;
-    bannerTitle.textContent = 'Retoma donde lo dejaste';
-    if (bannerSubtitle) bannerSubtitle.textContent = 'Estás más cerca de tu siguiente nivel.';
-    if (bannerMark) bannerMark.textContent = 'L';
     setButtonLabel('Abrir ', defaultConfig.name);
     return;
   }
@@ -791,16 +788,6 @@ function renderPrimaryContinue() {
   const config = APP_CONFIG[selectedApp];
   link.href = config.url;
   link.dataset.appLink = selectedApp;
-  if (bannerMark) bannerMark.textContent = config.name.charAt(0);
-
-  const selectedResult = appData.find((result) => result.app === selectedApp);
-  const alreadyStarted = selectedResult && hasValidProgress(selectedResult) && displayProgressPct(selectedResult) > 0;
-  bannerTitle.textContent = alreadyStarted ? `Sigue con ${config.name}` : 'Empieza a aprender';
-  if (bannerSubtitle) {
-    bannerSubtitle.textContent = alreadyStarted
-      ? 'Estás más cerca de tu siguiente nivel.'
-      : 'Elige un módulo y empieza tu primera actividad.';
-  }
   setButtonLabel('Abrir ', config.name);
 }
 
