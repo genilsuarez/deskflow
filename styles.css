@@ -3231,6 +3231,52 @@ a:focus-visible,
   }
   .module-card__label { font-size: 0.92rem; }
 
+  /* Resumen — path cards ~30% más compactas en mobile (115px → ~80px). */
+  #view-resumen .module-grid,
+  #view-resumen .module-grid--paths {
+    gap: 7px;
+  }
+
+  #view-resumen .module-card--path {
+    padding: 8px 12px;
+    gap: 4px 10px;
+    grid-template-columns: 36px 1fr auto;
+  }
+
+  #view-resumen .module-card--path .module-card__mark {
+    width: 36px;
+    height: 36px;
+    font-size: 0.88rem;
+  }
+
+  #view-resumen .module-card--path .module-card__copy {
+    gap: 1px;
+  }
+
+  #view-resumen .module-card--path .module-card__label {
+    font-size: 0.82rem;
+    line-height: 1.15;
+  }
+
+  #view-resumen .module-card--path .module-card__desc {
+    font-size: 0.62rem;
+    line-height: 1.25;
+    -webkit-line-clamp: 1;
+  }
+
+  #view-resumen .module-card--path .module-card__hint {
+    font-size: 0.6rem;
+    line-height: 1.2;
+  }
+
+  #view-resumen .module-card--path .module-card__pct {
+    font-size: 0.88rem;
+  }
+
+  #view-resumen .module-card--path .module-card__cta {
+    font-size: 0.62rem;
+  }
+
   /* Context cards — misma caja interna que module-card (fila + barra reservada) */
   #view-resumen .resumen-hero {
     gap: 8px;
