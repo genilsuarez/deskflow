@@ -3327,8 +3327,7 @@ a:focus-visible,
     margin-bottom: 0;
   }
 
-  #view-resumen .context-card--progress,
-  #view-resumen .context-card--cefr {
+  #view-resumen .context-card--progress {
     box-sizing: border-box;
     height: var(--module-card-height, 75px);
     min-height: var(--module-card-height, 75px);
@@ -3337,6 +3336,13 @@ a:focus-visible,
     padding: var(--module-card-pad-block, 10px) 12px;
     column-gap: 8px;
     overflow: hidden;
+    box-shadow: none;
+  }
+
+  #view-resumen .context-card--cefr {
+    box-sizing: border-box;
+    margin: 0;
+    padding: var(--module-card-pad-block, 10px) 12px;
     box-shadow: none;
   }
 
@@ -3351,26 +3357,8 @@ a:focus-visible,
   }
 
   #view-resumen .context-card--cefr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 1fr auto;
-    grid-template-areas:
-      "copy"
-      "track";
-    row-gap: var(--module-card-row-gap, 8px);
-    align-content: stretch;
-    align-items: center;
-  }
-
-  #view-resumen .context-card--cefr::after {
-    content: "";
-    grid-area: track;
-    display: block;
-    height: var(--lp-progress-height);
-    border-radius: var(--lp-radius-full);
-    background: var(--lp-surface-sunken);
-    opacity: 0;
-    pointer-events: none;
+    display: flex;
+    align-items: flex-start;
   }
 
   #view-resumen .context-card__track {
@@ -3407,8 +3395,7 @@ a:focus-visible,
   }
 
   #view-resumen .context-card--cefr .context-card__copy {
-    grid-area: copy;
-    align-self: start;
+    align-self: flex-start;
   }
 
   #view-resumen .context-card__copy {
@@ -3419,10 +3406,6 @@ a:focus-visible,
     min-width: 0;
     align-items: flex-start;
     text-align: left;
-  }
-
-  #view-resumen .context-card--cefr .context-card__copy {
-    min-height: calc(0.68rem * 1.2 + 0.92rem * 1.2 + 0.68rem * 1.3 + 3px);
   }
 
   #view-resumen .context-card--progress .context-card__copy {
