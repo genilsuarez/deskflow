@@ -3146,11 +3146,55 @@ a:focus-visible,
 
   /* Inicio — espaciado homologado con FluentFlow home-dash / HubFlow resumen (mobile) */
   .app-shell[data-view="resumen"] .main {
-    padding: 8px 12px 20px;
+    padding: 7px 12px 17px;
   }
 
   .resumen-dashboard { gap: 8px; }
-  .resumen-hero { gap: 10px; margin-bottom: 0; }
+  .resumen-hero { gap: 8px; margin-bottom: 0; }
+
+  /* Resumen mobile — compactación vertical global ~15%. */
+  #view-resumen {
+    --module-card-height: 75px;
+    --module-card-pad-block: 10px;
+    --module-card-row-gap: 7px;
+  }
+
+  #view-resumen .resumen-dashboard {
+    gap: 7px;
+  }
+
+  #view-resumen .resumen-hero,
+  #view-resumen .home-hero-top {
+    gap: 7px;
+  }
+
+  #view-resumen .context-row {
+    gap: 8px;
+    margin-bottom: 0;
+  }
+
+  #view-resumen .context-card--streak {
+    min-height: var(--module-card-height, 75px);
+    height: var(--module-card-height, 75px);
+    max-height: var(--module-card-height, 75px);
+    padding: var(--module-card-pad-block, 10px) 12px;
+    gap: 8px;
+    box-shadow: none;
+  }
+
+  #view-resumen .context-card--streak .streak-badge {
+    width: 34px;
+    height: 34px;
+  }
+
+  #view-resumen .context-card--streak .streak-badge__flame {
+    font-size: 1rem;
+  }
+
+  #view-resumen .context-card--streak .streak-badge__count {
+    font-size: 0.68rem;
+    inset: auto 0 3px;
+  }
 
   /* Compacto en vez de oculto: es el atajo principal para retomar el
      estudio y es donde más se usa. Se recorta la descripción para que
@@ -3180,21 +3224,21 @@ a:focus-visible,
   .lp-btn .lp-btn__verb { display: none; }
 
   /* Home hero (bienvenida + progreso de nivel) — mobile */
-  .home-welcome__title { font-size: 1.15rem; }
+  .home-welcome__title { font-size: 0.98rem; }
   .home-welcome__sub { display: none; }
 
   .level-progress-banner {
-    padding: 12px 14px;
-    gap: 6px 10px;
+    padding: 10px 12px;
+    gap: 5px 8px;
   }
   .level-progress-banner__visual {
-    width: 40px;
-    height: 40px;
-    flex: 0 0 40px;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
   }
   .level-progress-banner__visual > div {
-    width: 30px;
-    height: 30px;
+    width: 26px;
+    height: 26px;
   }
   .level-progress-banner__copy p { display: none; }
   .level-progress-banner__meta { display: none; }
@@ -3231,22 +3275,22 @@ a:focus-visible,
   }
   .module-card__label { font-size: 0.92rem; }
 
-  /* Resumen — path cards ~30% más compactas en mobile (115px → ~80px). */
+  /* Resumen — path cards compactas en mobile. */
   #view-resumen .module-grid,
   #view-resumen .module-grid--paths {
-    gap: 7px;
+    gap: 6px;
   }
 
   #view-resumen .module-card--path {
-    padding: 8px 12px;
-    gap: 4px 10px;
-    grid-template-columns: 36px 1fr auto;
+    padding: 7px 11px;
+    gap: 3px 8px;
+    grid-template-columns: 32px 1fr auto;
   }
 
   #view-resumen .module-card--path .module-card__mark {
-    width: 36px;
-    height: 36px;
-    font-size: 0.88rem;
+    width: 32px;
+    height: 32px;
+    font-size: 0.82rem;
   }
 
   #view-resumen .module-card--path .module-card__copy {
@@ -3254,44 +3298,44 @@ a:focus-visible,
   }
 
   #view-resumen .module-card--path .module-card__label {
-    font-size: 0.82rem;
-    line-height: 1.15;
+    font-size: 0.78rem;
+    line-height: 1.1;
   }
 
   #view-resumen .module-card--path .module-card__desc {
-    font-size: 0.62rem;
-    line-height: 1.25;
+    font-size: 0.58rem;
+    line-height: 1.2;
     -webkit-line-clamp: 1;
   }
 
   #view-resumen .module-card--path .module-card__hint {
-    font-size: 0.6rem;
-    line-height: 1.2;
+    font-size: 0.56rem;
+    line-height: 1.15;
   }
 
   #view-resumen .module-card--path .module-card__pct {
-    font-size: 0.88rem;
+    font-size: 0.82rem;
   }
 
   #view-resumen .module-card--path .module-card__cta {
-    font-size: 0.62rem;
+    font-size: 0.58rem;
   }
 
   /* Context cards — misma caja interna que module-card (fila + barra reservada) */
   #view-resumen .resumen-hero {
-    gap: 8px;
+    gap: 7px;
     margin-bottom: 0;
   }
 
   #view-resumen .context-card--progress,
   #view-resumen .context-card--cefr {
     box-sizing: border-box;
-    height: var(--module-card-height, 88px);
-    min-height: var(--module-card-height, 88px);
-    max-height: var(--module-card-height, 88px);
+    height: var(--module-card-height, 75px);
+    min-height: var(--module-card-height, 75px);
+    max-height: var(--module-card-height, 75px);
     margin: 0;
-    padding: var(--module-card-pad-block, 12px) 14px;
-    column-gap: 10px;
+    padding: var(--module-card-pad-block, 10px) 12px;
+    column-gap: 8px;
     overflow: hidden;
     box-shadow: none;
   }
@@ -3299,11 +3343,11 @@ a:focus-visible,
   #view-resumen .context-card--progress {
     position: relative;
     display: grid;
-    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-columns: 34px minmax(0, 1fr);
     grid-template-areas: "visual copy";
     grid-template-rows: 1fr;
     align-items: center;
-    padding-bottom: calc(var(--module-card-pad-block, 12px) + var(--module-card-row-gap, 8px) + var(--lp-progress-height));
+    padding-bottom: calc(var(--module-card-pad-block, 10px) + var(--module-card-row-gap, 7px) + var(--lp-progress-height));
   }
 
   #view-resumen .context-card--cefr {
@@ -3331,26 +3375,26 @@ a:focus-visible,
 
   #view-resumen .context-card__track {
     position: absolute;
-    left: 14px;
-    right: 14px;
-    bottom: var(--module-card-pad-block, 12px);
+    left: 12px;
+    right: 12px;
+    bottom: var(--module-card-pad-block, 10px);
   }
 
   #view-resumen .context-card--progress .context-card__visual {
     grid-area: visual;
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     flex: none;
     align-self: start;
   }
 
   #view-resumen .context-card--progress .context-card__visual > div {
-    width: 30px;
-    height: 30px;
+    width: 26px;
+    height: 26px;
   }
 
   #view-resumen .context-card--progress .context-card__visual strong {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
   }
 
   #view-resumen .context-card--progress #globalUnit:empty {
@@ -3378,11 +3422,11 @@ a:focus-visible,
   }
 
   #view-resumen .context-card--cefr .context-card__copy {
-    min-height: calc(0.68rem * 1.2 + 0.92rem * 1.2 + 0.68rem * 1.3 + 4px);
+    min-height: calc(0.68rem * 1.2 + 0.92rem * 1.2 + 0.68rem * 1.3 + 3px);
   }
 
   #view-resumen .context-card--progress .context-card__copy {
-    min-height: calc(0.92rem * 1.2 + 0.68rem * 1.3 + 0.64rem * 1.35 + 4px);
+    min-height: calc(0.92rem * 1.2 + 0.68rem * 1.3 + 0.64rem * 1.35 + 3px);
   }
 
   #view-resumen .context-card__meta {
@@ -3399,15 +3443,15 @@ a:focus-visible,
   #view-resumen .context-card__copy h2,
   #view-resumen .context-card--cefr .context-card__copy h2 {
     font-family: var(--lp-font-body);
-    font-size: 0.92rem;
+    font-size: 0.86rem;
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.15;
     margin: 0;
   }
 
   #view-resumen .context-card__copy p {
-    font-size: 0.68rem;
-    line-height: 1.3;
+    font-size: 0.64rem;
+    line-height: 1.25;
     margin: 0;
     color: var(--lp-muted);
   }
@@ -3437,10 +3481,10 @@ a:focus-visible,
     margin: 0;
   }
 
-  #view-resumen .section-heading h2 { font-size: 0.88rem; }
+  #view-resumen .section-heading h2 { font-size: 0.82rem; }
 
   #view-resumen .section-heading {
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
 
   #view-resumen .section-block {
