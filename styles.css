@@ -2028,91 +2028,9 @@ body {
   /* El CTA (texto + botón en línea) necesita ancho propio: en vez de
      compartir fila con las 3 tarjetas de métricas (lo que lo forzaba a una
      columna angosta de 0.5fr), ocupa su propia fila completa arriba. */
-  #view-resumen .resumen-hero {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  #view-resumen .continue-banner {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px;
-    gap: 12px;
-    box-sizing: border-box;
-  }
-
-  #view-resumen .continue-banner h2 {
-    font-size: 1.1rem;
-    margin: 0;
-  }
-
-  #view-resumen .continue-banner p {
-    display: none;
-  }
-
-  #view-resumen .continue-banner .lp-btn {
-    flex-shrink: 0;
-    min-height: 44px;
-    padding: 8px 16px;
-    font-size: 0.82rem;
-    margin-top: 0;
-    white-space: nowrap;
-  }
-
-  #view-resumen .continue-banner__copy {
-    min-width: 0;
-    flex: 1;
-  }
-
-  #view-resumen .context-row {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin-bottom: 0;
-  }
-
-  #view-resumen .context-row .context-card--progress,
-  #view-resumen .context-row .context-card--cefr,
-  #view-resumen .context-row .context-card--streak {
-    min-height: 88px;
-    box-sizing: border-box;
-  }
-
-  #view-resumen .context-row .context-card--streak {
-    grid-column: auto;
-  }
-
-  #view-resumen .module-grid--paths {
-    grid-template-columns: 1fr;
-  }
-
-  #view-resumen .home-hero-top {
-    flex-direction: row;
-    align-items: stretch;
-    gap: 16px;
-  }
-
-  #view-resumen .home-welcome {
-    flex: 1 1 260px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  #view-resumen .level-progress-banner {
-    flex: 1 1 380px;
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas: "visual copy art" "cta cta cta";
-  }
-
   #view-resumen .level-progress-banner__art {
     display: block;
     width: 64px;
-  }
-
-  #view-resumen .context-row--secondary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2460,6 +2378,12 @@ body {
     margin-bottom: 0;
   }
 
+  @media (max-width: 1023px) {
+    #view-resumen .context-row--secondary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
   #view-resumen .continue-banner {
     flex-direction: row;
     align-items: center;
@@ -2602,10 +2526,6 @@ body {
 
   #view-resumen .module-card__pct {
     font-size: 1rem;
-  }
-
-  #view-resumen .context-row--secondary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   #view-resumen .level-progress-banner__visual {
@@ -3691,4 +3611,55 @@ a:focus-visible,
      tamaño normal (sin la reducción de arriba, que ya no hace falta acá). */
   .module-grid { grid-template-columns: 1fr; }
   .module-grid .module-card__hint { font-size: 0.68rem; }
+}
+
+/* ═══ Resumen hero — cuadrícula 2×2 desktop ═══
+   Columna izq: bienvenida + CEFR. Columna der: banner + racha (alineados).
+   Subgrid hereda los tracks del padre → mismos bordes en banner y racha. */
+@media (min-width: 1024px) {
+  #view-resumen .resumen-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 260fr) minmax(0, 380fr);
+    column-gap: 16px;
+    row-gap: 10px;
+    margin-bottom: 0;
+  }
+
+  #view-resumen .home-hero-top,
+  #view-resumen .context-row--secondary {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+  }
+
+  #view-resumen .home-hero-top {
+    align-items: stretch;
+  }
+
+  #view-resumen .context-row--secondary {
+    margin-bottom: 0;
+  }
+
+  #view-resumen .home-welcome {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  #view-resumen .level-progress-banner {
+    min-width: 0;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "visual copy art" "cta cta cta";
+  }
+
+  #view-resumen .context-card--cefr,
+  #view-resumen .context-card--streak {
+    min-width: 0;
+  }
+
+  #view-resumen .level-progress-banner__art {
+    display: block;
+    width: 64px;
+  }
 }
