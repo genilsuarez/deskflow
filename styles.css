@@ -700,19 +700,20 @@ body {
 .topbar-user {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   height: var(--lp-navbtn-size);
-  padding: 0 8px;
+  padding: 0 10px 0 4px;
   box-sizing: border-box;
-  border: 1px solid transparent;
+  border: 1px solid var(--lp-border);
   border-radius: var(--lp-radius-full);
-  background: none;
+  background: var(--lp-surface);
+  box-shadow: var(--lp-shadow-xs);
   cursor: pointer;
-  transition: border-color 0.15s var(--lp-ease), background 0.15s var(--lp-ease);
+  transition: border-color 0.15s var(--lp-ease), box-shadow 0.15s var(--lp-ease);
 }
 .topbar-user:hover {
-  border-color: var(--lp-border);
-  background: var(--lp-surface);
+  border-color: var(--lp-border-strong);
+  box-shadow: var(--lp-shadow-sm);
 }
 .topbar-user:focus-visible {
   outline: 2px solid var(--lp-accent);
@@ -756,6 +757,9 @@ body {
   border-radius: var(--lp-radius-lg);
   background: var(--lp-surface-raised);
   box-shadow: var(--lp-shadow-md);
+}
+.topbar-user__dropdown[hidden] {
+  display: none;
 }
 .topbar-user__dropdown-name {
   margin: 4px 10px 6px;
