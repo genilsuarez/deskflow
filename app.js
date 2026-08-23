@@ -307,6 +307,18 @@ function renderNavProgress() {
   });
 }
 
+function renderTopbarCredits() {
+  const valueEl = document.getElementById('topbarCreditsValue');
+  if (!valueEl) return;
+  if (isStatsDeferred()) return;
+  const combined = getCombinedLevelProgress(getActiveLevel());
+  const pending = APPS.reduce((sum, app) => {
+    const metrics = levelProgressMetrics(app, combined);
+    return sum + Math.max(0, metrics.total - metrics.completed);
+  }, 0);
+  valueEl.textContent = String(pending);
+}
+
 function updateGlobalProgressTrack(value, label, animate = false) {
   const track = document.getElementById('globalProgressTrack');
   if (!track) return;
@@ -859,6 +871,7 @@ function renderAll() {
   renderStreak();
   renderModuleCards(animateReveal);
   renderNavProgress();
+  renderTopbarCredits();
   renderContinue();
   APPS.forEach(renderModuleDetail);
   renderActivity();
@@ -1295,6 +1308,63 @@ function setupNavigation() {
       btn.setAttribute('aria-label', user ? user.name + ' — perfil' : 'Iniciar sesión');
     },
   });
+
+  function syncTopbarUser(user) {
+    const initialsEl = document.getElementById('topbarUserInitials');
+    const btn = document.getElementById('topbarUserBtn');
+    const nameLabel = document.getElementById('topbarUserNameLabel');
+    const logoutItem = document.getElementById('topbarUserLogoutItem');
+    if (!initialsEl || !btn) return;
+    const initials = user && user.name
+      ? user.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
+      : '?';
+    initialsEl.textContent = initials;
+    btn.setAttribute('aria-label', user ? `${user.name} — cuenta` : 'Cuenta');
+    if (nameLabel) nameLabel.textContent = user ? user.name : 'Invitado';
+    if (logoutItem) logoutItem.hidden = !user?.isSupabaseUser;
+  }
+
+  const userMenu = document.getElementById('topbarUserMenu');
+  const userMenuBtn = document.getElementById('topbarUserBtn');
+  const userMenuDropdown = document.getElementById('topbarUserDropdown');
+
+  function closeUserMenu() {
+    if (!userMenuDropdown || userMenuDropdown.hidden) return;
+    userMenuDropdown.hidden = true;
+    userMenuBtn.setAttribute('aria-expanded', 'false');
+  }
+  function openUserMenu() {
+    if (!userMenuDropdown) return;
+    userMenuDropdown.hidden = false;
+    userMenuBtn.setAttribute('aria-expanded', 'true');
+  }
+  userMenuBtn?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (userMenuDropdown.hidden) openUserMenu();
+    else closeUserMenu();
+  });
+  document.addEventListener('click', (event) => {
+    if (userMenu && !userMenu.contains(event.target)) closeUserMenu();
+  });
+  userMenuDropdown?.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeUserMenu();
+      userMenuBtn.focus();
+    }
+  });
+  document.getElementById('topbarUserSettingsItem')?.addEventListener('click', (event) => {
+    closeUserMenu();
+    lpSettings.open(event, {
+      beforeOpen: closeSidebar,
+      inertElements: [document.querySelector('.app-shell')],
+    });
+  });
+  document.getElementById('topbarUserLogoutItem')?.addEventListener('click', () => {
+    closeUserMenu();
+    lpLogin.logout();
+  });
+  lpLogin.onUpdate(syncTopbarUser);
+  syncTopbarUser(lpLogin.getUser());
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeSidebar();
   });

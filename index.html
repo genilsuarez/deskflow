@@ -115,6 +115,34 @@
         <h1 class="topbar-title" id="summaryTitle">Learn<em>Flow</em></h1>
         <p class="topbar-sub" id="topbarSub">Tres módulos, un hilo.</p>
       </div>
+      <div class="topbar-actions">
+        <div class="topbar-credits" id="topbarCredits">
+          <svg class="topbar-credits__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.9 6.06 6.6.77-4.86 4.6 1.25 6.57L12 17.5l-5.9 3 1.25-6.57-4.86-4.6 6.6-.77L12 2.5Z"/></svg>
+          <span><strong id="topbarCreditsValue">0</strong> disponibles</span>
+        </div>
+        <button class="lp-icon-btn topbar-help" type="button" id="topbarHelpBtn" aria-label="Ayuda">?</button>
+        <div class="topbar-user-menu" id="topbarUserMenu">
+          <button class="topbar-user" type="button" id="topbarUserBtn" aria-haspopup="true" aria-expanded="false" aria-controls="topbarUserDropdown">
+            <span class="topbar-user__avatar" id="topbarUserInitials" aria-hidden="true">?</span>
+            <span class="topbar-user__chev" aria-hidden="true">⌄</span>
+          </button>
+          <div class="topbar-user__dropdown" id="topbarUserDropdown" role="menu" aria-label="Cuenta" hidden>
+            <p class="topbar-user__dropdown-name" id="topbarUserNameLabel">Invitado</p>
+            <button class="topbar-user__item" type="button" id="topbarUserSettingsItem" role="menuitem">
+              <span class="nav-icon" data-lp-icon="settings" aria-hidden="true"></span>
+              <span>Ajustes</span>
+            </button>
+            <button class="topbar-user__item theme-toggle" type="button" role="menuitem">
+              <span class="nav-icon" aria-hidden="true"></span>
+              <span class="theme-toggle__label">Modo oscuro</span>
+            </button>
+            <button class="topbar-user__item topbar-user__item--danger" type="button" id="topbarUserLogoutItem" role="menuitem" hidden>
+              <span class="nav-icon" data-lp-icon="arrow-left" aria-hidden="true"></span>
+              <span>Cerrar sesión</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <main class="main" id="mainContent" tabindex="-1">
