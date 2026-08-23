@@ -3,6 +3,7 @@
 // DeskFlow imports this module directly; keep all copies in sync (no build step).
 
 import { HUBFLOW_LEVELS, LYRICFLOW_LEVELS, FLUENTFLOW_LEVELS as FLUENTFLOW_LEVEL_CATALOG } from './lp-level-map.js';
+import { getThresholds } from './lp-completion-config.js';
 
 /** Nivel CEFR compartido entre las 3 apps de contenido (minúsculas, distinto de FLUENTFLOW_LEVELS). */
 export const LEVEL_ORDER = Object.freeze(['a1', 'a2', 'b1', 'b2', 'c1', 'c2']);
@@ -1198,9 +1199,14 @@ export function getCombinedLevelProgress(level = readLpLevel()) {
   };
 }
 
-/** Regla compartida de avance: FluentFlow ≥100% AND LyricFlow ≥100% AND HubFlow ≥50% del nivel dado. */
+/** Regla compartida de avance: cada app debe alcanzar su umbral configurado (lp-completion-config.js) del nivel dado. */
 function meetsLevelCompletion(progress) {
-  return progress.fluentflow.progressPct >= 100 && progress.lyricflow.progressPct >= 100 && progress.hubflow.progressPct >= 50;
+  const thresholds = getThresholds();
+  return (
+    progress.fluentflow.progressPct >= thresholds.fluentflow &&
+    progress.lyricflow.progressPct >= thresholds.lyricflow &&
+    progress.hubflow.progressPct >= thresholds.hubflow
+  );
 }
 
 /**
@@ -1241,8 +1247,9 @@ export function getEarnedLevelFloor() {
  * — el caller decide si persiste (`updateCefrLevel()` en lp-supabase.js),
  * para no acoplar este módulo de cómputo puro a la capa de red.
  *
- * Regla: FluentFlow ≥100% AND LyricFlow ≥100% AND HubFlow ≥50% del nivel
- * activo. C2 es terminal — no se vuelve a evaluar (ver isCefrTrackComplete
+ * Regla: cada app debe alcanzar su umbral configurado (lp-completion-config.js,
+ * default FluentFlow/LyricFlow 100% y HubFlow 50%) del nivel activo. C2 es
+ * terminal — no se vuelve a evaluar (ver isCefrTrackComplete
  * para detectar la finalización de C2). El nivel nunca baja: si la
  * condición no se cumple, `lp-level` simplemente no avanza (ver
  * docs/to-do/learnflow-progression-system.md § Reset parcial).

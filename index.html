@@ -57,6 +57,7 @@
   <link rel="stylesheet" href="lp-about.min.css">
   <link rel="stylesheet" href="lp-settings.min.css">
   <link rel="stylesheet" href="lp-fluentflow-settings.min.css">
+  <link rel="stylesheet" href="lp-completion-settings.css">
   <link rel="stylesheet" href="lp-dev-tools.min.css">
   <link rel="stylesheet" href="lp-onboarding.min.css">
   <link rel="stylesheet" href="lp-placement-test.min.css">
@@ -125,6 +126,11 @@
             <div class="home-welcome">
               <h2 class="home-welcome__title">Bienvenido a Learn<em>Flow</em> <span aria-hidden="true">👋</span></h2>
               <p class="home-welcome__sub">Tu portal de aprendizaje, con tres módulos conectados por nivel.</p>
+              <ul class="home-welcome__chips">
+                <li><span class="home-welcome__chip-icon" data-lp-icon="book" aria-hidden="true"></span>Aprende</li>
+                <li><span class="home-welcome__chip-icon" data-lp-icon="activity" aria-hidden="true"></span>Practica</li>
+                <li><span class="home-welcome__chip-icon" data-lp-icon="progress" aria-hidden="true"></span>Logra tus metas</li>
+              </ul>
             </div>
 
             <section class="level-progress-banner" aria-labelledby="globalTitle">
@@ -134,7 +140,10 @@
               <div class="level-progress-banner__copy">
                 <h2 id="globalTitle">Tu progreso en el nivel <span id="heroLevelValue">A1</span></h2>
                 <p id="globalDescription">Contenido completado en A1–C2, promediado entre los tres módulos.</p>
-                <span class="level-progress-banner__meta" id="globalMeta" aria-hidden="true"></span>
+                <span class="level-progress-banner__meta" aria-hidden="true">
+                  <svg class="level-progress-banner__meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                  <span id="globalMeta"></span>
+                </span>
               </div>
               <span class="level-progress-banner__art" aria-hidden="true">
                 <svg viewBox="0 0 120 72" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -144,24 +153,26 @@
                   <path d="M74 7 L96 12 L74 19 Z" fill="currentColor" opacity=".55"/>
                   <path d="M100 30 l7 -7 M104 42 l9 0 M99 51 l7 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity=".35"/>
                 </svg>
+                <span class="level-progress-banner__caption">Tu esfuerzo<br>te lleva más lejos</span>
               </span>
               <a class="lp-btn lp-btn--primary level-progress-banner__cta" id="primaryContinueLink" href="https://genilsuarez.github.io/fluentflow/" rel="noopener">Continuar <span aria-hidden="true">→</span></a>
             </section>
           </div>
 
           <div class="context-row context-row--secondary">
-            <section class="context-card context-card--cefr" aria-labelledby="cefrHeading">
+            <button type="button" class="context-card context-card--cefr context-card--nav" data-view="actividad" aria-labelledby="cefrHeading">
               <div class="context-card__copy">
                 <span class="section-kicker">Nivel LearnFlow</span>
                 <h2 id="cefrHeading">Ruta <span id="cefrLevel">A1</span></h2>
                 <p id="cefrDescription">A1</p>
                 <ol class="cefr-stepper" id="cefrStepper" aria-label="Progresión CEFR"></ol>
               </div>
-            </section>
+              <span class="context-card__chev" aria-hidden="true">›</span>
+            </button>
 
-            <section class="context-card context-card--streak" aria-labelledby="streakHeading">
+            <button type="button" class="context-card context-card--streak context-card--nav" data-view="actividad" aria-labelledby="streakHeading">
               <div class="context-card__copy">
-                <span class="section-kicker">Racha</span>
+                <span class="section-kicker">Racha de aprendizaje</span>
                 <h2 id="streakHeading">0 días</h2>
                 <p id="streakDescription">Actividad en cualquiera de tus tres módulos.</p>
               </div>
@@ -169,7 +180,8 @@
                 <span class="streak-badge__flame">🔥</span>
                 <strong class="streak-badge__count">0</strong>
               </div>
-            </section>
+              <span class="context-card__chev" aria-hidden="true">›</span>
+            </button>
           </div>
         </div>
 
@@ -211,6 +223,14 @@
             </button>
           </div>
         </section>
+
+        <div class="home-help">
+          <p class="home-help__ask">
+            <span aria-hidden="true">💡</span> ¿Necesitas ayuda para continuar?
+            <button type="button" class="home-help__link" id="homeHelpAbout">Conoce más sobre LearnFlow</button>
+          </p>
+          <p class="home-help__tagline">Tu aprendizaje, nuestro propósito <span aria-hidden="true">💙</span></p>
+        </div>
         </div>
 
         <section class="data-health" id="dataHealth" aria-labelledby="dataHealthTitle" hidden>
@@ -283,6 +303,10 @@
           <h3 class="lp-settings-section__title" id="settingsSectionFluentFlowTitle">FluentFlow</h3>
           <button class="nav-item" type="button" id="fluentflowAdvancedTrigger"><span class="nav-icon" data-lp-icon="settings" aria-hidden="true"></span><span class="nav-label">Configuración avanzada</span></button>
         </section>
+        <section class="lp-settings-section" id="settingsSectionCompletion" aria-labelledby="settingsSectionCompletionTitle" hidden>
+          <h3 class="lp-settings-section__title" id="settingsSectionCompletionTitle">Progresión de nivel</h3>
+          <button class="nav-item" type="button" id="completionAdvancedTrigger"><span class="nav-icon" data-lp-icon="settings" aria-hidden="true"></span><span class="nav-label">Umbrales de completitud</span></button>
+        </section>
         <section class="lp-settings-section" id="settingsSectionDev" aria-labelledby="settingsSectionDevTitle" hidden>
           <h3 class="lp-settings-section__title" id="settingsSectionDevTitle">Desarrollador</h3>
           <button class="nav-item" type="button" id="devToolsTrigger" aria-expanded="false" aria-controls="devToolsPanel"><span class="nav-icon" data-lp-icon="wrench" aria-hidden="true"></span><span class="nav-label">Dev</span></button>
@@ -323,6 +347,7 @@
   <script src="lp-dev-tools.min.js" defer></script>
   <script src="lp-onboarding.min.js" defer></script>
   <script src="lp-placement-test.min.js" defer></script>
+  <script type="module" src="lp-completion-settings.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

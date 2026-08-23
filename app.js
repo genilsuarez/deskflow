@@ -5,6 +5,7 @@ import { runFullSync, shouldDeferStatsDisplay, shouldDeferActivityDisplay, consu
 import { animateText, animateCssVar, animateWidth } from './lp-stats-animate.js';
 import { setupSupabaseAuth } from './lp-auth-setup.js';
 import { getActiveLevel, getCombinedLevelProgress, getEarnedLevelFloor, LEVEL_ORDER } from './lp-progress-summary.js';
+import { getThresholds } from './lp-completion-config.js';
 import { warmAllCatalogTotals } from './lp-catalog-warmer.js';
 import { scoreValidation, blocksFor, FALLBACK_LEVEL } from './lp-placement-scoring.js';
 
@@ -16,7 +17,10 @@ const APP_CONFIG = Object.freeze({
     unit: 'módulos',
     lastLabel: 'Ejercicio',
     color: 'purple',
-    url: 'https://genilsuarez.github.io/fluentflow/'
+    url: 'https://genilsuarez.github.io/fluentflow/',
+    timeEstimate: '~45 h de contenido',
+    noteEmoji: '🏆',
+    noteText: '¡Excelente trabajo!'
   },
   hubflow: {
     name: 'HubFlow',
@@ -25,7 +29,10 @@ const APP_CONFIG = Object.freeze({
     unit: 'ejercicios',
     lastLabel: 'Ejercicio',
     color: 'amber',
-    url: 'https://genilsuarez.github.io/hubflow/'
+    url: 'https://genilsuarez.github.io/hubflow/',
+    timeEstimate: '~20 min por sesión',
+    noteEmoji: '🎮',
+    noteText: 'Tu siguiente logro te espera'
   },
   lyricflow: {
     name: 'LyricFlow',
@@ -34,7 +41,10 @@ const APP_CONFIG = Object.freeze({
     unit: 'actividades',
     lastLabel: 'Canción',
     color: 'teal',
-    url: 'https://genilsuarez.github.io/lyricflow/'
+    url: 'https://genilsuarez.github.io/lyricflow/',
+    timeEstimate: '~30 min por sesión',
+    noteEmoji: '🎵',
+    noteText: 'La música también te enseña'
   }
 });
 
@@ -233,6 +243,7 @@ function renderModuleCards(animateReveal = false) {
   const upperLevel = activeLevel.toUpperCase();
   updatePathCardsHeading(activeLevel);
   const combined = defer ? null : getCombinedLevelProgress(activeLevel);
+  const recommendedApp = defer ? null : getRecommendedApp();
 
   APPS.forEach((app) => {
     const config = APP_CONFIG[app];
@@ -246,9 +257,23 @@ function renderModuleCards(animateReveal = false) {
 
     const copy = element('div', 'module-card__copy');
     const progressValue = defer ? 0 : metrics.pct;
+    const labelRow = element('div', 'module-card__label-row');
+    labelRow.append(element('strong', 'module-card__label', config.name));
+    if (app === recommendedApp) labelRow.append(element('span', 'module-card__badge', 'Recomendado'));
     const desc = element('span', 'module-card__desc', config.description);
-    const hint = element('span', 'module-card__hint', defer ? '0 de 0' : levelProgressHint(metrics));
-    copy.append(element('strong', 'module-card__label', config.name), desc, hint);
+    const metaRow = element('div', 'module-card__meta');
+    metaRow.append(
+      element('span', 'module-card__hint', defer ? '0 de 0' : levelProgressHint(metrics)),
+      element('span', 'module-card__meta-time', config.timeEstimate)
+    );
+    copy.append(labelRow, desc, metaRow);
+
+    const note = element('span', 'module-card__note', '');
+    note.append(
+      element('span', 'module-card__note-emoji', config.noteEmoji),
+      element('span', 'module-card__note-text', config.noteText)
+    );
+    note.setAttribute('aria-hidden', 'true');
 
     const pct = element('span', 'module-card__pct', defer ? '0%' : `${progressValue}%`);
     if (animateReveal && progressValue > 0) {
@@ -265,7 +290,7 @@ function renderModuleCards(animateReveal = false) {
     });
     progress.classList.add('module-card__bar');
 
-    card.append(mark, copy, pct, cta, progress);
+    card.append(mark, copy, note, pct, cta, progress);
     container.append(card);
   });
 }
@@ -355,11 +380,10 @@ function renderGlobalProgress(animateReveal = false) {
 
 // LearnFlow Progression System — docs/to-do/learnflow-progression-system.md.
 // lp-level es el nivel compartido entre las 3 apps (no la lectura interna
-// de FluentFlow): sube solo cuando FluentFlow ≥100%, LyricFlow ≥100% y
-// HubFlow ≥50% del nivel activo. Esta tarjeta es la "vista de estadísticas
-// globales" a la que enlazan los avisos de "nivel estancado" en HubFlow y
-// LyricFlow.
-const CEFR_APP_THRESHOLDS = Object.freeze({ fluentflow: 100, hubflow: 50, lyricflow: 100 });
+// de FluentFlow): sube solo cuando cada app alcanza su umbral configurado
+// (lp-completion-config.js, default FluentFlow/LyricFlow 100%, HubFlow 50%)
+// del nivel activo. Esta tarjeta es la "vista de estadísticas globales" a
+// la que enlazan los avisos de "nivel estancado" en HubFlow y LyricFlow.
 
 function renderCefr() {
   const level = document.getElementById('cefrLevel');
@@ -372,8 +396,9 @@ function renderCefr() {
   const activeLevel = getActiveLevel();
   const upperLevel = activeLevel.toUpperCase();
   const progress = getCombinedLevelProgress(activeLevel);
+  const thresholds = getThresholds();
   const apps = ['fluentflow', 'hubflow', 'lyricflow'];
-  const met = Object.fromEntries(apps.map((app) => [app, progress[app].progressPct >= CEFR_APP_THRESHOLDS[app]]));
+  const met = Object.fromEntries(apps.map((app) => [app, progress[app].progressPct >= thresholds[app]]));
   const isTerminal = LEVEL_ORDER.indexOf(activeLevel) === LEVEL_ORDER.length - 1;
   const pendingNames = apps.filter((app) => !met[app]).map((app) => APP_CONFIG[app].name);
   const descriptionKey = isTerminal
@@ -405,8 +430,13 @@ function renderCefr() {
     const activeIdx = LEVEL_ORDER.indexOf(activeLevel);
     stepper.replaceChildren();
     LEVEL_ORDER.forEach((lvl, index) => {
-      const step = element('li', `cefr-stepper__step${index < activeIdx ? ' is-done' : index === activeIdx ? ' is-current' : ''}`);
-      const dot = element('span', 'cefr-stepper__dot', lvl.toUpperCase());
+      const isDone = index < activeIdx;
+      const step = element('li', `cefr-stepper__step${isDone ? ' is-done' : index === activeIdx ? ' is-current' : ''}`);
+      const dot = element('span', 'cefr-stepper__dot', isDone ? '' : lvl.toUpperCase());
+      if (isDone) {
+        dot.setAttribute('aria-label', `${lvl.toUpperCase()} completado`);
+        dot.append(element('span', '', '✓'));
+      }
       step.append(dot);
       if (index < LEVEL_ORDER.length - 1) {
         step.append(element('span', 'cefr-stepper__line'));
@@ -755,9 +785,18 @@ function renderDataHealth() {
 function pickFallbackApp() {
   const activeLevel = getActiveLevel();
   const progress = getCombinedLevelProgress(activeLevel);
+  const thresholds = getThresholds();
   const apps = ['fluentflow', 'hubflow', 'lyricflow'];
-  const pending = apps.filter((app) => progress[app].progressPct < CEFR_APP_THRESHOLDS[app]);
+  const pending = apps.filter((app) => progress[app].progressPct < thresholds[app]);
   return pending[0] || 'fluentflow';
+}
+
+function getRecommendedApp() {
+  if (isStatsDeferred()) return 'fluentflow';
+  const candidates = appData
+    .filter((result) => hasValidProgress(result) && result.progress.data.summary.lastContent)
+    .sort((a, b) => new Date(b.progress.data.summary.lastContent.occurredAt || 0) - new Date(a.progress.data.summary.lastContent.occurredAt || 0));
+  return candidates[0]?.app || pickFallbackApp();
 }
 
 function renderPrimaryContinue() {
@@ -781,10 +820,7 @@ function renderPrimaryContinue() {
     return;
   }
 
-  const candidates = appData
-    .filter((result) => hasValidProgress(result) && result.progress.data.summary.lastContent)
-    .sort((a, b) => new Date(b.progress.data.summary.lastContent.occurredAt || 0) - new Date(a.progress.data.summary.lastContent.occurredAt || 0));
-  const selectedApp = candidates[0]?.app || pickFallbackApp();
+  const selectedApp = getRecommendedApp();
   const config = APP_CONFIG[selectedApp];
   link.href = config.url;
   link.dataset.appLink = selectedApp;
@@ -1207,6 +1243,7 @@ function setupNavigation() {
 
   document.getElementById('settingsTrigger').addEventListener('click', (event) => {
     if (window.lpFluentFlowSettings) lpFluentFlowSettings.updateSectionVisibility();
+    if (window.lpCompletionSettings) lpCompletionSettings.updateSectionVisibility();
     if (window.lpDevTools) lpDevTools.updateSectionVisibility();
     lpSettings.open(event, {
       beforeOpen: closeSidebar,
@@ -1219,11 +1256,20 @@ function setupNavigation() {
       inertElements: [document.querySelector('.app-shell')],
     });
   });
+  document.getElementById('completionAdvancedTrigger').addEventListener('click', (event) => {
+    lpCompletionSettings.open(event, {
+      beforeOpen: () => lpSettings.close(),
+      inertElements: [document.querySelector('.app-shell')],
+    });
+  });
   document.getElementById('aboutTrigger').addEventListener('click', (event) => {
     lpAbout.open(event, {
       beforeOpen: () => { closeSidebar(); lpSettings.close(); },
       inertElements: [document.querySelector('.app-shell')],
     });
+  });
+  document.getElementById('homeHelpAbout')?.addEventListener('click', (event) => {
+    lpAbout.open(event, { inertElements: [document.querySelector('.app-shell')] });
   });
   document.getElementById('replayOnboardingTrigger').addEventListener('click', () => {
     closeSidebar();
@@ -1365,7 +1411,9 @@ window.addEventListener('storage', (event) => {
     return;
   }
   if (/^learnflow:(progress|activity):(fluentflow|hubflow|lyricflow):v1$/.test(event.key || '')) scheduleRenderAll();
+  if (event.key === 'lp-completion-config') renderCefr();
 });
+window.addEventListener('lp-completion-config-changed', renderCefr);
 
 (function rotateHints() {
   const hints = RESUMEN_HINTS;

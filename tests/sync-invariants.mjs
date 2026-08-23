@@ -49,9 +49,11 @@ const summaryPath = locate(
 );
 // Dependencia transitiva de lp-progress-summary.js (catálogos de niveles).
 const levelMapPath = locate('../js/lp-level-map.js', '../lp-level-map.js', './lp-level-map.js');
+// Dependencia transitiva de lp-progress-summary.js (umbrales de avance por app).
+const completionConfigPath = locate('../js/lp-completion-config.js', '../lp-completion-config.js', './lp-completion-config.js');
 
-if (!enginePath || !summaryPath || !levelMapPath) {
-  console.error('❌ No se encontró sync-engine.js / lp-progress-summary.js / lp-level-map.js junto a esta prueba.');
+if (!enginePath || !summaryPath || !levelMapPath || !completionConfigPath) {
+  console.error('❌ No se encontró sync-engine.js / lp-progress-summary.js / lp-level-map.js / lp-completion-config.js junto a esta prueba.');
   process.exit(1);
 }
 
@@ -137,6 +139,7 @@ const sandbox = mkdtempSync(join(tmpdir(), 'lp-sync-invariants-'));
 copyFileSync(enginePath, join(sandbox, 'sync-engine.js'));
 copyFileSync(summaryPath, join(sandbox, 'lp-progress-summary.js'));
 copyFileSync(levelMapPath, join(sandbox, 'lp-level-map.js'));
+copyFileSync(completionConfigPath, join(sandbox, 'lp-completion-config.js'));
 writeFileSync(
   join(sandbox, 'lp-supabase.js'),
   `export const __mock = {};
