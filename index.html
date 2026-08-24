@@ -78,6 +78,30 @@
     <header class="mobile-header">
       <button class="lp-icon-btn" id="menuToggle" type="button" aria-label="Abrir navegación" aria-controls="sidebar" aria-expanded="false"><span data-lp-icon="menu" aria-hidden="true"></span></button>
       <a class="mobile-header__brand" href="#resumen" data-view-link="resumen" aria-label="Ir al resumen de LearnFlow">Learn<em>Flow</em></a>
+      <div class="topbar-actions">
+        <button class="lp-icon-btn topbar-help" type="button" id="mobileHelpBtn" aria-label="Ayuda">?</button>
+        <div class="topbar-user-menu" id="mobileUserMenu">
+          <button class="topbar-user" type="button" id="mobileUserBtn" aria-haspopup="true" aria-expanded="false" aria-controls="mobileUserDropdown">
+            <span class="topbar-user__avatar" id="mobileUserInitials" aria-hidden="true">?</span>
+            <span class="topbar-user__chev" aria-hidden="true">⌄</span>
+          </button>
+          <div class="topbar-user__dropdown" id="mobileUserDropdown" role="menu" aria-label="Cuenta" hidden>
+            <p class="topbar-user__dropdown-name" id="mobileUserNameLabel">Invitado</p>
+            <button class="topbar-user__item" type="button" id="mobileUserSettingsItem" role="menuitem">
+              <span class="nav-icon" data-lp-icon="settings" aria-hidden="true"></span>
+              <span>Ajustes</span>
+            </button>
+            <button class="topbar-user__item theme-toggle" type="button" role="menuitem">
+              <span class="nav-icon" aria-hidden="true"></span>
+              <span class="theme-toggle__label">Modo oscuro</span>
+            </button>
+            <button class="topbar-user__item topbar-user__item--danger" type="button" id="mobileUserLogoutItem" role="menuitem" hidden>
+              <span class="nav-icon" data-lp-icon="arrow-left" aria-hidden="true"></span>
+              <span>Cerrar sesión</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </header>
 
     <button class="lp-icon-btn navigation-launcher" id="navigationLauncher" type="button" aria-label="Abrir navegación flotante" aria-controls="sidebar" aria-expanded="false"><span data-lp-icon="menu" aria-hidden="true"></span></button>

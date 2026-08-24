@@ -1309,62 +1309,79 @@ function setupNavigation() {
     },
   });
 
-  function syncTopbarUser(user) {
-    const initialsEl = document.getElementById('topbarUserInitials');
-    const btn = document.getElementById('topbarUserBtn');
-    const nameLabel = document.getElementById('topbarUserNameLabel');
-    const logoutItem = document.getElementById('topbarUserLogoutItem');
-    if (!initialsEl || !btn) return;
-    const initials = user && user.name
-      ? user.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
-      : '?';
-    initialsEl.textContent = initials;
-    btn.setAttribute('aria-label', user ? `${user.name} — cuenta` : 'Cuenta');
-    if (nameLabel) nameLabel.textContent = user ? user.name : 'Invitado';
-    if (logoutItem) logoutItem.hidden = !user?.isSupabaseUser;
-  }
+  /** Cablea un menú de cuenta (avatar + desplegable). Se instancia una vez
+      por barra visible en mobile (topbar de vistas secundarias y
+      mobile-header de "Inicio"), que nunca coexisten en pantalla. */
+  function setupUserMenu(ids) {
+    const initialsEl = document.getElementById(ids.initials);
+    const btn = document.getElementById(ids.btn);
+    const nameLabel = document.getElementById(ids.nameLabel);
+    const logoutItem = document.getElementById(ids.logoutItem);
+    const menu = document.getElementById(ids.menu);
+    const dropdown = document.getElementById(ids.dropdown);
+    if (!btn || !menu || !dropdown) return () => {};
 
-  const userMenu = document.getElementById('topbarUserMenu');
-  const userMenuBtn = document.getElementById('topbarUserBtn');
-  const userMenuDropdown = document.getElementById('topbarUserDropdown');
-
-  function closeUserMenu() {
-    if (!userMenuDropdown || userMenuDropdown.hidden) return;
-    userMenuDropdown.hidden = true;
-    userMenuBtn.setAttribute('aria-expanded', 'false');
-  }
-  function openUserMenu() {
-    if (!userMenuDropdown) return;
-    userMenuDropdown.hidden = false;
-    userMenuBtn.setAttribute('aria-expanded', 'true');
-  }
-  userMenuBtn?.addEventListener('click', (event) => {
-    event.stopPropagation();
-    if (userMenuDropdown.hidden) openUserMenu();
-    else closeUserMenu();
-  });
-  document.addEventListener('click', (event) => {
-    if (userMenu && !userMenu.contains(event.target)) closeUserMenu();
-  });
-  userMenuDropdown?.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      closeUserMenu();
-      userMenuBtn.focus();
+    function closeUserMenu() {
+      if (dropdown.hidden) return;
+      dropdown.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
     }
-  });
-  document.getElementById('topbarUserSettingsItem')?.addEventListener('click', (event) => {
-    closeUserMenu();
-    lpSettings.open(event, {
-      beforeOpen: closeSidebar,
-      inertElements: [document.querySelector('.app-shell')],
+    function openUserMenu() {
+      dropdown.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+    }
+    btn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (dropdown.hidden) openUserMenu();
+      else closeUserMenu();
     });
-  });
-  document.getElementById('topbarUserLogoutItem')?.addEventListener('click', () => {
-    closeUserMenu();
-    lpLogin.logout();
-  });
-  lpLogin.onUpdate(syncTopbarUser);
-  syncTopbarUser(lpLogin.getUser());
+    document.addEventListener('click', (event) => {
+      if (!menu.contains(event.target)) closeUserMenu();
+    });
+    dropdown.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeUserMenu();
+        btn.focus();
+      }
+    });
+    document.getElementById(ids.settingsItem)?.addEventListener('click', (event) => {
+      closeUserMenu();
+      lpSettings.open(event, {
+        beforeOpen: closeSidebar,
+        inertElements: [document.querySelector('.app-shell')],
+      });
+    });
+    document.getElementById(ids.logoutItem)?.addEventListener('click', () => {
+      closeUserMenu();
+      lpLogin.logout();
+    });
+
+    return function syncTopbarUser(user) {
+      if (!initialsEl) return;
+      const initials = user && user.name
+        ? user.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
+        : '?';
+      initialsEl.textContent = initials;
+      btn.setAttribute('aria-label', user ? `${user.name} — cuenta` : 'Cuenta');
+      if (nameLabel) nameLabel.textContent = user ? user.name : 'Invitado';
+      if (logoutItem) logoutItem.hidden = !user?.isSupabaseUser;
+    };
+  }
+
+  const userMenuSyncs = [
+    setupUserMenu({
+      menu: 'topbarUserMenu', btn: 'topbarUserBtn', dropdown: 'topbarUserDropdown',
+      initials: 'topbarUserInitials', nameLabel: 'topbarUserNameLabel',
+      settingsItem: 'topbarUserSettingsItem', logoutItem: 'topbarUserLogoutItem',
+    }),
+    setupUserMenu({
+      menu: 'mobileUserMenu', btn: 'mobileUserBtn', dropdown: 'mobileUserDropdown',
+      initials: 'mobileUserInitials', nameLabel: 'mobileUserNameLabel',
+      settingsItem: 'mobileUserSettingsItem', logoutItem: 'mobileUserLogoutItem',
+    }),
+  ];
+  lpLogin.onUpdate((user) => userMenuSyncs.forEach((sync) => sync(user)));
+  userMenuSyncs.forEach((sync) => sync(lpLogin.getUser()));
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeSidebar();
   });
