@@ -1,0 +1,54 @@
+.help-modal { width: min(100%, 460px); max-height: min(720px, calc(100svh - 40px)); }
+.help-body { padding: 12px 12px 16px; }
+.help-sections { display: grid; gap: 6px; }
+.help-section {
+  border: 1px solid var(--lp-border); border-radius: var(--lp-radius-md); background: var(--lp-surface);
+  overflow: hidden;
+}
+.help-section__summary {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 10px;
+  cursor: pointer; list-style: none; color: var(--lp-ink);
+  -webkit-tap-highlight-color: transparent;
+}
+.help-section__summary::-webkit-details-marker { display: none; }
+.help-section__summary:hover { background: color-mix(in srgb, var(--lp-ink) 4%, transparent); }
+.help-section__summary:focus-visible { outline: 2px solid var(--lp-accent); outline-offset: -2px; }
+.help-section__mark {
+  width: 32px; height: 32px; flex: 0 0 32px; display: grid; place-items: center; border-radius: 50%;
+  background: var(--lp-accent); color: var(--lp-on-accent); font-size: 0.68rem; font-weight: 700; letter-spacing: -0.02em;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-accent) 20%, transparent);
+}
+.help-section__mark--portal { background: var(--lp-accent); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-accent) 20%, transparent); }
+.help-section__mark--fluent { background: var(--lp-cat-purple, var(--lp-accent)); color: var(--lp-ink-inverse); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-cat-purple, var(--lp-accent)) 20%, transparent); }
+.help-section__mark--hub { background: var(--lp-cat-amber, var(--lp-accent)); color: var(--lp-ink-inverse); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-cat-amber, var(--lp-accent)) 20%, transparent); }
+.help-section__mark--lyric { background: var(--lp-cat-teal, var(--lp-accent)); color: var(--lp-ink-inverse); box-shadow: 0 2px 8px color-mix(in srgb, var(--lp-cat-teal, var(--lp-accent)) 20%, transparent); }
+.help-section__heading { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.help-section__heading strong { font-size: 0.86rem; font-weight: 500; color: var(--lp-ink); font-family: var(--lp-font-display); }
+.help-section__tag { color: var(--lp-muted); font-size: 0.66rem; letter-spacing: 0.02em; }
+.help-section__chev { flex: 0 0 auto; color: var(--lp-muted); font-size: 0.9rem; transition: transform 0.4s var(--lp-ease, ease); }
+.help-section[open] .help-section__chev { transform: rotate(180deg); }
+.help-section__body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s var(--lp-ease, ease);
+}
+.help-section[open] .help-section__body { grid-template-rows: 1fr; }
+.help-section__body-inner {
+  overflow: hidden;
+  min-height: 0;
+  padding: 0 12px 12px 52px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.help-section[open] .help-section__body-inner {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.35s ease 0.1s, transform 0.35s ease 0.1s;
+}
+.help-section__desc { margin: 0 0 6px; color: var(--lp-ink-soft); font-size: 0.78rem; line-height: 1.5; }
+.help-section__points { margin: 0; padding-left: 16px; display: grid; gap: 4px; color: var(--lp-ink-soft); font-size: 0.76rem; line-height: 1.5; }
+.help-section__points li::marker { color: var(--lp-muted); }
+@media (prefers-reduced-motion: reduce) {
+  .help-section__body, .help-section__body-inner, .help-section__chev { transition: none; }
+}

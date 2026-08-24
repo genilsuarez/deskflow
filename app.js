@@ -1284,6 +1284,15 @@ function setupNavigation() {
   document.getElementById('homeHelpAbout')?.addEventListener('click', (event) => {
     lpAbout.open(event, { inertElements: [document.querySelector('.app-shell')] });
   });
+  function openHelpModal(event) {
+    if (!window.lpHelp) return;
+    lpHelp.open(event, {
+      thresholds: getThresholds(),
+      inertElements: [document.querySelector('.app-shell')],
+    });
+  }
+  document.getElementById('topbarHelpBtn')?.addEventListener('click', openHelpModal);
+  document.getElementById('mobileHelpBtn')?.addEventListener('click', openHelpModal);
   document.getElementById('replayOnboardingTrigger').addEventListener('click', () => {
     closeSidebar();
     lpSettings.close();
@@ -1316,6 +1325,7 @@ function setupNavigation() {
     const initialsEl = document.getElementById(ids.initials);
     const btn = document.getElementById(ids.btn);
     const nameLabel = document.getElementById(ids.nameLabel);
+    const loginItem = document.getElementById(ids.loginItem);
     const logoutItem = document.getElementById(ids.logoutItem);
     const menu = document.getElementById(ids.menu);
     const dropdown = document.getElementById(ids.dropdown);
@@ -1344,6 +1354,10 @@ function setupNavigation() {
         btn.focus();
       }
     });
+    document.getElementById(ids.loginItem)?.addEventListener('click', () => {
+      closeUserMenu();
+      lpLogin.open();
+    });
     document.getElementById(ids.settingsItem)?.addEventListener('click', (event) => {
       closeUserMenu();
       lpSettings.open(event, {
@@ -1364,6 +1378,7 @@ function setupNavigation() {
       initialsEl.textContent = initials;
       btn.setAttribute('aria-label', user ? `${user.name} — cuenta` : 'Cuenta');
       if (nameLabel) nameLabel.textContent = user ? user.name : 'Invitado';
+      if (loginItem) loginItem.hidden = !!user?.isSupabaseUser;
       if (logoutItem) logoutItem.hidden = !user?.isSupabaseUser;
     };
   }
@@ -1372,12 +1387,12 @@ function setupNavigation() {
     setupUserMenu({
       menu: 'topbarUserMenu', btn: 'topbarUserBtn', dropdown: 'topbarUserDropdown',
       initials: 'topbarUserInitials', nameLabel: 'topbarUserNameLabel',
-      settingsItem: 'topbarUserSettingsItem', logoutItem: 'topbarUserLogoutItem',
+      loginItem: 'topbarUserLoginItem', settingsItem: 'topbarUserSettingsItem', logoutItem: 'topbarUserLogoutItem',
     }),
     setupUserMenu({
       menu: 'mobileUserMenu', btn: 'mobileUserBtn', dropdown: 'mobileUserDropdown',
       initials: 'mobileUserInitials', nameLabel: 'mobileUserNameLabel',
-      settingsItem: 'mobileUserSettingsItem', logoutItem: 'mobileUserLogoutItem',
+      loginItem: 'mobileUserLoginItem', settingsItem: 'mobileUserSettingsItem', logoutItem: 'mobileUserLogoutItem',
     }),
   ];
   lpLogin.onUpdate((user) => userMenuSyncs.forEach((sync) => sync(user)));

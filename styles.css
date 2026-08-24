@@ -799,6 +799,9 @@ body {
   text-align: left;
   cursor: pointer;
 }
+.topbar-user__item[hidden] {
+  display: none;
+}
 .topbar-user__item:hover {
   background: var(--lp-surface-sunken);
 }

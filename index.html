@@ -55,6 +55,7 @@
   <link rel="stylesheet" href="lp-nav-active.min.css">
   <link rel="stylesheet" href="lp-drawer.min.css">
   <link rel="stylesheet" href="lp-about.min.css">
+  <link rel="stylesheet" href="lp-help.min.css">
   <link rel="stylesheet" href="lp-settings.min.css">
   <link rel="stylesheet" href="lp-fluentflow-settings.min.css">
   <link rel="stylesheet" href="lp-completion-settings.css">
@@ -94,6 +95,10 @@
             <button class="topbar-user__item theme-toggle" type="button" role="menuitem">
               <span class="nav-icon" aria-hidden="true"></span>
               <span class="theme-toggle__label">Modo oscuro</span>
+            </button>
+            <button class="topbar-user__item" type="button" id="mobileUserLoginItem" role="menuitem" hidden>
+              <span class="nav-icon" data-lp-icon="user" aria-hidden="true"></span>
+              <span>Iniciar sesión</span>
             </button>
             <button class="topbar-user__item topbar-user__item--danger" type="button" id="mobileUserLogoutItem" role="menuitem" hidden>
               <span class="nav-icon" data-lp-icon="arrow-left" aria-hidden="true"></span>
@@ -159,6 +164,10 @@
             <button class="topbar-user__item theme-toggle" type="button" role="menuitem">
               <span class="nav-icon" aria-hidden="true"></span>
               <span class="theme-toggle__label">Modo oscuro</span>
+            </button>
+            <button class="topbar-user__item" type="button" id="topbarUserLoginItem" role="menuitem" hidden>
+              <span class="nav-icon" data-lp-icon="user" aria-hidden="true"></span>
+              <span>Iniciar sesión</span>
             </button>
             <button class="topbar-user__item topbar-user__item--danger" type="button" id="topbarUserLogoutItem" role="menuitem" hidden>
               <span class="nav-icon" data-lp-icon="arrow-left" aria-hidden="true"></span>
@@ -394,6 +403,8 @@
   <script src="lp-login-nudge.min.js" defer></script>
   <script src="lp-about-content.min.js" defer></script>
   <script src="lp-about.min.js" defer></script>
+  <script src="lp-help-content.min.js" defer></script>
+  <script src="lp-help.min.js" defer></script>
   <script src="lp-settings.min.js" defer></script>
   <script src="lp-fluentflow-settings.min.js" defer></script>
   <script src="lp-dev-tools.min.js" defer></script>
