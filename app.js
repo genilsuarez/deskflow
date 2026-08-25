@@ -20,7 +20,15 @@ const APP_CONFIG = Object.freeze({
     url: 'https://genilsuarez.github.io/fluentflow/',
     timeEstimate: '~45 h de contenido',
     noteEmoji: '🏆',
-    noteText: '¡Excelente trabajo!'
+    noteText: '¡Excelente trabajo!',
+    icon: '📖',
+    detailKicker: 'Lectura CEFR',
+    detailSub: 'Mejora tu comprensión lectora paso a paso',
+    heroCaption: 'Pequeñas lecturas,\ngrandes avances',
+    metricsIcon: '📚',
+    footerTitle: '¡Sigue así!',
+    footerSub: 'Cada módulo te acerca a tus metas.',
+    footerCaption: 'Tu esfuerzo\nda resultados'
   },
   hubflow: {
     name: 'HubFlow',
@@ -32,7 +40,15 @@ const APP_CONFIG = Object.freeze({
     url: 'https://genilsuarez.github.io/hubflow/',
     timeEstimate: '~20 min por sesión',
     noteEmoji: '🎮',
-    noteText: 'Tu siguiente logro te espera'
+    noteText: 'Tu siguiente logro te espera',
+    icon: '🎯',
+    detailKicker: 'Práctica temática',
+    detailSub: 'Refuerza gramática y vocabulario a tu ritmo',
+    heroCaption: 'Practica un poco,\ncada día cuenta',
+    metricsIcon: '🧩',
+    footerTitle: '¡Vas muy bien!',
+    footerSub: 'Cada ejercicio suma para tu próximo nivel.',
+    footerCaption: 'La práctica\nhace al fluido'
   },
   lyricflow: {
     name: 'LyricFlow',
@@ -44,7 +60,15 @@ const APP_CONFIG = Object.freeze({
     url: 'https://genilsuarez.github.io/lyricflow/',
     timeEstimate: '~30 min por sesión',
     noteEmoji: '🎵',
-    noteText: 'La música también te enseña'
+    noteText: 'La música también te enseña',
+    icon: '🎧',
+    detailKicker: 'Aprendizaje con música',
+    detailSub: 'Entrena tu oído escuchando canciones reales en inglés',
+    heroCaption: 'La música\ntambién enseña',
+    metricsIcon: '🎶',
+    footerTitle: '¡Buen oído!',
+    footerSub: 'Cada canción refuerza vocabulario nuevo.',
+    footerCaption: 'Aprender\nsuena mejor'
   }
 });
 
@@ -60,6 +84,7 @@ const reader = new ProgressReader();
 let appData = [];
 let contentTitleIndex = new Map();
 let activityFilter = 'all';
+let activityStatusFilter = 'all';
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -539,71 +564,6 @@ function readablePassStatus(passed) {
   return passed ? 'Superado' : 'Por repetir';
 }
 
-function createActivityItem(event, { tabular = false, showApp = false, showTime = true } = {}) {
-  const config = APP_CONFIG[event.app] ?? null;
-  const item = element('article', tabular ? 'activity-item activity-item--compact' : 'activity-item');
-
-  const body = element('div', 'activity-item__body');
-  const title = element('h3', '', resolveContentTitle(event, contentTitleIndex));
-  const activityType = readableActivity(event.activity);
-  const scoreText = event.scorePct !== null ? `${rounded(event.scorePct)}%` : null;
-  const statusText = event.passed !== null ? readablePassStatus(event.passed) : null;
-  const detailParts = [activityType];
-  if (scoreText) detailParts.push(scoreText);
-  if (statusText) detailParts.push(statusText);
-  const mobileParts = showApp && config ? [config.name, ...detailParts] : detailParts;
-
-  if (tabular) {
-    body.append(title, element('p', 'activity-item__meta-mobile', mobileParts.join(' · ')));
-    if (showApp && config) {
-      item.append(element('span', `activity-item__cell activity-item__cell--app activity-item__cell--app-${config.color}`, config.name));
-    }
-    item.append(
-      body,
-      element('span', 'activity-item__cell activity-item__cell--type', activityType),
-      element('span', 'activity-item__cell activity-item__cell--score', scoreText ?? '—'),
-      element('span', `activity-item__cell activity-item__cell--status${event.passed === true ? ' activity-item__cell--status-passed' : event.passed === false ? ' activity-item__cell--status-retry' : ''}`, statusText ?? '—')
-    );
-  } else {
-    if (config) {
-      const marker = element('span', `activity-item__marker activity-item__marker--${config.color}`);
-      marker.textContent = config.name.charAt(0);
-      marker.setAttribute('aria-hidden', 'true');
-      const appName = element('span', 'activity-item__app', config.name);
-      body.append(appName, title, element('p', '', detailParts.join(' · ')));
-      item.append(marker, body);
-    } else {
-      body.append(title, element('p', '', detailParts.join(' · ')));
-      item.append(body);
-    }
-  }
-
-  if (!tabular || showTime) {
-    const time = element('time', 'activity-item__time', formatDate(event.occurredAt, { compact: tabular }));
-    time.dateTime = event.occurredAt;
-    item.append(time);
-  }
-  return item;
-}
-
-function createActivityTableHeader({ showApp = false, showTime = true } = {}) {
-  const header = element('div', 'activity-table-header');
-  header.setAttribute('aria-hidden', 'true');
-  const columns = [];
-  if (showApp) columns.push(['--app', 'Módulo']);
-  columns.push(
-    ['--title', 'Contenido'],
-    ['--type', 'Tipo'],
-    ['--score', 'Puntuación'],
-    ['--status', 'Estado']
-  );
-  if (showTime) columns.push(['--time', 'Fecha']);
-  columns.forEach(([modifier, label]) => {
-    header.append(element('span', `activity-table-header__col activity-table-header__col${modifier}`, label));
-  });
-  return header;
-}
-
 function createEmptyState(title, description) {
   const state = element('div', 'empty-state');
   const icon = element('span', 'empty-state__icon', '◇');
@@ -612,34 +572,95 @@ function createEmptyState(title, description) {
   return state;
 }
 
-function renderActivityList(container, events, limit, { tabular = false, showApp = false, showTime = true, emptyDescription } = {}) {
-  if (!container) return;
-  container.replaceChildren();
-  container.classList.toggle('activity-list--compact', tabular);
-  container.classList.toggle('activity-list--with-app', tabular && showApp);
-  container.classList.toggle('activity-list--no-time', tabular && !showTime);
-  const visible = typeof limit === 'number' ? events.slice(0, limit) : events;
-  if (visible.length === 0) {
-    const description = emptyDescription ?? 'Tus sesiones recientes se mostrarán aquí al completar actividades en tus módulos.';
-    container.append(createEmptyState('Sin actividad reciente', description));
-    return;
+/** Días de calendario entre hoy y la fecha del evento (0 = hoy, 1 = ayer, ...). */
+function dayDiff(isoDate) {
+  const [year, month, day] = localDayKey(new Date(isoDate)).split('-').map(Number);
+  const eventUTC = Date.UTC(year, month - 1, day);
+  const now = new Date();
+  const todayUTC = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((todayUTC - eventUTC) / 86400000);
+}
+
+function activityGroupLabel(diff) {
+  if (diff <= 0) return 'Hoy';
+  if (diff === 1) return 'Ayer';
+  if (diff <= 30) return `Hace ${diff} días`;
+  return 'Hace más de un mes';
+}
+
+function createActivityRow(event) {
+  const config = APP_CONFIG[event.app] ?? null;
+  const row = element('article', 'activity-row');
+
+  const icon = element('span', `activity-row__icon activity-row__icon--${config ? config.color : 'default'}`, activityEmoji(event.activity));
+  icon.setAttribute('aria-hidden', 'true');
+
+  const body = element('div', 'activity-row__body');
+  body.append(element('strong', '', resolveContentTitle(event, contentTitleIndex)));
+  const meta = element('span', 'activity-row__meta');
+  if (config) meta.append(element('span', `activity-row__app activity-row__app--${config.color}`, config.name));
+  const metaText = [readableActivity(event.activity)];
+  if (event.scorePct !== null) metaText.push(`${rounded(event.scorePct)}%`);
+  meta.append(element('span', '', metaText.join(' · ')));
+  body.append(meta);
+
+  const parts = [icon, body];
+
+  if (event.passed !== null) {
+    const status = element('span', `activity-row__status${event.passed ? ' activity-row__status--passed' : ' activity-row__status--retry'}`);
+    status.append(element('span', 'activity-row__status-icon', event.passed ? '✓' : '↻'), document.createTextNode(readablePassStatus(event.passed)));
+    parts.push(status);
   }
-  if (tabular) container.append(createActivityTableHeader({ showApp, showTime }));
-  visible.forEach((event) => {
-    try {
-      container.append(createActivityItem(event, { tabular, showApp, showTime }));
-    } catch (error) {
-      console.error('No se pudo renderizar un evento de actividad', event, error);
-    }
-  });
+
+  const time = element('time', 'activity-row__time', formatDate(event.occurredAt, { compact: true }));
+  time.dateTime = event.occurredAt;
+  parts.push(time);
+
+  const chev = element('span', 'activity-row__chev', '›');
+  chev.setAttribute('aria-hidden', 'true');
+  parts.push(chev);
+
+  row.append(...parts);
+  return row;
 }
 
 function renderActivity() {
+  const container = document.getElementById('allActivity');
+  if (!container) return;
+  container.replaceChildren();
+
   const events = allValidEvents();
-  const filtered = activityFilter === 'all' ? events : events.filter((event) => event.app === activityFilter);
-  renderActivityList(document.getElementById('allActivity'), filtered, undefined, {
-    tabular: true,
-    showApp: activityFilter === 'all'
+  const byApp = activityFilter === 'all' ? events : events.filter((event) => event.app === activityFilter);
+  const visible = activityStatusFilter === 'all'
+    ? byApp
+    : byApp.filter((event) => (activityStatusFilter === 'passed' ? event.passed === true : event.passed === false));
+
+  const countEl = document.getElementById('activityCount');
+  if (countEl) countEl.textContent = `${visible.length} actividad${visible.length === 1 ? '' : 'es'}`;
+
+  if (visible.length === 0) {
+    container.append(createEmptyState('Sin actividad reciente', 'Tus sesiones recientes se mostrarán aquí al completar actividades en tus módulos.'));
+    return;
+  }
+
+  const MAX_PER_GROUP = 3;
+  let currentLabel = null;
+  let groupList = null;
+  let groupCount = 0;
+  visible.forEach((event) => {
+    const label = activityGroupLabel(dayDiff(event.occurredAt));
+    if (label !== currentLabel) {
+      currentLabel = label;
+      groupCount = 0;
+      const group = element('div', 'activity-group');
+      group.append(element('h3', 'activity-group__title', label));
+      groupList = element('div', 'activity-group__list');
+      group.append(groupList);
+      container.append(group);
+    }
+    if (groupCount >= MAX_PER_GROUP) return;
+    groupCount += 1;
+    groupList.append(createActivityRow(event));
   });
 }
 
@@ -694,21 +715,45 @@ function renderContinue() {
   });
 }
 
-function buildModuleInsight(app, result, config, levelMetrics) {
-  const insight = element('section', `detail-insight detail-insight--${config.color}`);
-  const kickers = {
-    fluentflow: 'Lectura CEFR',
-    hubflow: 'Práctica temática',
-    lyricflow: 'Progreso por actividad'
-  };
+const ACTIVITY_EMOJI = Object.freeze({
+  quiz: '📝',
+  listen: '🎧',
+  listening: '🎧',
+  sorting: '🧩',
+  study: '📘',
+  dictation: '✍️',
+  challenge: '🎯',
+  reading: '📖',
+  practice: '🧠'
+});
 
-  insight.append(element('p', 'detail-insight__kicker section-kicker', kickers[app]));
+function activityEmoji(activityType) {
+  return ACTIVITY_EMOJI[activityType] || '⭐';
+}
 
-  const unit = levelMetrics.total === 1 ? levelMetrics.singular : levelMetrics.unit;
-  const headline = levelMetrics.total ? `${levelMetrics.total} ${unit}` : levelProgressHint(levelMetrics);
-  insight.append(element('h2', 'detail-insight__title', headline));
+function multilineCaption(className, captionText) {
+  const caption = element('span', className);
+  captionText.split('\n').forEach((line, index) => {
+    if (index > 0) caption.append(document.createElement('br'));
+    caption.append(document.createTextNode(line));
+  });
+  return caption;
+}
 
-  return insight;
+function moduleHeroArt(captionText) {
+  const art = document.createElement('span');
+  art.className = 'module-hero__art';
+  art.setAttribute('aria-hidden', 'true');
+  art.innerHTML =
+    '<svg viewBox="0 0 120 72" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M6 66 L38 22 L58 48 L74 30 L114 66 Z" fill="currentColor" opacity=".16"/>' +
+    '<path d="M38 22 L52 40 L44 44 L30 34 Z" fill="currentColor" opacity=".3"/>' +
+    '<path d="M74 30 L74 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>' +
+    '<path d="M74 7 L96 12 L74 19 Z" fill="currentColor" opacity=".55"/>' +
+    '<path d="M100 30 l7 -7 M104 42 l9 0 M99 51 l7 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity=".35"/>' +
+    '</svg>';
+  art.append(multilineCaption('module-hero__caption', captionText));
+  return art;
 }
 
 function renderModuleDetail(app) {
@@ -717,62 +762,125 @@ function renderModuleDetail(app) {
   const container = document.querySelector(`[data-app-detail="${app}"]`);
   container.replaceChildren();
 
-  const actionBar = element('a', `lp-btn lp-btn--${config.color} module-detail__action app-link`);
-  actionBar.href = config.url;
-  actionBar.dataset.appLink = app;
-  actionBar.rel = 'noopener';
-
-  const actionLabel = hasValidProgress(result) ? `Continuar en ${config.name}` : `Explorar ${config.name}`;
-  actionBar.append(element('span', 'module-detail__label', actionLabel));
-
   const defer = isStatsDeferred();
   const combined = defer ? null : getCombinedLevelProgress(getActiveLevel());
   const levelMetrics = combined ? levelProgressMetrics(app, combined) : { completed: 0, total: 0, pct: 0, unit: LEVEL_PROGRESS_METRICS[app].unit, singular: LEVEL_PROGRESS_METRICS[app].singular };
-
-  const insight = buildModuleInsight(app, result, config, levelMetrics);
-  const hero = element('div', `module-detail__hero module-detail__hero--${config.color}`);
-  const mark = element('span', 'module-detail__mark', config.name.charAt(0));
-  mark.setAttribute('aria-hidden', 'true');
-  hero.append(mark, insight, actionBar);
-
-  const statsSection = element('section', 'section-block detail-metrics');
-  const statsCard = element('div', `detail-metrics__card detail-metrics__card--${config.color}`);
-  const statsHeader = element('header', 'detail-metrics__header');
-  const statsTitle = element('h2', 'detail-metrics__title');
-  statsTitle.append(element('span', 'section-kicker', 'En números'), document.createTextNode(' Métricas'));
-  statsHeader.append(statsTitle);
-  statsCard.append(statsHeader);
-
   const progressValue = defer ? 0 : levelMetrics.pct;
-  statsCard.append(createProgressBar(progressValue, `Progreso de ${config.name} en el nivel actual`));
+  const unit = levelMetrics.total === 1 ? levelMetrics.singular : levelMetrics.unit;
+  const headline = levelMetrics.total ? `${levelMetrics.total} ${unit}` : levelProgressHint(levelMetrics);
 
-  const stats = element('div', 'detail-stats');
-  const progressStat = element('article', 'detail-stat');
-  progressStat.append(element('span', '', 'Progreso'), element('strong', '', `${progressValue}%`), createStatusPill(result.progress.status));
-  const contentStat = element('article', 'detail-stat');
-  contentStat.append(element('span', '', 'Completado'), element('strong', '', `${levelMetrics.completed} / ${levelMetrics.total}`), element('p', '', levelMetrics.unit));
-  stats.append(progressStat, contentStat);
-  statsCard.append(stats);
-  statsSection.append(statsCard);
+  // ── Hero ──
+  const hero = element('section', `module-hero module-hero--${config.color}`);
+  const heroIcon = element('span', 'module-hero__icon', config.icon);
+  heroIcon.setAttribute('aria-hidden', 'true');
+  const heroCopy = element('div', 'module-hero__copy');
+  heroCopy.append(
+    element('span', 'section-kicker module-hero__kicker', config.detailKicker),
+    element('strong', 'module-hero__headline', headline),
+    element('p', 'module-hero__sub', config.detailSub)
+  );
+  hero.append(heroIcon, heroCopy, moduleHeroArt(config.heroCaption));
 
-  const activity = element('section', 'section-block detail-activity');
-  const activityCard = element('div', `detail-activity__card detail-activity__card--${config.color}`);
-  const activityHeader = element('header', 'detail-activity__header');
-  const activityTitle = element('h2', 'detail-activity__title', 'Actividad reciente');
-  activityHeader.append(activityTitle);
-  const list = element('div', 'activity-list activity-list--compact');
-  const events = result.activity.status === STATUS.READY ? [...result.activity.data.events].sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt)) : [];
-  renderActivityList(list, events, 3, {
-    tabular: true,
-    showTime: false,
-    emptyDescription: `Completa una sesión en ${config.name} y aparecerá en esta lista.`
-  });
-  activityCard.append(activityHeader, list);
-  activity.append(activityCard);
+  const cta = element('a', `lp-btn lp-btn--${config.color} module-hero__cta app-link`);
+  cta.href = config.url;
+  cta.dataset.appLink = app;
+  cta.rel = 'noopener';
+  const ctaPlay = element('span', 'module-hero__cta-play', '▶');
+  ctaPlay.setAttribute('aria-hidden', 'true');
+  const ctaArrow = element('span', '', '→');
+  ctaArrow.setAttribute('aria-hidden', 'true');
+  const actionLabel = hasValidProgress(result) ? `Continuar en ${config.name}` : `Explorar ${config.name}`;
+  cta.append(ctaPlay, element('span', 'module-detail__label', actionLabel), ctaArrow);
 
-  const overview = element('div', 'module-detail__overview');
-  overview.append(hero, statsSection);
-  container.append(overview, activity);
+  // ── Métricas ──
+  const metricsSection = element('section', `section-block module-metrics module-metrics--${config.color}`);
+  const metricsHead = element('div', 'module-metrics__head');
+  const metricsTitle = element('h2', '');
+  metricsTitle.append(element('span', 'section-kicker', 'En números'), document.createTextNode(' Métricas'));
+  metricsHead.append(metricsTitle);
+
+  const metricsRow = element('div', 'module-metrics__row');
+  const ring = element('div', 'module-metrics__ring');
+  ring.style.setProperty('--progress', String(progressValue));
+  ring.setAttribute('role', 'img');
+  ring.setAttribute('aria-label', `Progreso de ${config.name} ${progressValue} por ciento`);
+  const ringInner = element('div', '');
+  ringInner.append(element('strong', '', `${progressValue}%`));
+  ring.append(ringInner);
+  const ringCopy = element('div', 'module-metrics__ring-copy');
+  ringCopy.append(element('span', 'module-metrics__label', 'Progreso'), element('span', 'module-metrics__note', config.noteText));
+
+  const divider = element('span', 'module-metrics__divider');
+  divider.setAttribute('aria-hidden', 'true');
+
+  const statBlock = element('div', 'module-metrics__stat');
+  const statIcon = element('span', 'module-metrics__stat-icon', config.metricsIcon);
+  statIcon.setAttribute('aria-hidden', 'true');
+  const statCopy = element('div', '');
+  statCopy.append(
+    element('span', 'module-metrics__label', 'Completado'),
+    element('strong', '', `${levelMetrics.completed} / ${levelMetrics.total}`),
+    element('span', 'module-metrics__unit', levelMetrics.unit)
+  );
+  statBlock.append(statIcon, statCopy);
+
+  metricsRow.append(ring, ringCopy, divider, statBlock);
+  metricsSection.append(metricsHead, metricsRow);
+
+  // ── Actividad reciente ──
+  const activitySection = element('section', `section-block module-activity module-activity--${config.color}`);
+  const activityHead = element('div', 'module-activity__head');
+  const activityHeadCopy = element('div', '');
+  activityHeadCopy.append(element('h2', '', 'Actividad reciente'), element('p', 'module-activity__sub', 'Tus últimos ejercicios y resultados'));
+  const activityAllBtn = element('button', 'module-activity__all', 'Ver todo ');
+  activityAllBtn.type = 'button';
+  activityAllBtn.dataset.view = 'actividad';
+  const allArrow = element('span', '', '→');
+  allArrow.setAttribute('aria-hidden', 'true');
+  activityAllBtn.append(allArrow);
+  activityHead.append(activityHeadCopy, activityAllBtn);
+
+  const events = result.activity.status === STATUS.READY
+    ? [...result.activity.data.events].sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt)).slice(0, 3)
+    : [];
+  const list = element('div', 'module-activity__list');
+  if (events.length === 0) {
+    list.append(createEmptyState('Sin actividad reciente', `Completa una sesión en ${config.name} y aparecerá en esta lista.`));
+  } else {
+    events.forEach((event) => {
+      const row = element('article', 'module-activity__row');
+      const icon = element('span', `module-activity__icon module-activity__icon--${config.color}`, activityEmoji(event.activity));
+      icon.setAttribute('aria-hidden', 'true');
+      const body = element('div', 'module-activity__body');
+      body.append(element('strong', '', resolveContentTitle(event, contentTitleIndex)));
+      const meta = element('span', 'module-activity__meta');
+      meta.append(element('span', 'module-activity__pill', readableActivity(event.activity)));
+      if (event.scorePct !== null) meta.append(document.createTextNode(` · ${rounded(event.scorePct)}%`));
+      if (event.passed !== null) meta.append(document.createTextNode(` · ${readablePassStatus(event.passed)}`));
+      body.append(meta);
+      row.append(icon, body);
+      if (event.passed === true) {
+        const check = element('span', 'module-activity__check', '✓');
+        check.setAttribute('aria-hidden', 'true');
+        row.append(check);
+      }
+      const chev = element('span', 'module-activity__chev', '›');
+      chev.setAttribute('aria-hidden', 'true');
+      row.append(chev);
+      list.append(row);
+    });
+  }
+  activitySection.append(activityHead, list);
+
+  // ── Footer motivacional ──
+  const footer = element('div', `module-footer module-footer--${config.color}`);
+  const footerIcon = element('span', 'module-footer__icon', '💡');
+  footerIcon.setAttribute('aria-hidden', 'true');
+  const footerCopy = element('div', 'module-footer__copy');
+  footerCopy.append(element('strong', '', config.footerTitle), element('span', '', config.footerSub));
+  footer.append(footerIcon, footerCopy, multilineCaption('module-footer__caption', config.footerCaption));
+
+  container.append(hero, cta, metricsSection, activitySection, footer);
 }
 
 function renderDataHealth() {
@@ -1456,6 +1564,27 @@ function setupActivityFilters() {
       });
       renderActivity();
     });
+  });
+
+  document.querySelectorAll('[data-activity-status]').forEach((button) => {
+    button.addEventListener('click', () => {
+      activityStatusFilter = button.dataset.activityStatus;
+      document.querySelectorAll('[data-activity-status]').forEach((candidate) => {
+        const active = candidate === button;
+        candidate.classList.toggle('active', active);
+        candidate.setAttribute('aria-pressed', String(active));
+      });
+      renderActivity();
+    });
+  });
+
+  const filterToggle = document.getElementById('activityFilterToggle');
+  const statusRow = document.getElementById('activityStatusRow');
+  filterToggle?.addEventListener('click', () => {
+    const expanded = filterToggle.getAttribute('aria-expanded') === 'true';
+    filterToggle.setAttribute('aria-expanded', String(!expanded));
+    filterToggle.classList.toggle('active', !expanded);
+    if (statusRow) statusRow.hidden = expanded;
   });
 }
 

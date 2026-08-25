@@ -319,14 +319,37 @@
       <section class="view" id="view-actividad" data-view-panel="actividad" aria-labelledby="activityTitle" hidden>
         <div class="activity-feed-card">
           <div class="activity-feed-card__toolbar">
-            <div class="filter-row" role="group" aria-label="Filtrar actividad">
+            <div class="filter-row" role="group" aria-label="Filtrar por módulo">
               <button class="lp-pill active" type="button" data-activity-filter="all" aria-pressed="true">Todo</button>
               <button class="lp-pill" type="button" data-activity-filter="fluentflow" aria-pressed="false">FluentFlow</button>
               <button class="lp-pill" type="button" data-activity-filter="hubflow" aria-pressed="false">HubFlow</button>
               <button class="lp-pill" type="button" data-activity-filter="lyricflow" aria-pressed="false">LyricFlow</button>
             </div>
+            <button class="activity-filter-toggle" type="button" id="activityFilterToggle" aria-expanded="false" aria-controls="activityStatusRow">
+              <span aria-hidden="true">⚙</span> Filtrar
+            </button>
           </div>
-          <div class="activity-list activity-list--full" id="allActivity"></div>
+          <div class="filter-row filter-row--status" role="group" aria-label="Filtrar por resultado" id="activityStatusRow" hidden>
+            <button class="lp-pill lp-pill--status active" type="button" data-activity-status="all" aria-pressed="true">Todo</button>
+            <button class="lp-pill lp-pill--status" type="button" data-activity-status="passed" aria-pressed="false">Superado</button>
+            <button class="lp-pill lp-pill--status" type="button" data-activity-status="retry" aria-pressed="false">Por repetir</button>
+          </div>
+          <div class="activity-summary">
+            <div>
+              <h2 id="activityTitle">Tu historial de aprendizaje</h2>
+              <p>Revisa tus últimas actividades y resultados.</p>
+            </div>
+            <span class="activity-summary__count" id="activityCount">0 actividades</span>
+          </div>
+          <div class="activity-groups" id="allActivity"></div>
+          <div class="module-footer module-footer--purple activity-footer">
+            <span class="module-footer__icon" aria-hidden="true">💡</span>
+            <div class="module-footer__copy">
+              <strong>¡Sigue aprendiendo!</strong>
+              <span>Cada actividad te acerca a tus objetivos.</span>
+            </div>
+            <span class="module-footer__caption">Tu historial<br>cuenta tu historia</span>
+          </div>
         </div>
       </section>
 

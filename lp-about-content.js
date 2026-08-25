@@ -5,8 +5,8 @@ window.LPAboutContent = {
     "en": "About LearnFlow"
   },
   "description": {
-    "es": "Una plataforma para aprender idiomas con estructura, práctica y música.",
-    "en": "A platform for learning languages with structure, practice, and music."
+    "es": "LearnFlow es una plataforma de inglés alineada al marco CEFR (A1–C2), diseñada para estudiantes autónomos que quieren avanzar con estructura y variedad. Combina una ruta secuencial de módulos, práctica temática libre y aprendizaje con música real, todo bajo un progreso unificado.",
+    "en": "LearnFlow is an English learning platform aligned with the CEFR framework (A1–C2), designed for independent learners who want to progress with structure and variety. It combines a sequential module path, flexible topic practice, and real-music learning, all under a unified progress system."
   },
   "modules": [
     {
@@ -15,8 +15,8 @@ window.LPAboutContent = {
       "markClass": "portal",
       "name": "LearnFlow",
       "subtitle": {
-        "es": "Portal",
-        "en": "Portal"
+        "es": "Tu progreso combinado, un nivel a la vez",
+        "en": "Your combined progress, one level at a time"
       }
     },
     {
@@ -25,8 +25,8 @@ window.LPAboutContent = {
       "markClass": "fluent",
       "name": "FluentFlow",
       "subtitle": {
-        "es": "Ruta de inglés por niveles CEFR",
-        "en": "English path by CEFR levels"
+        "es": "Ruta secuencial A1–C2: gramática, vocabulario y lectura",
+        "en": "Sequential A1–C2 path: grammar, vocabulary, and reading"
       }
     },
     {
@@ -35,8 +35,8 @@ window.LPAboutContent = {
       "markClass": "hub",
       "name": "HubFlow",
       "subtitle": {
-        "es": "Práctica flexible de gramática",
-        "en": "Flexible grammar practice"
+        "es": "Práctica temática flexible con modos de juego",
+        "en": "Flexible topic practice with game modes"
       }
     },
     {
@@ -45,8 +45,8 @@ window.LPAboutContent = {
       "markClass": "lyric",
       "name": "LyricFlow",
       "subtitle": {
-        "es": "Aprender con música",
-        "en": "Learn with music"
+        "es": "Comprensión auditiva con canciones reales sincronizadas",
+        "en": "Listening comprehension with real synced songs"
       }
     }
   ],

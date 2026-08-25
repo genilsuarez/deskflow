@@ -57,7 +57,7 @@ var lpHelp = (function () {
       '</span>' +
       '<span class="help-section__heading">' +
       '<strong>' +
-      section.name +
+      localize(section.name, lang) +
       '</strong>' +
       '<span class="help-section__tag">' +
       t(section, lang, 'tag') +
