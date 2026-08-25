@@ -3568,8 +3568,17 @@ a:focus-visible,
     gap: 1px 8px;
     grid-template-columns: 28px 1fr auto;
   }
-  #view-resumen .cefr-stepper__dot { width: 13px; height: 13px; }
-  #view-resumen .cefr-stepper__line { margin: 0 3px; }
+  /* Los círculos B1/B2/C1/C2 quedaban demasiado chicos para el texto de 2
+     caracteres — se prioriza legibilidad sobre compactar unos px más. */
+  #view-resumen .cefr-stepper__dot {
+    width: 21px;
+    height: 21px;
+    font-size: 0.56rem;
+  }
+  #view-resumen .cefr-stepper__step.is-done .cefr-stepper__dot span {
+    font-size: 0.76rem;
+  }
+  #view-resumen .cefr-stepper__line { margin: 0 4px; }
 
   #view-resumen .module-card--path .module-card__mark {
     width: 28px;
@@ -3600,14 +3609,19 @@ a:focus-visible,
     font-size: 0.52rem;
   }
 
+  /* En mobile la tarjeta se recorta a lo que da valor real: nombre, avance
+     y CTA. Descripción y tiempo estimado son ruido a este ancho — quedan
+     solo en la versión web, donde sí hay espacio. */
   #view-resumen .module-card--path .module-card__desc {
-    font-size: 0.55rem;
-    line-height: 1.15;
-    -webkit-line-clamp: 1;
+    display: none;
+  }
+
+  #view-resumen .module-card--path .module-card__meta-time {
+    display: none;
   }
 
   #view-resumen .module-card--path .module-card__hint {
-    font-size: 0.53rem;
+    font-size: 0.6rem;
     line-height: 1.1;
   }
 
