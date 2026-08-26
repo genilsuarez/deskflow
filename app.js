@@ -616,10 +616,6 @@ function createActivityRow(event) {
   time.dateTime = event.occurredAt;
   parts.push(time);
 
-  const chev = element('span', 'activity-row__chev', '›');
-  chev.setAttribute('aria-hidden', 'true');
-  parts.push(chev);
-
   row.append(...parts);
   return row;
 }
@@ -864,9 +860,6 @@ function renderModuleDetail(app) {
         check.setAttribute('aria-hidden', 'true');
         row.append(check);
       }
-      const chev = element('span', 'module-activity__chev', '›');
-      chev.setAttribute('aria-hidden', 'true');
-      row.append(chev);
       list.append(row);
     });
   }

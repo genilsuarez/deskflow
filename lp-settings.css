@@ -19,7 +19,7 @@
 .lp-settings-close {
   flex: 0 0 32px; width: 32px; height: 32px; margin: -2px -4px -2px 0; padding: 0;
   display: grid; place-items: center; border: none; border-radius: var(--lp-radius-full);
-  background: transparent; color: var(--lp-muted); cursor: pointer;
+  background: transparent; color: var(--lp-ink-soft); cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 .lp-settings-close:hover { background: color-mix(in srgb, var(--lp-ink) 6%, transparent); color: var(--lp-ink); }

@@ -188,47 +188,52 @@
   --lp-header-tag-tracking: 0.06em;
 }
 
-/* ─── DARK MODE ─── */
+/* ─── DARK MODE ───
+   Un solo fondo carbón-azulado y una única superficie (no 3 tonos distintos
+   compitiendo). Colores de módulo apagados a propósito — el acento eléctrico
+   y el verde menta (solo "Superado") son los únicos colores que deben saltar. */
 [data-theme="dark"] {
-  /* Slate suave — menos contraste duro que el marrón #1A1714 anterior */
-  --lp-bg: #181B20;
-  --lp-bg-paper: #1E2228;
-  --lp-surface: #252930;
-  --lp-surface-raised: #2B3038;
-  --lp-surface-sunken: #14171C;
+  --lp-bg: #12151B;
+  --lp-bg-paper: #171A21;
+  --lp-surface: #1C2028;
+  --lp-surface-raised: #20242C;
+  --lp-surface-sunken: #14171D;
 
-  --lp-border: #353B45;
-  --lp-border-strong: #454C58;
-  --lp-border-subtle: #2A2F38;
+  --lp-border: #262B34;
+  --lp-border-strong: #333A45;
+  --lp-border-subtle: #1D2129;
 
-  --lp-ink: #E8EAED;
-  --lp-ink-soft: #A8B0BC;
-  --lp-muted: #828C9C;
-  --lp-ink-inverse: #181B20;
+  --lp-ink: #EDEFF2;
+  --lp-ink-soft: #9AA3B2;
+  --lp-muted: #6E7787;
+  --lp-ink-inverse: #12151B;
 
-  --lp-accent-soft: #1A2744;
-  --lp-accent-dark: #93c5fd;
-  --lp-accent-text: #93c5fd;
+  --lp-accent: #3B82F6;
+  --lp-accent-hover: #559BFF;
+  --lp-accent-soft: #182642;
+  --lp-accent-dark: #8AB4F8;
+  --lp-accent-text: #8AB4F8;
 
-  --lp-cat-blue: #6FA8DC;
-  --lp-cat-blue-soft: #1E3350;
-  --lp-cat-amber: #E6A832;
-  --lp-cat-amber-soft: #3D3018;
-  --lp-cat-green: #6DBF8B;
-  --lp-cat-green-soft: #1F3D28;
-  --lp-cat-purple: #A98ED4;
-  --lp-cat-purple-soft: #2E2240;
-  --lp-cat-teal: #6BC4C4;
-  --lp-cat-teal-soft: #1F3838;
+  /* Apagados a propósito: sin amarillo+púrpura+cian+rojo compitiendo a la vez */
+  --lp-cat-blue: #6E8FB8;
+  --lp-cat-blue-soft: #1B2432;
+  --lp-cat-amber: #C2A06B;
+  --lp-cat-amber-soft: #29241C;
+  --lp-cat-green: #7CA491;
+  --lp-cat-green-soft: #1B2621;
+  --lp-cat-purple: #9C93B8;
+  --lp-cat-purple-soft: #21212C;
+  --lp-cat-teal: #6E9C9C;
+  --lp-cat-teal-soft: #1A2424;
 
   --lp-error-soft: #3D1A1A;
   --lp-error-dark: #F28B7D;
-  --lp-success: #5EBD85;
-  --lp-success-soft: #1A2D20;
-  --lp-success-dark: #7DD4A0;
+  --lp-success: #4ADE94;
+  --lp-success-soft: #142A22;
+  --lp-success-dark: #7DE8BE;
   --lp-info-soft: #1A2A3D;
-  --lp-warning: #E6A832;
-  --lp-warning-soft: #2D2510;
+  --lp-warning: #C2A06B;
+  --lp-warning-soft: #29241C;
 
   --lp-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.12);
   --lp-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.12);
@@ -237,22 +242,35 @@
   --lp-shadow-hover: 0 8px 28px rgba(0, 0, 0, 0.24), 0 2px 6px rgba(0, 0, 0, 0.12);
 
   /* Score/stats pill (header, dark) */
-  --lp-score-bg: #1E2228;
-  --lp-score-border: #353B45;
+  --lp-score-bg: #171A21;
+  --lp-score-border: #262B34;
   --lp-score-shadow: 0 2px 4px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.14);
-  --lp-score-value-color: #E8EAED;
-  --lp-score-label-color: #7A8494;
-  --lp-score-icon-color: #6B9FE8;
-  --lp-score-success-color: #A8B0BC;
+  --lp-score-value-color: #EDEFF2;
+  --lp-score-label-color: #9AA3B2;
+  --lp-score-icon-color: #6E9FE8;
+  --lp-score-success-color: #9AA3B2;
   --lp-score-error-color: #C0392B;
 
   /* Botón de navegación (dark) */
-  --lp-navbtn-border: #353B45;
-  --lp-navbtn-bg: #252930;
-  --lp-navbtn-icon-color: #A8B0BC;
-  --lp-navbtn-accent: #2563EB;
+  --lp-navbtn-border: #262B34;
+  --lp-navbtn-bg: #1C2028;
+  --lp-navbtn-icon-color: #9AA3B2;
+  --lp-navbtn-accent: #3B82F6;
   --lp-navbtn-shadow: 0 2px 4px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.14);
   --lp-navbtn-shadow-hover: 0 4px 14px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.14);
+}
+
+/* .continue-card (vista Continuar) sigue usando degradado — solo se aplana en dark,
+   donde varios colores de módulo saturados a la vez se sienten más cargados */
+[data-theme="dark"] .continue-card {
+  background: var(--lp-surface);
+  border-color: var(--lp-border);
+  box-shadow: none;
+}
+[data-theme="dark"] .continue-card:hover {
+  background: var(--lp-surface-raised);
+  border-color: color-mix(in srgb, var(--card-color) 35%, var(--lp-border));
+  box-shadow: none;
 }
 
 /* ─── RESET ─── */
@@ -982,11 +1000,9 @@ body {
   gap: 12px;
   margin-bottom: 0;
   padding: 10px 14px;
-  border: 1px solid color-mix(in srgb, var(--lp-accent) 18%, var(--lp-border));
+  border: 1px solid var(--lp-border);
   border-radius: var(--lp-radius-lg);
-  background:
-    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--lp-accent) 16%, transparent), transparent 55%),
-    var(--lp-accent-soft);
+  background: var(--lp-surface);
   box-shadow: var(--lp-shadow-xs);
 }
 .continue-banner__mark {
@@ -996,12 +1012,11 @@ body {
   display: grid;
   place-items: center;
   border-radius: var(--lp-radius-md);
-  background: color-mix(in srgb, var(--lp-cat-amber) 88%, white);
+  background: var(--lp-accent);
   color: var(--lp-on-accent);
   font-family: var(--lp-font-display);
   font-size: 1.1rem;
   font-weight: 700;
-  box-shadow: 0 4px 10px color-mix(in srgb, var(--lp-cat-amber) 24%, transparent);
 }
 .continue-banner__copy {
   position: relative;
@@ -1106,11 +1121,9 @@ body {
   align-items: center;
   gap: 3px 12px;
   padding: 5px 11px;
-  border: 1px solid color-mix(in srgb, var(--lp-accent) 18%, var(--lp-border));
+  border: 1px solid var(--lp-border);
   border-radius: var(--lp-radius-lg);
-  background:
-    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--lp-accent) 16%, transparent), transparent 55%),
-    var(--lp-accent-soft);
+  background: var(--lp-surface);
   box-shadow: var(--lp-shadow-xs);
 }
 .level-progress-banner__visual {
@@ -1489,17 +1502,10 @@ body {
   align-items: center;
   width: 100%;
   padding: 3px 10px;
-  border: 1.5px solid color-mix(in srgb, var(--card-color) 30%, var(--lp-border));
+  border: 1.5px solid var(--lp-border);
   border-radius: var(--lp-radius-lg);
-  background: linear-gradient(
-    165deg,
-    color-mix(in srgb, var(--card-color) 12%, var(--card-soft)) 0%,
-    var(--card-soft) 52%,
-    color-mix(in srgb, var(--card-color) 6%, var(--lp-surface)) 100%
-  );
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--card-color) 10%, transparent),
-    0 3px 12px color-mix(in srgb, var(--card-color) 14%, transparent);
+  background: var(--lp-surface);
+  box-shadow: var(--lp-shadow-xs);
   text-align: left;
   cursor: pointer;
   font: inherit;
@@ -1512,16 +1518,9 @@ body {
     border-color 0.2s var(--lp-ease);
 }
 .module-card:hover {
-  background: linear-gradient(
-    165deg,
-    color-mix(in srgb, var(--card-color) 18%, var(--card-soft)) 0%,
-    color-mix(in srgb, var(--card-color) 8%, var(--card-soft)) 52%,
-    color-mix(in srgb, var(--card-color) 10%, var(--lp-surface)) 100%
-  );
-  border-color: color-mix(in srgb, var(--card-color) 44%, var(--lp-border));
-  box-shadow:
-    0 2px 4px color-mix(in srgb, var(--card-color) 12%, transparent),
-    0 6px 18px color-mix(in srgb, var(--card-color) 22%, transparent);
+  background: var(--lp-surface-raised);
+  border-color: color-mix(in srgb, var(--card-color) 35%, var(--lp-border));
+  box-shadow: var(--lp-shadow-sm);
   transform: translateY(-2px);
 }
 .module-card:active { transform: translateY(0) scale(0.97); }
@@ -2324,7 +2323,6 @@ body {
   font-size: 0.72rem;
   font-weight: 700;
 }
-.module-activity__chev { flex: 0 0 auto; color: var(--lp-muted); font-size: 1.1rem; }
 
 .module-footer {
   position: relative;
@@ -2900,7 +2898,7 @@ body {
   display: flex;
   gap: 5px;
   flex-wrap: wrap;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 .filter-row[hidden] { display: none; }
 
@@ -2935,6 +2933,11 @@ body {
   font-weight: 700;
   cursor: pointer;
 }
+.activity-filter-toggle__icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
 .activity-filter-toggle.active {
   border-color: var(--lp-accent);
   background: var(--lp-accent-soft);
@@ -2945,26 +2948,49 @@ body {
   padding-bottom: 8px;
   border-bottom: 1px solid var(--lp-border);
 }
+
+/* Mobile: tabs de módulo más compactos y botón "Filtrar" solo ícono
+   (embudo), para que quepan en una fila estrecha sin saturar. */
+@media (max-width: 480px) {
+  #view-actividad .filter-row {
+    gap: 3px;
+  }
+  #view-actividad .filter-row .lp-pill {
+    min-height: 30px;
+    padding: 5px 10px;
+    font-size: 0.7rem;
+  }
+  .activity-filter-toggle {
+    flex: 0 0 auto;
+    width: 30px;
+    min-height: 30px;
+    padding: 0;
+    gap: 0;
+  }
+  .activity-filter-toggle__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
 .lp-pill--status { min-height: 32px; padding: 5px 12px; font-size: 0.72rem; }
 
 .activity-summary {
   display: flex;
-  align-items: flex-end;
+  align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  margin: 3px 0 8px;
+  margin: 12px 0 10px;
 }
 .activity-summary h2 {
   margin: 0;
   font-family: var(--lp-font-display);
   font-size: 1.05rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--lp-ink);
-}
-.activity-summary p {
-  margin: 2px 0 0;
-  color: var(--lp-ink-soft);
-  font-size: 0.74rem;
 }
 .activity-summary__count {
   flex: 0 0 auto;
@@ -3054,7 +3080,6 @@ body {
   font-family: var(--lp-font-mono);
   white-space: nowrap;
 }
-.activity-row__chev { flex: 0 0 auto; color: var(--lp-muted); font-size: 1.05rem; }
 
 .activity-footer { margin-top: 2px; }
 
@@ -4209,5 +4234,10 @@ a:focus-visible,
     background: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+  }
+
+  /* El topbar ya muestra "Actividad" — el título es redundante en mobile. */
+  #view-actividad .activity-summary {
+    display: none;
   }
 }
