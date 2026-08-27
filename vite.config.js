@@ -10,8 +10,8 @@
 // lp-theme.js also needs to stay unbundled/unhashed: it's the one script
 // that must run synchronously, before first paint, to avoid a theme flash —
 // bundling it into main.js would defer it like everything else.
-import { gatewayRedirectPlugin } from '../scripts/vite-gateway-redirect.mjs';
-import { stripDevSourcemapPlugin } from '../scripts/vite-strip-dev-sourcemap.mjs';
+import { gatewayRedirectPlugin } from './scripts/vite-gateway-redirect.mjs';
+import { stripDevSourcemapPlugin } from './scripts/vite-strip-dev-sourcemap.mjs';
 
 export default {
   // GitHub Pages serves this repo at /deskflow/ — CD Deploy sets
