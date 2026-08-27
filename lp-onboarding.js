@@ -505,3 +505,5 @@ var lpOnboarding = (function () {
     LEVEL_STEP: LEVEL_STEP,
   };
 })();
+
+window.lpOnboarding = lpOnboarding; // ESM side-effect import (main.js) does not attach top-level vars to window like a classic <script> did — restore it explicitly.

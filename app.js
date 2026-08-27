@@ -1588,6 +1588,10 @@ MOBILE_SIDEBAR_MQ.addEventListener('change', syncSidebarMount);
 setupNavigation();
 setupActivityFilters();
 renderAll();
+// setupNavigation() already ran navigateFromHash() above, so .app-shell's
+// data-view is correct by now — safe to reveal (see index.html's
+// html:not([data-app-ready]) rule, which hides it until this fires).
+document.documentElement.setAttribute('data-app-ready', '1');
 if (window.lpOnboarding && !lpOnboarding.hasSeenOnboarding() && location.hash !== '#about') {
   lpOnboarding.open({ onPlacementReady: openPlacementTestNow });
 }

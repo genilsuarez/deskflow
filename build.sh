@@ -31,17 +31,8 @@ fi
 echo "✅ Validaciones OK"
 echo ""
 
-# ─── Minificar CSS ──────────────────────────────────────────────────────────────
-# Regenera *.min.css desde el fuente legible antes de cada commit, así el
-# minificado nunca queda desactualizado. Ver scripts/minify-css.sh.
-
-echo "🎨 Minificando CSS..."
-scripts/minify-css.sh
-echo ""
-
-echo "🎨 Minificando JS (scripts clásicos)..."
-scripts/minify-js.sh
-echo ""
+# Minificación/bundling ya no corre acá — CI Build lo hace vía `npm run build`
+# (Vite) antes de cada deploy. Ver .github/workflows/cd-deploy.yml.
 
 # ─── Commit & Push ──────────────────────────────────────────────────────────────
 

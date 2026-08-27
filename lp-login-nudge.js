@@ -28,3 +28,4 @@ var lpLoginNudge = (function () {
 
   return { maybePrompt: maybePrompt };
 })();
+window.lpLoginNudge = lpLoginNudge; // ESM side-effect import (main.js) does not attach top-level vars to window like a classic <script> did — restore it explicitly.

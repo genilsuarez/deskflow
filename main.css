@@ -1,0 +1,28 @@
+/**
+ * DeskFlow — aggregated stylesheet, referenced from index.html via a real
+ * <link rel="stylesheet"> tag (NOT imported from main.js as a JS module).
+ *
+ * Why: Vite treats a <link>-referenced stylesheet as render-blocking in
+ * both dev and build, matching what the old individual <link> tags did.
+ * A CSS file imported from a JS module instead gets injected via a <style>
+ * tag at runtime in dev — which only happens after main.js (a deferred
+ * module script) executes, after the HTML has already painted unstyled.
+ * That's a real flash-of-unstyled-content regression dev-mode-only (the
+ * production build already extracts a blocking <link>, so this only
+ * mattered for `npx vite` / learnctl).
+ *
+ * Order matches the original <link> tags in index.html — later rules can
+ * intentionally override earlier ones at the same specificity.
+ */
+@import './styles.css';
+@import './lp-nav-active.css';
+@import './lp-drawer.css';
+@import './lp-about.css';
+@import './lp-help.css';
+@import './lp-settings.css';
+@import './lp-fluentflow-settings.css';
+@import './lp-completion-settings.css';
+@import './lp-dev-tools.css';
+@import './lp-onboarding.css';
+@import './lp-placement-test.css';
+@import './lp-cookie-consent.css';

@@ -648,3 +648,5 @@ var lpPlacementTest = (function () {
     maybeShowResumePrompt: maybeShowResumePrompt,
   };
 })();
+
+window.lpPlacementTest = lpPlacementTest; // ESM side-effect import (main.js) does not attach top-level vars to window like a classic <script> did — restore it explicitly.

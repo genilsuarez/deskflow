@@ -35,8 +35,7 @@ window.LPHelpContent = {
           "es": "Al completar C2 se desbloquea contenido adicional fuera de la escala CEFR (por ejemplo, canciones \"FR\" en LyricFlow).",
           "en": "Completing C2 unlocks extra content outside the CEFR scale (for example, \"FR\" songs in LyricFlow)."
         }
-      ],
-      "open": true
+      ]
     },
     {
       "id": "combined-progress",

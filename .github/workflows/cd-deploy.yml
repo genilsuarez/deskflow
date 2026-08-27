@@ -50,9 +50,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Verify index.html exists
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_APP_BASE_URL: /deskflow/
+
+      - name: Verify build output
         run: |
-          [ -f "index.html" ] || { echo "❌ Missing index.html"; exit 1; }
+          [ -f "dist/index.html" ] || { echo "❌ dist/index.html missing"; exit 1; }
           echo "✅ Ready to deploy"
 
       - name: Setup Pages
@@ -61,7 +74,7 @@ jobs:
       - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v5
         with:
-          path: .
+          path: dist
 
       - name: Deploy
         id: deployment

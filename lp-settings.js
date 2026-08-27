@@ -92,3 +92,4 @@ var lpSettings = (function () {
 
   return { open: open, close: close };
 })();
+window.lpSettings = lpSettings; // ESM side-effect import (main.js) does not attach top-level vars to window like a classic <script> did — restore it explicitly.

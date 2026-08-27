@@ -260,3 +260,5 @@ var lpFluentFlowSettings = (function () {
 
   return { open: open, updateSectionVisibility: updateSectionVisibility };
 })();
+
+window.lpFluentFlowSettings = lpFluentFlowSettings; // ESM side-effect import (main.js) does not attach top-level vars to window like a classic <script> did — restore it explicitly.

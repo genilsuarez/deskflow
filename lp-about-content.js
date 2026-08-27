@@ -5,8 +5,8 @@ window.LPAboutContent = {
     "en": "About LearnFlow"
   },
   "description": {
-    "es": "LearnFlow es una plataforma de inglés alineada al marco CEFR (A1–C2), diseñada para estudiantes autónomos que quieren avanzar con estructura y variedad. Combina una ruta secuencial de módulos, práctica temática libre y aprendizaje con música real, todo bajo un progreso unificado.",
-    "en": "LearnFlow is an English learning platform aligned with the CEFR framework (A1–C2), designed for independent learners who want to progress with structure and variety. It combines a sequential module path, flexible topic practice, and real-music learning, all under a unified progress system."
+    "es": "Plataforma de inglés por niveles CEFR (A1–C2) para estudiantes autónomos. Combina ruta secuencial, práctica temática libre y música real, con un progreso unificado.",
+    "en": "An English platform by CEFR level (A1–C2) for independent learners. It combines a sequential path, flexible topic practice, and real music, with one unified progress."
   },
   "modules": [
     {
