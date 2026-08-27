@@ -65,6 +65,17 @@ var lpDevTools = (function () {
     }).join('');
   }
 
+  function clearCookies() {
+    // No app-level code sets cookies directly, but gtag (lp-analytics.js) does
+    // once consent is granted (_ga, _gid, etc.) — the confirm dialog promises
+    // to wipe local data, so those need to go too, not just storage/caches.
+    document.cookie.split(';').forEach(function (cookie) {
+      var name = cookie.split('=')[0].trim();
+      if (!name) return;
+      document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    });
+  }
+
   async function clearCache() {
     try {
       var keys = await caches.keys();
@@ -87,6 +98,11 @@ var lpDevTools = (function () {
       }
     } catch (e) {
       /* Private browsing or storage unavailable — Cache Storage/SW cleanup above still ran. */
+    }
+    try {
+      clearCookies();
+    } catch (e) {
+      /* Cookie access blocked (e.g. strict privacy mode) — other cleanup above still ran. */
     }
     window.location.reload();
   }
