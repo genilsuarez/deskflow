@@ -12,6 +12,25 @@
 //
 // window.lpTrack(eventName, params) queda disponible para eventos custom del embudo
 // de onboarding (Fase D.2) sin acoplar analítica al schema de progreso de Supabase.
+//
+// user_id: cuando hay sesión, se manda a GA4 (gtag('set', {user_id})) para que las
+// sesiones de la MISMA cuenta en distintos navegadores/dispositivos se cuenten como un
+// solo usuario en vez de uno por client_id — ver
+// https://developers.google.com/analytics/devguides/collection/ga4/user-id. Con `null`
+// se limpia (nunca string vacío, per la doc oficial). Los invitados sin cuenta siguen
+// siendo anónimos por client_id — eso es correcto, no un déficit: no hay con qué
+// identificarlos sin que se logueen.
+// Se lee 'lp-user' directo de localStorage (mismo storage key que lp-login.js, sin
+// importarlo) porque en las 4 apps lp-analytics.js se ejecuta ANTES que lp-login.js en
+// el bundle (main.js) o en el <head> — depender de `window.lpLogin` en esta primera
+// lectura fallaría. La suscripción a cambios en vivo (login/logout durante la sesión)
+// espera al evento 'load' (no 'DOMContentLoaded'): los scripts <script defer> /
+// type="module" corren cuando `document.readyState` YA pasó a 'interactive' — antes de
+// que 'DOMContentLoaded' dispare, no después — así que un guard `readyState === 'loading'`
+// acá siempre da falso y el registro nunca ocurre (bug real, encontrado probando en
+// navegador: `lpLogin.setUser()` no disparaba el 'set' de gtag). 'load' sí garantiza
+// que TODOS los scripts, incluido lp-login.js más adelante en el mismo import graph, ya
+// corrieron — sin importar en qué momento de la carga se evalúa este archivo.
 
 const MEASUREMENT_ID = 'G-YESJSS2XQF';
 
@@ -49,6 +68,26 @@ const MEASUREMENT_ID = 'G-YESJSS2XQF';
 
   gtag('js', new Date());
   gtag('config', MEASUREMENT_ID);
+
+  function readLoggedInUserId() {
+    try {
+      var raw = localStorage.getItem('lp-user');
+      var user = raw ? JSON.parse(raw) : null;
+      return (user && user.id) || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  gtag('set', { user_id: readLoggedInUserId() });
+
+  window.addEventListener('load', function () {
+    if (window.lpLogin && typeof window.lpLogin.onUpdate === 'function') {
+      window.lpLogin.onUpdate(function (user) {
+        gtag('set', { user_id: (user && user.id) || null });
+      });
+    }
+  });
 
   window.lpTrack = function (eventName, params) {
     gtag('event', eventName, params || {});
