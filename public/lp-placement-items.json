@@ -1,5 +1,5 @@
 {
-  "version": "v1",
+  "version": "v2",
   "items": [
     {
       "level": "b1",
@@ -182,6 +182,66 @@
       "explanation": "Este modismo describe algo que al principio parece malo pero termina siendo bueno."
     },
     {
+      "level": "b1",
+      "question": "Complete: 'If it ___ tomorrow, we will cancel the picnic.'",
+      "options": [
+        "rain",
+        "rains",
+        "rained",
+        "will rain"
+      ],
+      "correct": "rains",
+      "explanation": "Primer condicional: If + presente simple, will + verbo base. La condición nunca lleva 'will'."
+    },
+    {
+      "level": "b1",
+      "question": "Complete: 'She ___ to Peru three times.'",
+      "options": [
+        "went",
+        "has been",
+        "was",
+        "go"
+      ],
+      "correct": "has been",
+      "explanation": "Presente perfecto para experiencias sin momento concreto (three times, sin decir cuándo); 'went' exigiría un momento específico (last year)."
+    },
+    {
+      "level": "b1",
+      "question": "Complete: 'This exercise is ___ than the last one.'",
+      "options": [
+        "more difficult",
+        "difficulter",
+        "most difficult",
+        "difficult"
+      ],
+      "correct": "more difficult",
+      "explanation": "Los adjetivos de dos o más sílabas forman el comparativo con 'more + adjetivo', no con la terminación '-er'."
+    },
+    {
+      "level": "b1",
+      "question": "Complete: 'You ___ wear a seatbelt — it's the law.'",
+      "options": [
+        "might",
+        "could",
+        "have to",
+        "would"
+      ],
+      "correct": "have to",
+      "explanation": "<Have to> expresa una obligación externa (una ley, una norma), no una opinión personal como <should>."
+    },
+    {
+      "level": "b1",
+      "question": "What does <hit the books> mean?",
+      "options": [
+        "to study hard",
+        "to hit someone with a book",
+        "to read for fun",
+        "to buy books"
+      ],
+      "correct": "to study hard",
+      "explanation": "Este modismo informal significa ponerse a estudiar intensamente."
+    },
+    {
       "level": "b2",
       "question": "Complete: 'If you can't sleep, try ___ some warm milk.'",
       "options": [
@@ -242,6 +302,186 @@
       "explanation": "Este modismo significa volver al punto de partida después de un intento fallido."
     },
     {
+      "level": "b2",
+      "question": "Complete: 'If I ___ more money, I would travel around the world.'",
+      "options": [
+        "have",
+        "had",
+        "will have",
+        "would have"
+      ],
+      "correct": "had",
+      "explanation": "Segundo condicional (situación hipotética presente): If + pasado simple, would + verbo base."
+    },
+    {
+      "level": "b2",
+      "question": "Complete: 'English ___ in over 60 countries.'",
+      "options": [
+        "speaks",
+        "is spoken",
+        "spoke",
+        "has spoken"
+      ],
+      "correct": "is spoken",
+      "explanation": "Voz pasiva en presente simple: be (is) + participio pasado (spoken). El sujeto (English) recibe la acción, no la ejecuta."
+    },
+    {
+      "level": "b2",
+      "question": "Complete: 'She isn't answering her phone. She ___ be asleep.'",
+      "options": [
+        "can",
+        "must",
+        "should",
+        "need"
+      ],
+      "correct": "must",
+      "explanation": "<Must> expresa una deducción lógica fuerte a partir de la evidencia disponible, no una obligación."
+    },
+    {
+      "level": "b2",
+      "question": "Complete: 'The woman ___ lives next door is a doctor.'",
+      "options": [
+        "which",
+        "whose",
+        "who",
+        "whom"
+      ],
+      "correct": "who",
+      "explanation": "<Who> introduce una cláusula relativa que describe a una persona como sujeto del verbo (lives)."
+    },
+    {
+      "level": "b2",
+      "question": "\"Are you coming?\" she asked. → She asked ___ I was coming.",
+      "options": [
+        "that",
+        "if",
+        "what",
+        "when"
+      ],
+      "correct": "if",
+      "explanation": "Las preguntas de sí/no en estilo indirecto se introducen con 'if' o 'whether', no con 'that'."
+    },
+    {
+      "level": "b2",
+      "question": "Which phrasal verb means \"to stop doing something, often a habit\"?",
+      "options": [
+        "Give away",
+        "Give up",
+        "Give in",
+        "Give back"
+      ],
+      "correct": "Give up",
+      "explanation": "<Give up> significa dejar de hacer algo, típicamente un hábito: give up smoking."
+    },
+    {
+      "level": "b2",
+      "question": "Complete: 'I'm really looking forward to ___ you next week.'",
+      "options": [
+        "see",
+        "seeing",
+        "saw",
+        "have seen"
+      ],
+      "correct": "seeing",
+      "explanation": "<Look forward to> va seguido de gerundio: la preposición 'to' exige la forma -ing, no el infinitivo."
+    },
+    {
+      "level": "b2",
+      "question": "What does <run out of> mean?",
+      "options": [
+        "to run quickly",
+        "to exercise outdoors",
+        "to have no more of something",
+        "to escape from a place"
+      ],
+      "correct": "to have no more of something",
+      "explanation": "<Run out of> significa quedarse sin algo: we ran out of milk."
+    },
+    {
+      "level": "b2",
+      "question": "Complete: '___ the rain, we went for a walk.'",
+      "options": [
+        "Although",
+        "Despite",
+        "Because",
+        "However"
+      ],
+      "correct": "Despite",
+      "explanation": "<Despite> va seguido de un sustantivo o gerundio, no de una oración completa (a diferencia de <although>)."
+    },
+    {
+      "level": "b2",
+      "question": "Complete: 'I wish I ___ how to drive.'",
+      "options": [
+        "know",
+        "knew",
+        "have known",
+        "will know"
+      ],
+      "correct": "knew",
+      "explanation": "<Wish> + pasado simple expresa un deseo sobre una situación presente que no es real."
+    },
+    {
+      "level": "b2",
+      "question": "Complete: 'I need to have my car ___ tomorrow.'",
+      "options": [
+        "repair",
+        "repaired",
+        "repairing",
+        "to repair"
+      ],
+      "correct": "repaired",
+      "explanation": "Estructura causativa 'have + objeto + participio pasado': otra persona hace la reparación, no tú."
+    },
+    {
+      "level": "b2",
+      "question": "Complete: 'You ___ so fast — you got a ticket.'",
+      "options": [
+        "shouldn't drive",
+        "shouldn't have driven",
+        "didn't have to drive",
+        "mustn't drive"
+      ],
+      "correct": "shouldn't have driven",
+      "explanation": "<Should have + participio> expresa un reproche o arrepentimiento sobre el pasado."
+    },
+    {
+      "level": "b2",
+      "question": "If someone feels <under the weather>, they:",
+      "options": [
+        "enjoy bad weather",
+        "feel unwell",
+        "are in a bad mood",
+        "are very busy"
+      ],
+      "correct": "feel unwell",
+      "explanation": "Este modismo significa sentirse un poco enfermo o decaído."
+    },
+    {
+      "level": "b2",
+      "question": "What does <let the cat out of the bag> mean?",
+      "options": [
+        "to release an animal",
+        "to reveal a secret by accident",
+        "to make a mistake",
+        "to change your mind"
+      ],
+      "correct": "to reveal a secret by accident",
+      "explanation": "Este modismo significa revelar un secreto sin querer."
+    },
+    {
+      "level": "b2",
+      "question": "If you <procrastinate>, you:",
+      "options": [
+        "work very quickly",
+        "delay doing something you should do",
+        "organize your schedule",
+        "finish early"
+      ],
+      "correct": "delay doing something you should do",
+      "explanation": "<Procrastinate> significa postergar o posponer tareas que deberías hacer."
+    },
+    {
       "level": "c1",
       "question": "Not only ___ the exam, but he also got the highest score.",
       "options": [
@@ -300,6 +540,66 @@
       ],
       "correct": "are pursuing a mistaken approach",
       "explanation": "Este modismo significa hacer una suposición equivocada o seguir una pista falsa."
+    },
+    {
+      "level": "c1",
+      "question": "Complete: '___ was John who broke the vase, not his sister.'",
+      "options": [
+        "It",
+        "This",
+        "There",
+        "That"
+      ],
+      "correct": "It",
+      "explanation": "Oración hendida (cleft sentence) con 'It': It + be + elemento enfatizado + that/who + resto de la oración."
+    },
+    {
+      "level": "c1",
+      "question": "Complete: 'If she had studied medicine, she ___ a doctor now.'",
+      "options": [
+        "would be",
+        "would have been",
+        "will be",
+        "had been"
+      ],
+      "correct": "would be",
+      "explanation": "Condicional mixto: condición en el pasado (had studied) con resultado en el presente (would be), no 'would have been', que sería un resultado también pasado."
+    },
+    {
+      "level": "c1",
+      "question": "Complete: 'It's high time you ___ your homework.'",
+      "options": [
+        "do",
+        "did",
+        "have done",
+        "will do"
+      ],
+      "correct": "did",
+      "explanation": "'It's (high) time' + sujeto + pasado simple expresa que algo debería estar haciéndose ya, aunque hable del presente."
+    },
+    {
+      "level": "c1",
+      "question": "Which phrasal verb means \"to finally find time to do something after a delay\"?",
+      "options": [
+        "Get around to",
+        "Get away with",
+        "Get on with",
+        "Get down to"
+      ],
+      "correct": "Get around to",
+      "explanation": "<Get around to> significa finalmente encontrar tiempo para hacer algo que se venía posponiendo."
+    },
+    {
+      "level": "c1",
+      "question": "If a company <cuts corners>, it:",
+      "options": [
+        "reduces costs by lowering quality or safety standards",
+        "expands into new markets",
+        "builds new offices",
+        "increases employee salaries"
+      ],
+      "correct": "reduces costs by lowering quality or safety standards",
+      "explanation": "Este modismo significa hacer algo de forma más barata o rápida sacrificando calidad o seguridad."
     },
     {
       "level": "c2",

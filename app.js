@@ -7,7 +7,18 @@ import { setupSupabaseAuth } from './lp-auth-setup.js';
 import { getActiveLevel, getCombinedLevelProgress, getEarnedLevelFloor, LEVEL_ORDER } from './lp-progress-summary.js';
 import { getThresholds } from './lp-completion-config.js';
 import { warmAllCatalogTotals } from './lp-catalog-warmer.js';
-import { scoreValidation, blocksFor, FALLBACK_LEVEL } from './lp-placement-scoring.js';
+import {
+  scoreValidation,
+  scoreBlock,
+  blocksFor,
+  FALLBACK_LEVEL,
+  BLOCK_SIZE,
+  FLOOR_BLOCK_SIZE,
+  PROBE_LEVEL,
+  PROBE_SIZE,
+  probeTriggerFor,
+  pickItems,
+} from './lp-placement-scoring.js';
 
 const APP_CONFIG = Object.freeze({
   fluentflow: {
@@ -991,9 +1002,16 @@ function renderAll() {
 function placementTestOptions() {
   return {
     score: scoreValidation,
+    scoreBlock,
     blocksFor,
     fallbackLevel: FALLBACK_LEVEL,
     levelOrder: LEVEL_ORDER,
+    blockSize: BLOCK_SIZE,
+    floorBlockSize: FLOOR_BLOCK_SIZE,
+    probeLevel: PROBE_LEVEL,
+    probeSize: PROBE_SIZE,
+    probeTriggerFor,
+    pickItems,
     // Piso al reprobar/abandonar: nunca por debajo de lo ganado con trabajo real.
     earnedFloor: getEarnedLevelFloor,
     // El restore de login nunca baja el nivel por su cuenta, así que una bajada

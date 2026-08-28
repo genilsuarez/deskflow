@@ -30,11 +30,8 @@ var lpPlacementTest = (function () {
   var STAGE_LABELS = {
     b1: 'Nivel B1',
     b2: 'Nivel B2',
+    c1: 'Preguntas extra (C1)',
   };
-
-  // El piso B1 va abreviado cuando lo que se valida es B2: quien pide B2 igual
-  // verifica un piso real, pero rendirle el bloque B1 completo es fricción.
-  var FLOOR_BLOCK_SIZE = 5;
 
   function track(eventName, params) {
     if (typeof window.lpTrack === 'function') window.lpTrack(eventName, params);
@@ -167,20 +164,22 @@ var lpPlacementTest = (function () {
   }
 
   /**
-   * Bloques a rendir, en orden, para el nivel pedido. Determinista: reanudar un
-   * examen reconstruye exactamente la misma secuencia de preguntas.
+   * Bloques a rendir, en orden, para el nivel pedido. El banco tiene más
+   * ítems por nivel que los servidos acá — options.pickItems() muestrea
+   * `seed` de forma determinista, así que reanudar con el mismo seed
+   * reconstruye exactamente la misma secuencia de preguntas.
    */
-  function buildBlocks(items, requestedLevel, options) {
+  function buildBlocks(items, requestedLevel, options, seed) {
     var order = options.blocksFor(requestedLevel);
     var byLevel = {};
-    order.forEach(function (level) {
-      byLevel[level] = items.filter(function (item) {
+    order.forEach(function (level, idx) {
+      var pool = items.filter(function (item) {
         return item.level === level;
       });
+      var isFloor = idx === 0 && order.length > 1;
+      var size = isFloor ? options.floorBlockSize : options.blockSize[level];
+      byLevel[level] = options.pickItems(pool, size, seed);
     });
-    if (order.length > 1 && byLevel[order[0]].length > FLOOR_BLOCK_SIZE) {
-      byLevel[order[0]] = byLevel[order[0]].slice(0, FLOOR_BLOCK_SIZE);
-    }
     var flat = [];
     order.forEach(function (level) {
       flat = flat.concat(byLevel[level]);
@@ -195,6 +194,27 @@ var lpPlacementTest = (function () {
     if (!Array.isArray(options.levelOrder) || !options.fallbackLevel) {
       throw new Error('lpPlacementTest requiere options.levelOrder y options.fallbackLevel');
     }
+    if (typeof options.pickItems !== 'function' || !options.blockSize || !options.floorBlockSize) {
+      throw new Error('lpPlacementTest requiere options.pickItems, options.blockSize y options.floorBlockSize');
+    }
+  }
+
+  /** Params escalares (GA4 no acepta arrays/objetos anidados en un evento) con
+   *  el detalle por bloque — incluida la sonda si se sirvió — para poder
+   *  calibrar umbrales más adelante sin esperar a tener cientos de exámenes
+   *  por ítem: alcanza con la tasa de aciertos por bloque agregada en GA4. */
+  function blockParams(result) {
+    var params = {};
+    (result.blocks || []).forEach(function (block) {
+      params[block.level + '_correct'] = block.correctCount;
+      params[block.level + '_total'] = block.total;
+    });
+    if (result.probe) {
+      params.probe_level = result.probe.level;
+      params.probe_correct = result.probe.correctCount;
+      params.probe_total = result.probe.total;
+    }
+    return params;
   }
 
   /**
@@ -204,6 +224,13 @@ var lpPlacementTest = (function () {
    * @param {function} options.blocksFor - blocksFor (idem)
    * @param {string} options.fallbackLevel - FALLBACK_LEVEL (idem)
    * @param {string[]} options.levelOrder - LEVEL_ORDER (scripts/lp-progress-summary.js)
+   * @param {function} options.pickItems - pickItems (scripts/lp-placement-scoring.js)
+   * @param {object} options.blockSize - BLOCK_SIZE (idem)
+   * @param {number} options.floorBlockSize - FLOOR_BLOCK_SIZE (idem)
+   * @param {string} [options.probeLevel] - PROBE_LEVEL (idem)
+   * @param {number} [options.probeSize] - PROBE_SIZE (idem)
+   * @param {function} [options.probeTriggerFor] - probeTriggerFor (idem)
+   * @param {function} [options.scoreBlock] - scoreBlock (idem) — requerido si hay sonda
    * @param {function} [options.earnedFloor] - getEarnedLevelFloor (idem)
    * @param {function} [options.onLevelCommitted] - persistencia en la nube del nivel resultante
    * @param {object} [options.resumeFrom] - snapshot devuelto por readSnapshot()
@@ -229,24 +256,60 @@ var lpPlacementTest = (function () {
   function renderExam(bank, requestedLevel, options) {
     var items = bank.items;
     var itemsVersion = bank.version;
-    var blocks = buildBlocks(items, requestedLevel, options);
+    var resume = options.resumeFrom;
+
+    // El seed decide qué ítems del banco se muestrean (ver buildBlocks). Al
+    // reanudar se reusa el guardado — mismo seed, mismos ítems — así que las
+    // respuestas ya dadas siguen alineadas con las preguntas correctas.
+    var seed =
+      resume && typeof resume.seed === 'number'
+        ? resume.seed
+        : Math.floor(Math.random() * 0xffffffff);
+
+    var blocks = buildBlocks(items, requestedLevel, options, seed);
     if (blocks.order.length === 0) return;
 
     // Revalidación del intento guardado contra el examen que se va a rendir de
     // verdad. maybeShowResumePrompt() ofrece retomar sin haber cargado el banco,
-    // así que este es el único punto donde se puede comprobar: si el banco cambió
-    // (los ítems no tienen id, los índices dejan de apuntar a lo mismo), si el
-    // nivel pedido es otro, o si los índices se salen de rango, se descarta y se
-    // empieza limpio en vez de rendir preguntas que no corresponden.
-    var resume = options.resumeFrom;
+    // así que este es el único punto donde se puede comprobar: si el banco
+    // cambió (los ítems no tienen id, los índices dejan de apuntar a lo mismo),
+    // si el nivel pedido es otro, si falta el seed (snapshot de un formato
+    // anterior), o si los índices se salen de rango, se descarta y se empieza
+    // limpio en vez de rendir preguntas que no corresponden.
+    var resumeValid =
+      !!resume &&
+      typeof resume.seed === 'number' &&
+      resume.itemsVersion === itemsVersion &&
+      resume.requestedLevel === requestedLevel;
+
+    // Si el intento guardado ya había disparado la sonda C1, hay que
+    // reconstruirla ANTES de validar los índices — mismo seed, mismo banco ⇒
+    // pickItems() elige exactamente los mismos 5 ítems, así que no hace falta
+    // guardar cuáles eran, solo que se sirvieron.
+    if (resumeValid && resume.probeTriggered) {
+      var resumeProbeItems = items.filter(function (item) {
+        return item.level === options.probeLevel;
+      });
+      resumeProbeItems = options.pickItems(resumeProbeItems, options.probeSize, seed);
+      if (resumeProbeItems.length > 0) {
+        blocks.order.push(options.probeLevel);
+        blocks.byLevel[options.probeLevel] = resumeProbeItems;
+        blocks.flat = blocks.flat.concat(resumeProbeItems);
+      } else {
+        resumeValid = false;
+      }
+    }
+
     if (
-      resume &&
-      (resume.itemsVersion !== itemsVersion ||
-        resume.requestedLevel !== requestedLevel ||
-        resume.levelIndex >= blocks.order.length ||
+      resumeValid &&
+      (resume.levelIndex >= blocks.order.length ||
         resume.answers.length > blocks.flat.length ||
         resume.itemIndex >= blocks.byLevel[blocks.order[resume.levelIndex]].length)
     ) {
+      resumeValid = false;
+    }
+
+    if (!resumeValid) {
       clearSnapshot();
       resume = null;
     }
@@ -256,6 +319,7 @@ var lpPlacementTest = (function () {
       itemIndex: resume ? resume.itemIndex : 0,
       answers: resume ? resume.answers.slice() : [],
       answered: false,
+      probeTriggered: resume ? !!resume.probeTriggered : false,
     };
 
     var overlay = document.createElement('div');
@@ -327,11 +391,13 @@ var lpPlacementTest = (function () {
       writeSnapshot({
         itemsVersion: itemsVersion,
         requestedLevel: requestedLevel,
+        seed: seed,
         levelIndex: state.levelIndex,
         itemIndex: state.itemIndex,
         answers: state.answers,
         answeredCount: state.answers.length,
         totalCount: blocks.flat.length,
+        probeTriggered: state.probeTriggered,
         updatedAt: Date.now(),
       });
     }
@@ -405,32 +471,79 @@ var lpPlacementTest = (function () {
 
       // Bloque terminado: si se reprueba, el examen corta acá — el resultado
       // ya está decidido y los bloques siguientes no lo pueden rescatar.
+      // scoreValidation() ignora niveles fuera de blocksFor(requestedLevel),
+      // así que mezclar ítems de la sonda C1 en presentedItems()/answers (una
+      // vez agregada, más abajo) nunca contamina este cálculo.
       var result = options.score(requestedLevel, presentedItems(), state.answers);
-      var blockResult = null;
+      var finishedLevel = currentLevel();
+      var blockRes = null;
       for (var i = 0; i < result.blocks.length; i++) {
-        if (result.blocks[i].level === currentLevel()) blockResult = result.blocks[i];
+        if (result.blocks[i].level === finishedLevel) blockRes = result.blocks[i];
       }
-      var isLastBlock = state.levelIndex === blocks.order.length - 1;
+      var isLastStaticBlock = state.levelIndex === blocks.order.length - 1;
 
-      if (!blockResult || !blockResult.passed || isLastBlock) {
+      if (!blockRes || !blockRes.passed) {
         finish(result);
-      } else {
-        state.levelIndex += 1;
-        state.itemIndex = 0;
-        persist();
-        renderQuestion();
+        return;
       }
+
+      if (isLastStaticBlock) {
+        // B2 recién aprobado: ver si corresponde ofrecer la sonda C1 opcional
+        // (ver probeTriggerFor) antes de cerrar el examen.
+        if (
+          finishedLevel === 'b2' &&
+          !state.probeTriggered &&
+          typeof options.probeTriggerFor === 'function' &&
+          options.probeTriggerFor(blockRes)
+        ) {
+          var probePool = items.filter(function (item) {
+            return item.level === options.probeLevel;
+          });
+          var probeItems = options.pickItems(probePool, options.probeSize, seed);
+          if (probeItems.length > 0) {
+            state.probeTriggered = true;
+            blocks.order.push(options.probeLevel);
+            blocks.byLevel[options.probeLevel] = probeItems;
+            blocks.flat = blocks.flat.concat(probeItems);
+            state.levelIndex += 1;
+            state.itemIndex = 0;
+            persist();
+            renderQuestion();
+            return;
+          }
+        }
+        finish(result);
+        return;
+      }
+
+      state.levelIndex += 1;
+      state.itemIndex = 0;
+      persist();
+      renderQuestion();
     });
 
     function finish(result) {
+      // Si se sirvió la sonda, sus respuestas ya están mezcladas en
+      // presentedItems()/state.answers (van al final, después de b1+b2) —
+      // options.score() las ignoró para el pass/fail; acá se puntúan aparte,
+      // solo para reportar, nunca para decidir el nivel.
+      if (state.probeTriggered) {
+        var probeItems = blocks.byLevel[options.probeLevel] || [];
+        var probeAnswers = state.answers.slice(state.answers.length - probeItems.length);
+        result = Object.assign({}, result, {
+          probe: options.scoreBlock(options.probeLevel, probeItems, probeAnswers),
+        });
+      }
       var committed = commitLevel(result.level, options);
       clearSnapshot();
       clearRequest();
-      track('placement_test_completed', {
-        requested: requestedLevel,
-        passed: result.passed,
-        level: committed,
-      });
+      track(
+        'placement_test_completed',
+        Object.assign(
+          { requested: requestedLevel, passed: result.passed, level: committed },
+          blockParams(result)
+        )
+      );
       renderResult(result, committed);
     }
 
@@ -441,15 +554,39 @@ var lpPlacementTest = (function () {
      * conserva para poder retomar donde quedó — reanudar arrastra las
      * respuestas ya dadas, así que abandonar un intento que va mal no sirve
      * para reintentarlo limpio.
+     *
+     * Excepción: si ya se disparó la sonda C1, el bloque calificado (b1+b2)
+     * ya se había aprobado ANTES de ofrecerla — cerrar sin responder la sonda
+     * opcional es un cierre normal, no un abandono, y no debe degradar a
+     * fallback un nivel que ya está demostrado.
      */
     function abandon() {
+      var partial = options.score(requestedLevel, presentedItems(), state.answers);
+
+      if (state.probeTriggered && partial.passed) {
+        var committedCore = commitLevel(partial.level, options);
+        clearSnapshot();
+        clearRequest();
+        track(
+          'placement_test_completed',
+          Object.assign(
+            { requested: requestedLevel, passed: partial.passed, level: committedCore, probe_skipped: true },
+            blockParams(partial)
+          )
+        );
+        close({ reload: true });
+        return;
+      }
+
       var committed = commitLevel(options.fallbackLevel, options);
       persist();
-      track('placement_test_abandoned', {
-        requested: requestedLevel,
-        answered: state.answers.length,
-        level: committed,
-      });
+      track(
+        'placement_test_abandoned',
+        Object.assign(
+          { requested: requestedLevel, answered: state.answers.length, level: committed },
+          blockParams(partial)
+        )
+      );
       close({ reload: true });
     }
 
@@ -465,6 +602,16 @@ var lpPlacementTest = (function () {
         : 'Esta vez no alcanzó para ' + requestedLevel.toUpperCase() + ', así que sigues en nivel ' +
           committed.toUpperCase() + '. Puedes volver a intentarlo cuando quieras, o elegir otro nivel ' +
           'desde los ajustes — nada de lo que ya completaste se pierde.';
+
+      // La sonda nunca cambia el nivel otorgado — solo agrega contexto al
+      // resultado cuando se sirvió.
+      if (result.probe) {
+        var probePassed = result.probe.correctCount >= Math.ceil(result.probe.total * 0.6);
+        copy += probePassed
+          ? ' Además, respondiste bien la mayoría de unas preguntas extra de nivel C1 — tu inglés puede ' +
+            'estar rindiendo más de lo que el contenido B2 te exige.'
+          : ' También probaste algunas preguntas extra de nivel C1, sin compromiso: no afectan tu resultado.';
+      }
 
       body.insertAdjacentHTML(
         'beforeend',
