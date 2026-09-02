@@ -32,6 +32,7 @@ import './lp-help.js';
 import './lp-settings.js';
 import './lp-fluentflow-settings.js';
 import './lp-dev-tools.js';
+import './lp-flow-ui.js';
 import './lp-onboarding.js';
 import './lp-placement-test.js';
 import './lp-completion-settings.js';

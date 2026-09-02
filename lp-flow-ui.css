@@ -1,0 +1,96 @@
+/* LP Flow UI — sistema visual compartido por el onboarding y el examen de
+   nivel. Todo lo que define la REJILLA de esos flujos vive acá; cada archivo
+   de flujo solo añade lo que le es propio.
+
+   Dos variables gobiernan la alineación y las declara la tarjeta de cada
+   flujo (.onboarding-card / .placement-card):
+     --flow-gutter : margen lateral único de cabecera, cuerpo y pie
+     --flow-lead   : ancho de la columna de icono (cabecera y filas)
+   Respetarlas es lo que hace que progreso, título, filas y CTA caigan todos
+   sobre la misma línea vertical. */
+
+/* --- Iconos ------------------------------------------------------------- */
+.flow-icon { width: 22px; height: 22px; flex: 0 0 auto; }
+.flow-icon--sm { width: 16px; height: 16px; }
+
+/* Tolva de icono: mismo diámetro en la cabecera y en cada fila, tintada por
+   tono. Es la columna que alinea el flujo entero. */
+.flow-head__icon,
+.flow-option__icon,
+.flow-list__icon {
+  width: var(--flow-lead); height: var(--flow-lead); flex: 0 0 auto;
+  display: grid; place-items: center; border-radius: 50%;
+  background: var(--lp-accent-soft); color: var(--lp-accent);
+}
+.flow-head__icon--green, .flow-option__icon--green, .flow-list__icon--green { background: var(--lp-cat-green-soft); color: var(--lp-cat-green); }
+.flow-head__icon--amber, .flow-option__icon--amber, .flow-list__icon--amber { background: var(--lp-cat-amber-soft); color: var(--lp-cat-amber); }
+.flow-head__icon--purple, .flow-option__icon--purple, .flow-list__icon--purple { background: var(--lp-cat-purple-soft); color: var(--lp-cat-purple); }
+.flow-head__icon--teal, .flow-option__icon--teal, .flow-list__icon--teal { background: var(--lp-cat-teal-soft); color: var(--lp-cat-teal); }
+.flow-head__icon--blue, .flow-option__icon--blue, .flow-list__icon--blue { background: var(--lp-cat-blue-soft); color: var(--lp-cat-blue); }
+.flow-head__icon--success { background: var(--lp-success-soft); color: var(--lp-success); }
+
+/* --- Cabecera ----------------------------------------------------------- */
+.flow-head { display: grid; grid-template-columns: var(--flow-lead) 1fr; gap: 14px; align-items: start; }
+.flow-head__text { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.flow-head__text h2 { position: relative; padding-bottom: 10px; margin: 0; }
+/* Regla de acento bajo el título: ancla el bloque de texto a la izquierda y
+   separa título de cuerpo sin meter otro margen suelto. */
+.flow-head__text h2::after {
+  content: ''; position: absolute; left: 0; bottom: 0;
+  width: 40px; height: 3px; border-radius: var(--lp-radius-full); background: var(--lp-accent);
+}
+.flow-head__lead { margin: 0; color: var(--lp-muted); font-size: 0.88rem; line-height: 1.5; }
+
+/* --- Encabezado de sección ---------------------------------------------- */
+/* Mismo esquema que la cabecera de pantalla a menor escala: el icono ocupa una
+   columna fija (32px) y el rótulo con su pregunta caen alineados con él. */
+.flow-section { display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: center; }
+.flow-section__icon {
+  width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%;
+  background: var(--lp-accent-soft); color: var(--lp-accent);
+}
+.flow-section__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.flow-section__text strong { color: var(--lp-ink); font-size: 0.92rem; font-weight: 700; line-height: 1.2; }
+.flow-section__text span { color: var(--lp-muted); font-size: 0.76rem; line-height: 1.35; }
+
+/* --- Franja de cierre ---------------------------------------------------- */
+/* `margin-top: auto` la empuja al fondo del cuerpo flexible: en las pantallas
+   cortas absorbe el aire sobrante en vez de dejarlo flotando en medio. */
+.flow-note {
+  display: flex; align-items: flex-start; gap: 8px; margin: auto 0 0;
+  padding: 9px 12px; border-radius: var(--lp-radius-md);
+  background: color-mix(in srgb, var(--lp-accent) 7%, var(--lp-surface));
+  color: var(--lp-muted); font-size: 0.76rem; line-height: 1.45;
+}
+.flow-note .flow-icon { color: var(--lp-accent); margin-top: 1px; }
+
+/* --- Lista no interactiva (misma rejilla que las filas de opción) -------- */
+.flow-list { list-style: none; display: grid; gap: 8px; margin: 0; padding: 0; }
+.flow-list__item { display: grid; grid-template-columns: var(--flow-lead) 1fr; gap: 12px; align-items: center; }
+.flow-list__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.flow-list__text strong { color: var(--lp-ink); font-size: 0.88rem; font-weight: 600; }
+.flow-list__text span { color: var(--lp-muted); font-size: 0.76rem; line-height: 1.4; }
+
+/* --- Mosaico de tarjetas no interactivas -------------------------------- */
+/* Misma tarjeta que los selectores de meta/motivo, sin comportamiento: sirve
+   para presentar un conjunto (los tres módulos) sin fingir que se puede
+   elegir uno. */
+.flow-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; list-style: none; margin: 0; padding: 0; }
+.flow-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  padding: 12px 8px; border: 1px solid var(--lp-border); border-radius: var(--lp-radius-md);
+  background: var(--lp-surface);
+}
+.flow-tile strong { color: var(--lp-ink); font-size: 0.82rem; font-weight: 700; line-height: 1.2; }
+.flow-tile span { color: var(--lp-muted); font-size: 0.7rem; line-height: 1.3; }
+.flow-tile .flow-list__icon { width: 38px; height: 38px; }
+.flow-tile .flow-icon { width: 20px; height: 20px; }
+
+/* --- Distintivo en fila (p. ej. "Requiere examen") ---------------------- */
+.flow-badge {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  padding: 5px 10px; border-radius: var(--lp-radius-full);
+  border: 1px solid color-mix(in srgb, var(--lp-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--lp-accent) 8%, var(--lp-surface));
+  color: var(--lp-accent); font-size: 0.68rem; font-weight: 600;
+}

@@ -18,58 +18,17 @@ var lpOnboarding = (function () {
   var PLACEMENT_REQUEST_KEY = 'lp-placement-request';
   var LEVEL_STEP = 3;
 
-  // Iconografía del flujo — SVG inline (24×24, trazo currentColor). Cada
-  // pantalla y cada fila arrancan con un icono en la MISMA columna: es lo que
-  // hace que todo el flujo se lea cuadriculado en vez de como texto suelto.
-  // No se usa una librería: son nueve trazos y este archivo es un script
-  // clásico sin bundler propio.
-  var ICONS = {
-    growth: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/><path d="M15 8h4v4"/>',
-    layers: '<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>',
-    compass: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5 5-2z"/>',
-    link: '<path d="M10 13a5 5 0 007 0l2-2a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-2 2a5 5 0 007 7l1-1"/>',
-    leaf: '<path d="M4 20c0-8 5-13 15-14 0 10-5 15-13 15H4v-1z"/><path d="M8 16c2-3 4-5 7-6"/>',
-    chat: '<path d="M20 15a3 3 0 01-3 3H8l-4 3V6a3 3 0 013-3h10a3 3 0 013 3v9z"/><path d="M8 9h8M8 13h5"/>',
-    users: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0"/><path d="M16 6a3 3 0 010 6"/><path d="M18 14a6 6 0 013 5"/>',
-    star: '<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8L12 3.5z"/>',
-    doc: '<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
-    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-    chevron: '<path d="M9 6l6 6-6 6"/>',
-    shield: '<path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6l7-3z"/><path d="M9.5 12l1.8 1.8 3.4-3.6"/>',
-    target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/>',
-    flag: '<path d="M6 21V4"/><path d="M6 5h11l-2 3.5L17 12H6"/>',
+
+  // Iconos, cabecera y franja de cierre son compartidos con el examen de nivel
+  // (lp-flow-ui.js): las dos experiencias tienen que verse como una sola.
+  var icon = function (name, cls) { return window.lpFlowUI.icon(name, cls); };
+  var stepHeader = function (iconName, title, text, tone) {
+    return window.lpFlowUI.header({
+      icon: iconName, title: title, text: text, tone: tone, titleId: 'onboardingTitle',
+    });
   };
-
-  function icon(name, cls) {
-    return (
-      '<svg class="' + (cls || 'ob-icon') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-      'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
-      ICONS[name] +
-      '</svg>'
-    );
-  }
-
-  /**
-   * Cabecera común de TODAS las pantallas: tolva de icono (columna fija de
-   * 44px), título con regla de acento debajo y texto de apoyo alineado con el
-   * título — no con el icono. Todas las pantallas comparten el mismo módulo
-   * para que el título caiga siempre en la misma línea vertical.
-   */
-  function stepHeader(iconName, title, text, tone) {
-    return (
-      '<div class="ob-head">' +
-      '<span class="ob-head__icon' + (tone ? ' ob-head__icon--' + tone : '') + '">' + icon(iconName, 'ob-icon') + '</span>' +
-      '<div class="ob-head__text">' +
-      '<h2 id="onboardingTitle">' + title + '</h2>' +
-      (text ? '<p class="onboarding-body-text">' + text + '</p>' : '') +
-      '</div></div>'
-    );
-  }
-
-  /** Franja de cierre con icono: cierra la rejilla por abajo en cada pantalla. */
-  function noteHtml(iconName, text) {
-    return '<p class="ob-note">' + icon(iconName, 'ob-icon ob-icon--sm') + '<span>' + text + '</span></p>';
-  }
+  var sectionHtml = function (iconName, title, text) { return window.lpFlowUI.section(iconName, title, text); };
+  var noteHtml = function (iconName, text) { return window.lpFlowUI.note(iconName, text); };
 
   // Decisión de producto: el self-report solo se acepta tal cual hasta A2. De B1
   // en adelante hay que demostrarlo — FluentFlow vende profundidad real en
@@ -104,8 +63,8 @@ var lpOnboarding = (function () {
       value: 'c1',
       label: 'C1',
       hint: 'Me expreso con naturalidad, incluso en registro formal',
-      icon: 'star',
-      tone: 'purple',
+      icon: 'trophy',
+      tone: 'teal',
     },
   ];
 
@@ -123,16 +82,16 @@ var lpOnboarding = (function () {
   }
 
   var GOAL_OPTIONS = [
-    { value: '5', label: 'Casual', hint: '~5 min al día' },
-    { value: '15', label: 'Regular', hint: '~15 min al día' },
-    { value: '30', label: 'Serio', hint: '~30 min al día' },
+    { value: '5', label: 'Casual', hint: '~5 min al día', icon: 'coffee', tone: 'green' },
+    { value: '15', label: 'Regular', hint: '~15 min al día', icon: 'calendar', tone: 'amber' },
+    { value: '30', label: 'Serio', hint: '~30 min al día', icon: 'growth', tone: 'purple' },
   ];
 
   var MOTIVE_OPTIONS = [
-    { value: 'travel', label: 'Viaje' },
-    { value: 'work', label: 'Trabajo' },
-    { value: 'study', label: 'Estudios' },
-    { value: 'fun', label: 'Por gusto' },
+    { value: 'travel', label: 'Viaje', icon: 'plane', tone: 'blue' },
+    { value: 'work', label: 'Trabajo', icon: 'briefcase', tone: 'green' },
+    { value: 'study', label: 'Estudios', icon: 'cap', tone: 'purple' },
+    { value: 'fun', label: 'Por gusto', icon: 'heart', tone: 'amber' },
   ];
 
   function hasSeenOnboarding() {
@@ -378,11 +337,14 @@ var lpOnboarding = (function () {
           'Una plataforma, tres formas de aprender idiomas',
           'Estructura, práctica y música, conectadas por tu nivel real — todo gratis, sin registro obligatorio.'
         ) +
-          '<div class="onboarding-modules">' +
-          '<span class="onboarding-module onboarding-module--fluent">FluentFlow</span>' +
-          '<span class="onboarding-module onboarding-module--hub">HubFlow</span>' +
-          '<span class="onboarding-module onboarding-module--lyric">LyricFlow</span>' +
-          '</div>' +
+          '<ul class="flow-tiles">' +
+          '<li class="flow-tile"><span class="flow-list__icon flow-list__icon--purple">' + icon('layers', 'flow-icon') + '</span>' +
+          '<strong>FluentFlow</strong><span>Curso</span></li>' +
+          '<li class="flow-tile"><span class="flow-list__icon flow-list__icon--amber">' + icon('target', 'flow-icon') + '</span>' +
+          '<strong>HubFlow</strong><span>Práctica</span></li>' +
+          '<li class="flow-tile"><span class="flow-list__icon flow-list__icon--teal">' + icon('star', 'flow-icon') + '</span>' +
+          '<strong>LyricFlow</strong><span>Música</span></li>' +
+          '</ul>' +
           noteHtml('shield', 'Sin registro obligatorio: tu progreso se guarda en este dispositivo.')
       );
     }
@@ -391,14 +353,15 @@ var lpOnboarding = (function () {
       body.insertAdjacentHTML(
         'beforeend',
         stepHeader('compass', '¿Por qué tres módulos y no uno?', 'Cada uno cubre algo que los otros no.') +
-          '<ul class="ob-list">' +
-          '<li class="ob-list__item"><span class="ob-list__icon ob-list__icon--purple">' + icon('layers', 'ob-icon') + '</span>' +
-          '<span class="ob-list__text"><strong>FluentFlow</strong><span>El curso estructurado, nivel por nivel</span></span></li>' +
-          '<li class="ob-list__item"><span class="ob-list__icon ob-list__icon--amber">' + icon('target', 'ob-icon') + '</span>' +
-          '<span class="ob-list__text"><strong>HubFlow</strong><span>Práctica flexible de gramática y vocabulario</span></span></li>' +
-          '<li class="ob-list__item"><span class="ob-list__icon ob-list__icon--teal">' + icon('star', 'ob-icon') + '</span>' +
-          '<span class="ob-list__text"><strong>LyricFlow</strong><span>Inmersión con canciones reales</span></span></li>' +
-          '</ul>'
+          '<ul class="flow-list">' +
+          '<li class="flow-list__item"><span class="flow-list__icon flow-list__icon--purple">' + icon('layers', 'flow-icon') + '</span>' +
+          '<span class="flow-list__text"><strong>FluentFlow</strong><span>El curso estructurado, nivel por nivel</span></span></li>' +
+          '<li class="flow-list__item"><span class="flow-list__icon flow-list__icon--amber">' + icon('target', 'flow-icon') + '</span>' +
+          '<span class="flow-list__text"><strong>HubFlow</strong><span>Práctica flexible de gramática y vocabulario</span></span></li>' +
+          '<li class="flow-list__item"><span class="flow-list__icon flow-list__icon--teal">' + icon('star', 'flow-icon') + '</span>' +
+          '<span class="flow-list__text"><strong>LyricFlow</strong><span>Inmersión con canciones reales</span></span></li>' +
+          '</ul>' +
+          noteHtml('link', 'Los tres comparten tu nivel y tu progreso: no empiezas de cero en ninguno.')
       );
     }
 
@@ -408,8 +371,17 @@ var lpOnboarding = (function () {
         stepHeader(
           'link',
           'Tu nivel se comparte entre las tres',
-          'Avanzar en los tres módulos sube tu nivel en conjunto — no hace falta repetir el mismo contenido tres veces.'
-        ) + noteHtml('growth', '¿Ya sabes algo de inglés? En la próxima pantalla lo ajustamos.')
+          'Avanzar en los tres módulos sube tu nivel en conjunto.'
+        ) +
+          '<ul class="flow-list">' +
+          '<li class="flow-list__item"><span class="flow-list__icon flow-list__icon--blue">' + icon('growth', 'flow-icon') + '</span>' +
+          '<span class="flow-list__text"><strong>Un solo nivel</strong><span>El mismo en FluentFlow, HubFlow y LyricFlow</span></span></li>' +
+          '<li class="flow-list__item"><span class="flow-list__icon flow-list__icon--green">' + icon('check', 'flow-icon') + '</span>' +
+          '<span class="flow-list__text"><strong>Sin repetir</strong><span>No tienes que ver el mismo contenido tres veces</span></span></li>' +
+          '<li class="flow-list__item"><span class="flow-list__icon flow-list__icon--purple">' + icon('trophy', 'flow-icon') + '</span>' +
+          '<span class="flow-list__text"><strong>Todo suma</strong><span>Lo que completas en uno cuenta para tu nivel</span></span></li>' +
+          '</ul>' +
+          noteHtml('growth', '¿Ya sabes algo de inglés? En la próxima pantalla lo ajustamos.')
       );
     }
 
@@ -434,17 +406,17 @@ var lpOnboarding = (function () {
         // estado (24px). Todas las opciones comparten columnas, así que los
         // niveles, los hints y los chevrones quedan alineados verticalmente.
         btn.innerHTML =
-          '<span class="ob-option__icon ob-option__icon--' + opt.tone + '">' + icon(opt.icon, 'ob-icon') + '</span>' +
-          '<span class="ob-option__text">' +
-          '<span class="ob-option__label">' + opt.label + '</span>' +
-          '<span class="ob-option__hint">' + opt.hint + '</span>' +
+          '<span class="flow-option__icon flow-option__icon--' + opt.tone + '">' + icon(opt.icon, 'flow-icon') + '</span>' +
+          '<span class="onboarding-option__text">' +
+          '<span class="onboarding-option__label">' + opt.label + '</span>' +
+          '<span class="onboarding-option__hint">' + opt.hint + '</span>' +
           '</span>' +
           (requiresExam(opt.value)
-            ? '<span class="ob-option__badge">' + icon('doc', 'ob-icon ob-icon--sm') + 'Requiere examen</span>'
+            ? '<span class="flow-badge">' + icon('doc', 'flow-icon flow-icon--sm') + 'Requiere examen</span>'
             : '') +
-          '<span class="ob-option__state" aria-hidden="true">' +
-          icon('chevron', 'ob-icon ob-icon--sm ob-option__chevron') +
-          icon('check', 'ob-icon ob-icon--sm ob-option__check') +
+          '<span class="onboarding-option__state" aria-hidden="true">' +
+          icon('chevron', 'flow-icon flow-icon--sm onboarding-option__chevron') +
+          icon('check', 'flow-icon flow-icon--sm onboarding-option__check') +
           '</span>';
         btn.addEventListener('click', function () {
           state.level = opt.value;
@@ -461,19 +433,31 @@ var lpOnboarding = (function () {
       );
     }
 
-    function chipGroup(options, selectedValue, onPick) {
+    /**
+     * Grupo de tarjetas de una sola elección (meta, motivo). Antes eran chips
+     * de texto: en una rejilla con icono se leen como las opciones de nivel,
+     * que es el otro selector del flujo, y el elegido se marca igual.
+     */
+    function chipGroup(options, selectedValue, onPick, columns) {
       var wrap = document.createElement('div');
-      wrap.className = 'onboarding-chips';
+      wrap.className = 'onboarding-chips onboarding-chips--' + columns;
       options.forEach(function (opt) {
         var chip = document.createElement('button');
         chip.type = 'button';
-        chip.className = 'onboarding-chip' + (selectedValue === opt.value ? ' is-selected' : '');
-        chip.innerHTML = '<strong>' + opt.label + '</strong>' + (opt.hint ? '<span>' + opt.hint + '</span>' : '');
+        var selected = selectedValue === opt.value;
+        chip.className = 'onboarding-chip' + (selected ? ' is-selected' : '');
+        chip.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        chip.innerHTML =
+          '<span class="flow-option__icon flow-option__icon--' + opt.tone + '">' + icon(opt.icon, 'flow-icon') + '</span>' +
+          '<strong>' + opt.label + '</strong>' +
+          (opt.hint ? '<span>' + opt.hint + '</span>' : '');
         chip.addEventListener('click', function () {
           wrap.querySelectorAll('.onboarding-chip').forEach(function (c) {
             c.classList.remove('is-selected');
+            c.setAttribute('aria-pressed', 'false');
           });
           chip.classList.add('is-selected');
+          chip.setAttribute('aria-pressed', 'true');
           onPick(opt.value);
         });
         wrap.appendChild(chip);
@@ -486,18 +470,35 @@ var lpOnboarding = (function () {
       body.insertAdjacentHTML(
         'beforeend',
         stepHeader('target', 'Dos preguntas rápidas (opcional)', 'Sirven para personalizar tu experiencia más adelante.') +
-          '<p class="onboarding-label">Meta diaria</p>'
+          sectionHtml('clock', 'Meta diaria', '¿Cuánto tiempo quieres dedicar al inglés cada día?')
       );
       body.appendChild(
-        chipGroup(GOAL_OPTIONS, state.goal, function (value) {
-          state.goal = value;
-        })
+        chipGroup(
+          GOAL_OPTIONS,
+          state.goal,
+          function (value) {
+            state.goal = value;
+          },
+          3
+        )
       );
-      body.insertAdjacentHTML('beforeend', '<p class="onboarding-label">Motivo</p>');
+      body.insertAdjacentHTML(
+        'beforeend',
+        sectionHtml('heart', 'Motivo', '¿Cuál es tu principal razón para aprender inglés?')
+      );
       body.appendChild(
-        chipGroup(MOTIVE_OPTIONS, state.motive, function (value) {
-          state.motive = value;
-        })
+        chipGroup(
+          MOTIVE_OPTIONS,
+          state.motive,
+          function (value) {
+            state.motive = value;
+          },
+          4
+        )
+      );
+      body.insertAdjacentHTML(
+        'beforeend',
+        noteHtml('shield', 'Puedes cambiar ambas respuestas más adelante desde Ajustes.')
       );
     }
 
@@ -520,9 +521,36 @@ var lpOnboarding = (function () {
         : 'Tu contenido ya está ajustado a nivel ' +
           (state.level || 'a1').toUpperCase() +
           '. Empieza con una primera actividad cuando quieras.';
+      // Qué pasa a continuación, en la misma rejilla de icono + texto: la
+      // pantalla final tenía solo un párrafo y quedaba vacía, y "examen" sin
+      // más detalle es justo donde la gente abandona.
+      var nextSteps = needsExam
+        ? [
+            { icon: 'clock', tone: 'amber', title: 'Unos minutos', text: 'Preguntas cortas, sin límite de tiempo' },
+            { icon: 'trophy', tone: 'green', title: 'Si lo apruebas', text: 'Tu contenido queda en ' + state.level.toUpperCase() },
+            { icon: 'shield', tone: 'blue', title: 'Si no', text: 'Sigues en tu nivel actual y puedes reintentarlo' },
+          ]
+        : [
+            { icon: 'layers', tone: 'purple', title: 'Empieza por FluentFlow', text: 'El curso estructurado de tu nivel' },
+            { icon: 'target', tone: 'amber', title: 'Practica en HubFlow', text: 'Gramática y vocabulario a tu ritmo' },
+            { icon: 'star', tone: 'teal', title: 'Escucha en LyricFlow', text: 'Canciones reales, letra a letra' },
+          ];
+
       body.insertAdjacentHTML(
         'beforeend',
         stepHeader(needsExam ? 'doc' : 'flag', 'Listo — empecemos', readyCopy, needsExam ? 'amber' : 'green') +
+          '<ul class="flow-list">' +
+          nextSteps
+            .map(function (step) {
+              return (
+                '<li class="flow-list__item">' +
+                '<span class="flow-list__icon flow-list__icon--' + step.tone + '">' + icon(step.icon, 'flow-icon') + '</span>' +
+                '<span class="flow-list__text"><strong>' + step.title + '</strong><span>' + step.text + '</span></span>' +
+                '</li>'
+              );
+            })
+            .join('') +
+          '</ul>' +
           noteHtml('shield', 'Tu progreso se guarda automáticamente en este dispositivo.')
       );
 

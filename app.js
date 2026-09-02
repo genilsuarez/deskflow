@@ -4,6 +4,7 @@ import { repairLocalProjections, auditLocalProjections, auditCloudAlignment } fr
 import { runFullSync, shouldDeferStatsDisplay, shouldDeferActivityDisplay, consumeStatsRevealAnimation, hydrateActivityFromCloud, forceCloudSync } from './sync-engine.js';
 import { animateText, animateCssVar, animateWidth } from './lp-stats-animate.js';
 import { setupSupabaseAuth } from './lp-auth-setup.js';
+import { isAuthenticated, fetchSettings, mergeSettings } from './lp-supabase.js';
 import { getActiveLevel, getCombinedLevelProgress, getEarnedLevelFloor, LEVEL_ORDER } from './lp-progress-summary.js';
 import { getThresholds } from './lp-completion-config.js';
 import { warmAllCatalogTotals } from './lp-catalog-warmer.js';
@@ -14,10 +15,11 @@ import {
   FALLBACK_LEVEL,
   BLOCK_SIZE,
   FLOOR_BLOCK_SIZE,
+  PASS_THRESHOLD,
   PROBE_SIZE,
   probeLevelFor,
   probeTriggerFor,
-  pickItems,
+  pickBlock,
   orderedOptions,
   isCorrect,
 } from './lp-placement-scoring.js';
@@ -1010,14 +1012,36 @@ function placementTestOptions() {
     levelOrder: LEVEL_ORDER,
     blockSize: BLOCK_SIZE,
     floorBlockSize: FLOOR_BLOCK_SIZE,
+    // El resultado anota la sonda con el umbral real de su nivel; antes tenía
+    // el 0.6 escrito a mano y podía desincronizarse de PASS_THRESHOLD.
+    passThreshold: PASS_THRESHOLD,
     probeLevelFor,
     probeSize: PROBE_SIZE,
     probeTriggerFor,
-    pickItems,
+    pickBlock,
     orderedOptions,
     isCorrect,
     // Piso al reprobar/abandonar: nunca por debajo de lo ganado con trabajo real.
     earnedFloor: getEarnedLevelFloor,
+    // Historial de ítems ya servidos, compartido entre dispositivos. Vive en
+    // user_settings('global') y no en profiles: es un dato de la app, no del
+    // perfil, y así no hace falta migrar el esquema. mergeSettings (no
+    // syncSettings) porque ese blob lo comparte con los umbrales de
+    // completitud y reemplazarlo entero los borraría.
+    fetchRemoteSeen: async () => {
+      if (!(await isAuthenticated())) return null;
+      const remote = await fetchSettings('global');
+      const seen = remote?.settings?.placementSeen;
+      return Array.isArray(seen) ? seen : null;
+    },
+    pushSeen: (list) => {
+      void (async () => {
+        if (!(await isAuthenticated())) return;
+        await mergeSettings('global', { placementSeen: list }, 1);
+      })().catch(() => {
+        /* best-effort: se reintenta al terminar el próximo examen */
+      });
+    },
     // El restore de login nunca baja el nivel por su cuenta, así que una bajada
     // que no se sincroniza vuelve sola en el próximo inicio de sesión.
     onLevelCommitted: (level) => {

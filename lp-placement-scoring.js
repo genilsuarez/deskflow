@@ -252,9 +252,9 @@ function shuffleWith(list, rand) {
 /**
  * Elige `count` ítems de `pool` de forma determinista según `seed`. Necesario
  * porque el banco tiene más ítems por nivel que los servidos en un examen: sin
- * esto, muestrear al azar en cada carga rompería la reanudación (el índice
- * guardado dejaría de apuntar a la misma pregunta). El seed se genera una vez
- * al empezar el examen y se persiste en el snapshot — ver
+ * esto, muestrear al azar en cada carga rompería la reanudación (la respuesta
+ * guardada dejaría de corresponder a la misma pregunta). El seed se genera una
+ * vez al empezar el examen y se persiste en el snapshot — ver
  * DeskFlow/lp-placement-test.js.
  *
  * El muestreo es estratificado por `skill`: reparte round-robin entre las
@@ -263,11 +263,38 @@ function shuffleWith(list, rand) {
  * con cuatro ítems de idioms y cero de reported speech, otro al revés — y el
  * corte pass/fail termina midiendo qué salió sorteado. Un pool sin `skill`
  * (ítems sintéticos de los tests) cae al muestreo plano.
+ *
+ * `opts.exclude` son los ítems que el usuario ya vio en intentos anteriores. No
+ * se descartan (dejarían pools cortos tras varios intentos): se posponen dentro
+ * de su propia destreza, así que un reintento estrena todo lo que pueda antes
+ * de repetir nada. Importa porque el examen muestra la explicación al
+ * responder: repetir un ítem ya visto mide memoria del intento anterior, no
+ * nivel.
+ *
+ * `opts.prefer` hace lo contrario y manda sobre `exclude`: son los ítems que
+ * este examen ya sirvió y que hay que volver a elegir si siguen existiendo. Lo
+ * usa la reanudación — sin esto, publicar un banco nuevo remuestrea el bloque y
+ * la mayoría de las respuestas guardadas quedan huérfanas aunque sus ítems
+ * sigan en el banco.
+ *
+ * Las dos preferencias se aplican dentro de cada destreza, no sobre el pool
+ * entero, para no sacrificar la cobertura por estrenar (o conservar) preguntas.
  */
-export function pickItems(pool, count, seed) {
+export function pickItems(pool, count, seed, opts) {
   const rand = mulberry32(seed);
   const shuffled = shuffleWith(pool, rand);
   const wanted = Math.min(count, shuffled.length);
+
+  const asSet = (value) => (value instanceof Set ? value : new Set(value || []));
+  const seen = asSet(opts && opts.exclude);
+  const prefer = asSet(opts && opts.prefer);
+  const idOf = (item) => (item && item.id != null ? item.id : null);
+  // 0 = a conservar, 1 = sin estrenar, 2 = ya visto en otro intento.
+  const priority = (item) => {
+    const id = idOf(item);
+    if (id !== null && prefer.has(id)) return 0;
+    return id !== null && seen.has(id) ? 2 : 1;
+  };
 
   const buckets = new Map();
   for (const item of shuffled) {
@@ -275,12 +302,20 @@ export function pickItems(pool, count, seed) {
     if (!buckets.has(skill)) buckets.set(skill, []);
     buckets.get(skill).push(item);
   }
+
+  // Dentro de cada destreza: primero lo que hay que conservar, luego lo no
+  // visto, y por último lo repetido. El orden dentro de cada grupo lo sigue
+  // decidiendo el seed, porque `shuffled` ya venía barajado.
+  const stable = seen.size === 0 && prefer.size === 0;
+  const groups = Array.from(buckets.values()).map((group) =>
+    stable ? group : group.slice().sort((a, b) => priority(a) - priority(b))
+  );
+
   // Una sola destreza (o ninguna): estratificar no cambia nada.
-  if (buckets.size <= 1) return shuffled.slice(0, wanted);
+  if (groups.length <= 1) return (groups[0] || []).slice(0, wanted);
 
   // El orden de las destrezas ya es aleatorio-determinista: viene de su primera
   // aparición en `shuffled`, que depende del seed.
-  const groups = Array.from(buckets.values());
   const picked = [];
   while (picked.length < wanted) {
     let tookOne = false;
@@ -293,6 +328,109 @@ export function pickItems(pool, count, seed) {
     if (!tookOne) break;
   }
   return picked;
+}
+
+/**
+ * Reparto de tipos de ítem dentro de un bloque, como proporción. Existe porque
+ * los tres tipos no cuestan lo mismo: en opción múltiple se acierta el 25% sin
+ * saber nada, y en un cloze se escribe desde cero. Sin cuota fija, muestrear 10
+ * ítems al azar daba bloques de entre 0 y 5 cloze (medido sobre el banco v4), y
+ * un 7/10 sobre 5 cloze exige muchísimo más que un 7/10 sobre ninguno: el mismo
+ * umbral estaría midiendo cosas distintas según lo que saliera sorteado, y
+ * calibrarlo sería imposible.
+ */
+export const TYPE_MIX = Object.freeze({ mc: 0.7, cloze: 0.2, listen: 0.1 });
+
+/** Tipo efectivo de un ítem: los que no lo declaran son opción múltiple. */
+function typeOf(item) {
+  return (item && item.type) || 'mc';
+}
+
+/**
+ * Cuántos ítems de cada tipo lleva un bloque de `size`. Reparte por la parte
+ * entera y asigna el resto a los tipos con mayor fracción pendiente, así que la
+ * suma es exactamente `size` para cualquier tamaño (10 → 7/2/1; 5 → 3/1/1).
+ */
+export function typeQuota(size) {
+  const names = Object.keys(TYPE_MIX);
+  const exact = names.map((name) => ({ name, want: size * TYPE_MIX[name] }));
+  const quota = {};
+  let assigned = 0;
+  for (const entry of exact) {
+    quota[entry.name] = Math.floor(entry.want);
+    assigned += quota[entry.name];
+  }
+  const leftovers = exact
+    .map((entry) => ({ name: entry.name, frac: entry.want - Math.floor(entry.want) }))
+    .sort((a, b) => b.frac - a.frac || names.indexOf(a.name) - names.indexOf(b.name));
+  let index = 0;
+  while (assigned < size && leftovers.length > 0) {
+    quota[leftovers[index % leftovers.length].name] += 1;
+    assigned += 1;
+    index += 1;
+  }
+  return quota;
+}
+
+/**
+ * Arma un bloque de `count` ítems con la mezcla de tipos de TYPE_MIX, y dentro
+ * de cada tipo con el muestreo estratificado por destreza de pickItems(). Si un
+ * tipo no tiene ítems suficientes en el pool, el faltante lo cubren los demás:
+ * un bloque corto no aprueba nunca (ver `complete` en blockResult), así que
+ * devolver menos de `count` dejaría el nivel imposible de obtener.
+ */
+export function pickBlock(pool, count, seed, opts) {
+  const byType = new Map();
+  for (const item of pool) {
+    const type = typeOf(item);
+    if (!byType.has(type)) byType.set(type, []);
+    byType.get(type).push(item);
+  }
+
+  const quota = typeQuota(Math.min(count, pool.length));
+  const picked = [];
+  const takenIds = new Set();
+  const take = (type, howMany) => {
+    if (howMany <= 0) return;
+    const available = (byType.get(type) || []).filter((item) => !takenIds.has(item.id));
+    // Sub-seed por tipo: si los tres compartieran seed, sus barajados quedarían
+    // correlacionados y el bloque sería menos variado de lo que parece.
+    const chosen = pickItems(available, howMany, (seed ^ hashString(type)) >>> 0, opts);
+    for (const item of chosen) {
+      picked.push(item);
+      if (item && item.id != null) takenIds.add(item.id);
+    }
+  };
+
+  for (const type of Object.keys(quota)) take(type, quota[type]);
+
+  // Relleno del faltante (un tipo sin stock suficiente), por orden de cuota:
+  // primero opción múltiple, que es el tipo del que siempre sobra.
+  for (const type of Object.keys(quota)) {
+    if (picked.length >= Math.min(count, pool.length)) break;
+    take(type, Math.min(count, pool.length) - picked.length);
+  }
+
+  // Se intercalan por tipo en vez de dejar los cloze en bloque al final: una
+  // tanda seguida de preguntas escritas se percibe como un examen distinto.
+  const queues = new Map();
+  for (const item of picked) {
+    const type = typeOf(item);
+    if (!queues.has(type)) queues.set(type, []);
+    queues.get(type).push(item);
+  }
+  const groups = shuffleWith(Array.from(queues.values()), mulberry32(seed));
+  const out = [];
+  while (out.length < picked.length) {
+    let tookOne = false;
+    for (const group of groups) {
+      if (group.length === 0) continue;
+      out.push(group.shift());
+      tookOne = true;
+    }
+    if (!tookOne) break;
+  }
+  return out;
 }
 
 /**

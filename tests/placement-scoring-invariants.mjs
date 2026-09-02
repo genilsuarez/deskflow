@@ -44,6 +44,9 @@ const {
   probeLevelFor,
   probeTriggerFor,
   pickItems,
+  pickBlock,
+  typeQuota,
+  TYPE_MIX,
   orderedOptions,
   isCorrect,
   expectedBlockSize,
@@ -317,6 +320,127 @@ console.log('pickItems — determinista, sin repetir, y estratificado por destre
   check('todo examen cubre todas las destrezas del pool', everySkillAlways);
   check('ninguna destreza se lleva más de un ítem de ventaja sobre otra', neverOverloads);
   check('el pool sin skill sigue funcionando (muestreo plano)', pickItems(pool, 10, 7).length === 10);
+
+  // Reintentar sin esto repite preguntas cuya explicación ya se mostró, así que
+  // el segundo intento mediría memoria del primero en vez de nivel.
+  {
+    const first = pickItems(skilled, 10, 11);
+    const seen = first.map((item) => item.id);
+    const second = pickItems(skilled, 10, 11, { exclude: seen });
+    const repeated = second.filter((item) => seen.includes(item.id));
+    check('con 30 ítems y 10 por examen, el reintento no repite ninguno', repeated.length === 0);
+    check('el reintento sigue cubriendo todas las destrezas',
+      new Set(second.map((item) => item.skill)).size === skills.length);
+    check('excluir no reduce el tamaño del bloque', second.length === 10);
+    check('mismo seed + misma exclusión → misma selección',
+      JSON.stringify(second) === JSON.stringify(pickItems(skilled, 10, 11, { exclude: seen })));
+
+    // Con todo el pool ya visto no se puede estrenar nada: hay que servir un
+    // bloque completo igual, repitiendo, en vez de devolver menos ítems (un
+    // bloque corto ya no aprueba nunca — ver la invariante de bloque completo).
+    const allSeen = skilled.map((item) => item.id);
+    const exhausted = pickItems(skilled, 10, 3, { exclude: allSeen });
+    check('con el pool agotado sigue devolviendo un bloque completo', exhausted.length === 10);
+    check('con el pool agotado no repite ítems dentro del mismo examen',
+      new Set(exhausted.map((item) => item.id)).size === 10);
+  }
+
+  // `prefer` es lo que sostiene la reanudación: el examen se recompone con otro
+  // pool (banco nuevo) y las respuestas guardadas tienen que seguir cayendo en
+  // ítems que el bloque vuelve a servir.
+  {
+    const skills2 = ['s1', 's2', 's3', 's4', 's5'];
+    const bank = skills2.flatMap((skill) => Array.from({ length: 6 }, (_, i) => ({ id: `${skill}-${i}`, skill })));
+    const served = pickItems(bank, 10, 77);
+    const servedIds = served.map((item) => item.id);
+
+    // Se publica un banco nuevo: desaparecen 2 de los servidos y entran 5 ítems.
+    const dropped = servedIds.slice(0, 2);
+    const newBank = bank
+      .filter((item) => !dropped.includes(item.id))
+      .concat(skills2.slice(0, 5).map((skill, i) => ({ id: `${skill}-new${i}`, skill })));
+
+    const withPrefer = pickItems(newBank, 10, 77, { prefer: servedIds });
+    const kept = withPrefer.filter((item) => servedIds.includes(item.id));
+    check('tras cambiar el banco, se conservan todos los ítems servidos que sobreviven',
+      kept.length === servedIds.length - dropped.length);
+    check('los ítems borrados del banco no reaparecen',
+      withPrefer.every((item) => !dropped.includes(item.id)));
+    check('el bloque recompuesto sigue completo', withPrefer.length === 10);
+
+    const withoutPrefer = pickItems(newBank, 10, 77);
+    check('sin prefer se pierden respuestas que sí eran recuperables',
+      withoutPrefer.filter((item) => servedIds.includes(item.id)).length < kept.length);
+
+    check('prefer manda sobre exclude — un ítem ya visto se conserva si este examen lo sirvió',
+      pickItems(newBank, 10, 77, { prefer: servedIds, exclude: servedIds })
+        .filter((item) => servedIds.includes(item.id)).length === kept.length);
+  }
+}
+
+console.log('typeQuota / pickBlock — la mezcla de tipos de un bloque es siempre la misma');
+{
+  check('las proporciones suman 1', Math.abs(Object.values(TYPE_MIX).reduce((a, b) => a + b, 0) - 1) < 1e-9);
+  for (const size of [5, 10, 20]) {
+    const quota = typeQuota(size);
+    check(`la cuota de ${size} ítems suma exactamente ${size}`,
+      Object.values(quota).reduce((a, b) => a + b, 0) === size);
+    check(`ninguna cuota de ${size} es negativa`, Object.values(quota).every((n) => n >= 0));
+  }
+  check('un bloque de 10 lleva 7 opción múltiple, 2 escritas y 1 de audio',
+    JSON.stringify(typeQuota(10)) === JSON.stringify({ mc: 7, cloze: 2, listen: 1 }));
+
+  // El defecto que esto corrige: muestreando solo por destreza, un bloque de 10
+  // salía con entre 0 y 5 cloze. Un cloze no tiene el 25% de acierto por azar
+  // del MC, así que 7/10 sobre 5 cloze exige mucho más que 7/10 sobre ninguno:
+  // el mismo umbral medía cosas distintas según lo que saliera sorteado.
+  const skills = ['s1', 's2', 's3', 's4', 's5', 's6'];
+  const pool = [];
+  skills.forEach((skill) => {
+    for (let i = 0; i < 5; i++) pool.push({ id: `mc-${skill}-${i}`, skill });
+    for (let i = 0; i < 2; i++) pool.push({ id: `cz-${skill}-${i}`, skill, type: 'cloze' });
+    pool.push({ id: `ls-${skill}`, skill, type: 'listen' });
+  });
+
+  const mixes = new Set();
+  let alwaysFull = true;
+  let neverRepeats = true;
+  for (let seed = 1; seed <= 500; seed++) {
+    const block = pickBlock(pool, 10, seed);
+    if (block.length !== 10) alwaysFull = false;
+    if (new Set(block.map((item) => item.id)).size !== block.length) neverRepeats = false;
+    const counts = { mc: 0, cloze: 0, listen: 0 };
+    block.forEach((item) => { counts[item.type || 'mc'] += 1; });
+    mixes.add(JSON.stringify(counts));
+  }
+  check('la mezcla de tipos es idéntica en los 500 bloques', mixes.size === 1);
+  check('la mezcla es la que fija typeQuota',
+    mixes.has(JSON.stringify({ mc: 7, cloze: 2, listen: 1 })));
+  check('todo bloque viene completo', alwaysFull);
+  check('ningún ítem se repite dentro del bloque', neverRepeats);
+  check('mismo seed → mismo bloque',
+    JSON.stringify(pickBlock(pool, 10, 42)) === JSON.stringify(pickBlock(pool, 10, 42)));
+  check('seeds distintos → bloques distintos',
+    JSON.stringify(pickBlock(pool, 10, 42)) !== JSON.stringify(pickBlock(pool, 10, 43)));
+
+  // Un pool sin cloze ni audio (o al que le faltan) tiene que seguir dando un
+  // bloque completo: uno corto no aprueba nunca y dejaría el nivel inalcanzable.
+  const onlyMc = pool.filter((item) => !item.type);
+  check('un pool sin cloze ni audio sigue devolviendo el bloque completo',
+    pickBlock(onlyMc, 10, 5).length === 10);
+  check('nunca devuelve más de lo que hay en el pool',
+    pickBlock(onlyMc.slice(0, 6), 10, 5).length === 6);
+
+  // La preferencia por preguntas no vistas tiene que sobrevivir a la cuota.
+  const first = pickBlock(pool, 10, 9);
+  const seenIds = first.map((item) => item.id);
+  const second = pickBlock(pool, 10, 9, { exclude: seenIds });
+  const counts2 = { mc: 0, cloze: 0, listen: 0 };
+  second.forEach((item) => { counts2[item.type || 'mc'] += 1; });
+  check('el reintento conserva la mezcla de tipos',
+    JSON.stringify(counts2) === JSON.stringify({ mc: 7, cloze: 2, listen: 1 }));
+  check('el reintento estrena todo lo que el stock permite',
+    second.filter((item) => seenIds.includes(item.id)).length <= 1);
 }
 
 console.log('orderedOptions — baraja determinista por ítem, sin sesgo de posición');
@@ -360,7 +484,11 @@ console.log('banco real — lp-placement-items.json');
     check('todo ítem tiene destreza (skill) para poder estratificar',
       items.every((item) => typeof item.skill === 'string' && item.skill.length > 0));
     check('todo ítem tiene explicación', items.every((item) => typeof item.explanation === 'string' && item.explanation.length > 0));
-    check('no hay preguntas repetidas', new Set(items.map((item) => item.question)).size === items.length);
+
+    // En los ítems de audio el estímulo es audioText, no el enunciado: varios
+    // comparten a propósito la misma consigna ("Escucha y elige la frase…").
+    const written = items.filter((item) => item.type !== 'listen');
+    check('no hay preguntas repetidas', new Set(written.map((item) => item.question)).size === written.length);
 
     const mc = items.filter((item) => item.type !== 'cloze');
     check('toda opción múltiple ofrece 4 opciones', mc.every((item) => Array.isArray(item.options) && item.options.length === 4));
@@ -374,6 +502,32 @@ console.log('banco real — lp-placement-items.json');
     check('todo cloze tiene una respuesta corta (no una frase entera)',
       cloze.every((item) => item.correct.trim().split(/\s+/).length <= 4));
 
+    const listen = items.filter((item) => item.type === 'listen');
+    check('hay ítems de comprensión oral', listen.length > 0);
+    check('todo ítem de audio tiene audioText', listen.every((item) => typeof item.audioText === 'string' && item.audioText.length > 0));
+    check('no hay audios repetidos', new Set(listen.map((item) => item.audioText)).size === listen.length);
+    // Si el enunciado contuviera la frase hablada, el ítem mediría lectura.
+    check('ningún enunciado revela su propio audio',
+      listen.every((item) => !item.question.toLowerCase().includes(item.audioText.toLowerCase().replace(/\.$/, ''))));
+    check('todo ítem de audio se responde eligiendo (necesita options)',
+      listen.every((item) => Array.isArray(item.options) && item.options.length === 4));
+
+    // Sin clip, el ítem cae a la voz del sistema operativo y su dificultad pasa
+    // a depender del dispositivo. La UI tiene ese respaldo, pero un clip que
+    // falta es un descuido del build, no un caso de uso.
+    const audioDir = locate('../public/placement-audio', './../DeskFlow/public/placement-audio');
+    if (!audioDir) {
+      check('existe el directorio de clips de audio', false);
+    } else {
+      const missing = listen
+        .map((item) => item.id)
+        .filter((id) => !existsSync(resolve(audioDir, `${id}.m4a`)));
+      check(
+        `todo ítem de audio tiene su clip grabado${missing.length ? ' — faltan: ' + missing.join(', ') : ''}`,
+        missing.length === 0
+      );
+    }
+
     // Sin esto, un nivel con menos ítems que BLOCK_SIZE serviría un bloque
     // incompleto que, tras el fix de "bloque incompleto no aprueba", sería
     // imposible de aprobar: nadie podría obtener ese nivel nunca.
@@ -382,6 +536,11 @@ console.log('banco real — lp-placement-items.json');
       const needed = Math.max(BLOCK_SIZE[level], FLOOR_BLOCK_SIZE);
       check(`${level}: alcanza para armar un bloque completo (${pool.length} ≥ ${needed})`, pool.length >= needed);
       check(`${level}: hay margen para reintentar sin repetir medio examen (${pool.length} ≥ ${needed * 2})`, pool.length >= needed * 2);
+      // Sin síntesis de voz la UI retira los ítems de audio del banco; el resto
+      // tiene que seguir alcanzando para armar un bloque completo, o en ese
+      // entorno el nivel sería imposible de aprobar.
+      const withoutAudio = pool.filter((item) => item.type !== 'listen');
+      check(`${level}: sigue alcanzando sin los ítems de audio (${withoutAudio.length} ≥ ${needed})`, withoutAudio.length >= needed);
       const skills = new Set(pool.map((item) => item.skill));
       check(`${level}: el bloque cubre al menos 6 destrezas distintas (${skills.size})`, skills.size >= 6);
       check(`${level}: ninguna destreza domina el pool (máx 1/3)`,

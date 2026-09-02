@@ -367,6 +367,25 @@ export async function syncSettings(app, settings, schemaVersion) {
   return { synced: !error, reason: error?.message };
 }
 
+/**
+ * Escribe SOLO las claves de `patch`, conservando el resto del blob de ese
+ * `app`. syncSettings() reemplaza `settings` entero, así que dos consumidores
+ * del mismo app ('global' hoy: umbrales de completitud y el historial del examen
+ * de nivel) se borran mutuamente sin enterarse. Es read-modify-write, no atómico:
+ * vale para preferencias de un usuario escritas de a una, no para contadores
+ * concurrentes.
+ */
+export async function mergeSettings(app, patch, schemaVersion) {
+  let current = null;
+  try {
+    current = await fetchSettings(app);
+  } catch {
+    current = null;
+  }
+  const merged = { ...(current?.settings || {}), ...patch };
+  return syncSettings(app, merged, schemaVersion ?? current?.schema_version ?? 1);
+}
+
 export async function fetchSettings(app) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;

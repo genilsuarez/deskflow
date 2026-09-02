@@ -12,7 +12,7 @@
  *   lpCompletionSettings.open(event, options)
  */
 import { DEFAULT_THRESHOLDS, getThresholds, setThresholds } from './lp-completion-config.js';
-import { isAuthenticated, syncSettings, fetchSettings } from './lp-supabase.js';
+import { isAuthenticated, mergeSettings, fetchSettings } from './lp-supabase.js';
 
 const ADVANCED_EMAIL = 'genil.suarez@gmail.com';
 const SCHEMA_VERSION = 1;
@@ -161,7 +161,10 @@ async function open(event, options = {}) {
       statusEl.dataset.state = 'ok';
       return;
     }
-    const result = await syncSettings('global', { completionThresholds: thresholds }, SCHEMA_VERSION);
+    // mergeSettings, no syncSettings: el blob 'global' lo comparten varios
+    // consumidores (el historial del examen de nivel, hoy) y reemplazarlo
+    // entero borra lo que escribieron los demás.
+    const result = await mergeSettings('global', { completionThresholds: thresholds }, SCHEMA_VERSION);
     statusEl.textContent = result.synced ? 'Guardado y sincronizado con la nube' : 'Guardado en este dispositivo (no se pudo sincronizar)';
     statusEl.dataset.state = result.synced ? 'ok' : '';
   });

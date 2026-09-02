@@ -1,5 +1,5 @@
 {
-  "version": "v3",
+  "version": "v4",
   "items": [
     {
       "id": "b1-ger-01",
@@ -444,6 +444,54 @@
       "explanation": "Fill in (o fill out) a form: rellenar un formulario."
     },
     {
+      "id": "b1-lis-01",
+      "level": "b1",
+      "skill": "listening",
+      "type": "listen",
+      "question": "Escucha y elige la frase que oíste.",
+      "audioText": "She doesn't live here anymore.",
+      "options": [
+        "She doesn't live here anymore.",
+        "She didn't live here anymore.",
+        "She doesn't leave here anymore.",
+        "She does live here anymore."
+      ],
+      "correct": "She doesn't live here anymore.",
+      "explanation": "Distinguir <doesn't/didn't> y <live/leave> de oído es lo que se está midiendo."
+    },
+    {
+      "id": "b1-lis-02",
+      "level": "b1",
+      "skill": "listening",
+      "type": "listen",
+      "question": "Escucha la pregunta y elige la mejor respuesta.",
+      "audioText": "Would you like something to drink?",
+      "options": [
+        "Yes, please — a glass of water.",
+        "Yes, I drank it.",
+        "No, I don't like drinking.",
+        "I'm drinking now."
+      ],
+      "correct": "Yes, please — a glass of water.",
+      "explanation": "<Would you like...?> es un ofrecimiento; se responde aceptando o declinando."
+    },
+    {
+      "id": "b1-lis-03",
+      "level": "b1",
+      "skill": "listening",
+      "type": "listen",
+      "question": "Escucha y responde: ¿a qué hora sale el tren?",
+      "audioText": "The train leaves at a quarter to nine.",
+      "options": [
+        "8:45",
+        "9:15",
+        "9:45",
+        "8:15"
+      ],
+      "correct": "8:45",
+      "explanation": "<A quarter to nine> son las nueve menos cuarto: 8:45."
+    },
+    {
       "id": "b2-ger-01",
       "level": "b2",
       "skill": "gerund-infinitive",
@@ -872,6 +920,54 @@
       "explanation": "Reliable: fiable, de quien te puedes fiar."
     },
     {
+      "id": "b2-lis-01",
+      "level": "b2",
+      "skill": "listening",
+      "type": "listen",
+      "question": "Escucha y elige qué ocurrió en realidad.",
+      "audioText": "If I'd known, I would have told you.",
+      "options": [
+        "The speaker did not know, and did not tell.",
+        "The speaker knew, but said nothing.",
+        "The speaker will tell you later.",
+        "The speaker is not sure whether they knew."
+      ],
+      "correct": "The speaker did not know, and did not tell.",
+      "explanation": "El tercer condicional describe algo contrario a los hechos: no lo supo, así que no lo dijo."
+    },
+    {
+      "id": "b2-lis-02",
+      "level": "b2",
+      "skill": "listening",
+      "type": "listen",
+      "question": "Escucha y elige la frase que oíste.",
+      "audioText": "He said he'd been waiting for over an hour.",
+      "options": [
+        "He said he'd been waiting for over an hour.",
+        "He said he'd waited for over an hour.",
+        "He says he's been waiting for over an hour.",
+        "He said he'd be waiting for over an hour."
+      ],
+      "correct": "He said he'd been waiting for over an hour.",
+      "explanation": "Hay que oír el past perfect continuo (he'd been waiting) frente a las otras tres formas."
+    },
+    {
+      "id": "b2-lis-03",
+      "level": "b2",
+      "skill": "listening",
+      "type": "listen",
+      "question": "Escucha y elige qué quiere decir quien habla.",
+      "audioText": "I'm afraid that's out of the question.",
+      "options": [
+        "It is completely impossible.",
+        "I don't understand the question.",
+        "It is worth considering.",
+        "We should ask someone else."
+      ],
+      "correct": "It is completely impossible.",
+      "explanation": "<Out of the question> es un rechazo tajante, no una duda."
+    },
+    {
       "id": "c1-inv-01",
       "level": "c1",
       "skill": "inversion",
@@ -1276,6 +1372,54 @@
       "explanation": "<Consequently> marca consecuencia, no contraste ni simultaneidad."
     },
     {
+      "id": "c1-lis-01",
+      "level": "c1",
+      "skill": "listening",
+      "type": "listen",
+      "question": "Escucha y elige qué opina quien habla de esa fuente.",
+      "audioText": "She's hardly the most reliable source.",
+      "options": [
+        "The speaker considers the source unreliable.",
+        "The speaker trusts the source completely.",
+        "The speaker has not read the source.",
+        "The speaker thinks the source is the best available."
+      ],
+      "correct": "The speaker considers the source unreliable.",
+      "explanation": "<Hardly> niega con ironía: no es precisamente la fuente más fiable."
+    },
+    {
+      "id": "c1-lis-02",
+      "level": "c1",
+      "skill": "listening",
+      "type": "listen",
+      "question": "Escucha y elige qué es cierto según lo que oíste.",
+      "audioText": "Not only was the report late, it was also incomplete.",
+      "options": [
+        "The report had two separate problems.",
+        "The report was late but otherwise fine.",
+        "The report was complete but early.",
+        "The report was neither late nor incomplete."
+      ],
+      "correct": "The report had two separate problems.",
+      "explanation": "<Not only... but also> suma dos defectos; la inversión marca el énfasis."
+    },
+    {
+      "id": "c1-lis-03",
+      "level": "c1",
+      "skill": "listening",
+      "type": "listen",
+      "question": "Escucha y elige qué quiere decir quien habla.",
+      "audioText": "I'd sooner not comment at this stage.",
+      "options": [
+        "They prefer not to say anything for now.",
+        "They have no opinion on the matter.",
+        "They will comment very soon.",
+        "They were told not to comment."
+      ],
+      "correct": "They prefer not to say anything for now.",
+      "explanation": "<I'd sooner not> expresa preferencia por abstenerse, no una prohibición."
+    },
+    {
       "id": "c2-inv-01",
       "level": "c2",
       "skill": "inversion-advanced",
@@ -1546,6 +1690,38 @@
       "correct": "by",
       "accept": [],
       "explanation": "<By and large> significa <en términos generales>."
+    },
+    {
+      "id": "c2-lis-01",
+      "level": "c2",
+      "skill": "listening",
+      "type": "listen",
+      "question": "Escucha y elige qué le pasó a la propuesta.",
+      "audioText": "The proposal was, by all accounts, dead in the water.",
+      "options": [
+        "It had no chance of succeeding.",
+        "It was approved unanimously.",
+        "It was still under discussion.",
+        "It was revived after a delay."
+      ],
+      "correct": "It had no chance of succeeding.",
+      "explanation": "<Dead in the water>: sin ninguna posibilidad de prosperar."
+    },
+    {
+      "id": "c2-lis-02",
+      "level": "c2",
+      "skill": "listening",
+      "type": "listen",
+      "question": "Escucha y elige qué está haciendo quien habla.",
+      "audioText": "Far be it from me to question her judgement.",
+      "options": [
+        "Ironically signalling that they do question it",
+        "Sincerely praising her judgement",
+        "Asking someone else to decide",
+        "Admitting they made a mistake"
+      ],
+      "correct": "Ironically signalling that they do question it",
+      "explanation": "<Far be it from me to...> introduce casi siempre la crítica que dice no querer hacer."
     }
   ]
 }

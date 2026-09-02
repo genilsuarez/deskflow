@@ -12,8 +12,13 @@
 body.placement-open { overflow: hidden; }
 
 .placement-card {
-  position: relative; width: min(100%, 460px);
-  height: min(520px, calc(100svh - 40px));
+  /* Misma caja que .onboarding-card — el examen es la continuación de la
+     encuesta, así que comparte ancho, alto y variables de rejilla
+     (--flow-gutter / --flow-lead, ver lp-flow-ui.css). */
+  --flow-gutter: 24px;
+  --flow-lead: 44px;
+  position: relative; width: min(100%, 520px);
+  height: min(680px, calc(100svh - 40px));
   display: flex; flex-direction: column;
   border: 1px solid var(--lp-border); border-radius: var(--lp-radius-lg);
   background: var(--lp-bg-paper, var(--lp-surface));
@@ -23,7 +28,7 @@ body.placement-open { overflow: hidden; }
   overflow: hidden;
 }
 
-.placement-topbar { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 16px 20px 0; }
+.placement-topbar { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 16px var(--flow-gutter) 0; }
 .placement-topbar__counter { flex: 0 0 auto; font-size: 0.76rem; font-weight: 600; color: var(--lp-muted); white-space: nowrap; }
 .placement-progress { flex: 1 1 auto; height: 4px; border-radius: var(--lp-radius-full); background: var(--lp-border-strong); overflow: hidden; }
 .placement-progress__fill { height: 100%; background: var(--lp-accent); transition: width 0.25s ease; border-radius: inherit; }
@@ -39,8 +44,8 @@ body.placement-open { overflow: hidden; }
 
 .placement-body {
   flex: 1 1 auto; min-height: 0; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 14px;
-  padding: 18px 26px 4px;
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 20px var(--flow-gutter) 4px;
   transition: opacity 0.14s ease, transform 0.14s ease;
   opacity: 1; transform: translateY(0);
 }
@@ -53,62 +58,92 @@ body.placement-open { overflow: hidden; }
 .placement-body-text { margin: 0; color: var(--lp-muted); font-size: 0.9rem; line-height: 1.55; }
 .placement-eyebrow { margin: 0; color: var(--lp-accent); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 
-.placement-options { display: grid; gap: 8px; margin-top: 4px; }
+.placement-options { display: grid; gap: 8px; }
+
+/* Fila de opción: marca (columna del icono) · texto · sin tercera columna.
+   La marca muestra la letra mientras no se ha respondido y se convierte en
+   check/cruz al corregir, en el mismo hueco — corregir no mueve nada. */
 .placement-option {
   appearance: none; -webkit-appearance: none; font-family: inherit; text-align: left;
-  padding: 12px 14px; border: 1px solid var(--lp-border); border-radius: var(--lp-radius-md);
+  display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: center; gap: 12px;
+  min-height: 52px; padding: 10px 14px;
+  border: 1px solid var(--lp-border); border-radius: var(--lp-radius-md);
   background: var(--lp-surface); color: var(--lp-ink); font-size: 0.9rem; font-weight: 600;
   cursor: pointer; transition: border-color 0.15s ease, transform 0.1s ease, background-color 0.15s ease;
 }
+.placement-option__mark {
+  width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%;
+  background: color-mix(in srgb, var(--lp-ink) 6%, transparent);
+  color: var(--lp-muted); font-size: 0.8rem; font-weight: 700;
+}
+.placement-option__mark .placement-option__markicon { display: none; }
+.placement-option__text { min-width: 0; font-weight: 500; line-height: 1.4; }
 .placement-option:hover { border-color: var(--lp-accent); }
 .placement-option:active { transform: scale(0.99); }
 .placement-option:focus { outline: none; }
 .placement-option:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--lp-accent); }
-.placement-option:disabled { cursor: default; opacity: 0.7; }
-.placement-option.is-correct { border-color: var(--lp-success, #2e9e5b); background: color-mix(in srgb, var(--lp-success, #2e9e5b) 12%, var(--lp-surface)); }
-.placement-option.is-wrong { border-color: var(--lp-danger, #d64545); background: color-mix(in srgb, var(--lp-danger, #d64545) 10%, var(--lp-surface)); }
+.placement-option:disabled { cursor: default; }
+/* Las no elegidas se apagan al corregir; la correcta y la elegida se quedan
+   a plena opacidad para que el contraste del veredicto sea el que manda. */
+.placement-option:disabled:not(.is-correct):not(.is-wrong) { opacity: 0.55; }
 
-/* Ítem de respuesta escrita (cloze). Es un <form> para que Enter comprometa la
-   respuesta igual que el botón — en móvil el teclado ofrece "ir" y sin submit
-   no pasaría nada. El input hereda 16px como mínimo para que iOS no haga zoom
-   al enfocarlo (mismo criterio que lp-input-zoom.js). */
-.placement-cloze { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+.placement-option.is-correct { border-color: var(--lp-success, #2e9e5b); background: color-mix(in srgb, var(--lp-success, #2e9e5b) 12%, var(--lp-surface)); }
+.placement-option.is-correct .placement-option__mark { background: var(--lp-success, #2e9e5b); color: #fff; }
+.placement-option.is-wrong { border-color: var(--lp-danger, #d64545); background: color-mix(in srgb, var(--lp-danger, #d64545) 10%, var(--lp-surface)); }
+.placement-option.is-wrong .placement-option__mark { background: var(--lp-danger, #d64545); color: #fff; }
+.placement-option.is-correct .placement-option__letter,
+.placement-option.is-wrong .placement-option__letter { display: none; }
+.placement-option.is-correct .placement-option__markicon:first-of-type,
+.placement-option.is-wrong .placement-option__markicon:last-of-type { display: block; }
+
+/* Ítem de comprensión oral: el botón de repetir el audio ocupa el ancho de una
+   fila de opción y comparte su columna de icono, para que el estímulo se lea
+   como parte del enunciado y no como un control suelto. */
+.placement-audio { display: grid; }
+.placement-audio__play {
+  display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: center; gap: 12px;
+  min-height: 52px; padding: 10px 14px; text-align: left;
+  border: 1px dashed var(--lp-border-strong, var(--lp-border)); border-radius: var(--lp-radius-md);
+  background: var(--lp-surface); color: var(--lp-ink); font-weight: 600;
+}
+.placement-audio__icon {
+  width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%;
+  background: color-mix(in srgb, var(--lp-accent) 14%, transparent); color: var(--lp-accent);
+}
+.placement-audio__play:hover { border-color: var(--lp-accent); }
+.placement-audio__play:focus { outline: none; }
+.placement-audio__play:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--lp-accent); }
+
+/* Ítem de respuesta escrita: input y botón sobre la misma línea base que las
+   filas de opción (misma altura, mismo radio, misma sangría). */
+.placement-cloze { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .placement-cloze__input {
-  appearance: none; -webkit-appearance: none; font-family: inherit;
-  flex: 1 1 180px; min-width: 0; padding: 12px 14px;
+  min-height: 52px; padding: 10px 14px; font-family: inherit; font-size: 0.95rem;
   border: 1px solid var(--lp-border); border-radius: var(--lp-radius-md);
   background: var(--lp-surface); color: var(--lp-ink);
-  font-size: max(1rem, 16px); font-weight: 600;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
-.placement-cloze__input::placeholder { color: var(--lp-muted); font-weight: 500; }
-.placement-cloze__input:focus { outline: none; border-color: var(--lp-accent); }
-.placement-cloze__input:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--lp-accent); }
-.placement-cloze__input:disabled { opacity: 0.85; }
-.placement-cloze__input.is-correct { border-color: var(--lp-success, #2e9e5b); background: color-mix(in srgb, var(--lp-success, #2e9e5b) 12%, var(--lp-surface)); }
-.placement-cloze__input.is-wrong { border-color: var(--lp-danger, #d64545); background: color-mix(in srgb, var(--lp-danger, #d64545) 10%, var(--lp-surface)); }
-.placement-cloze__check {
-  flex: 0 0 auto; min-height: 48px; padding: 0 18px;
-  border-radius: var(--lp-radius-md); font-size: 0.88rem; font-weight: 700;
-}
-.placement-cloze__check:focus { outline: none; }
-.placement-cloze__check:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--lp-accent); }
+.placement-cloze__input:focus { outline: none; border-color: var(--lp-accent); box-shadow: inset 0 0 0 1px var(--lp-accent); }
+.placement-cloze__input.is-correct { border-color: var(--lp-success, #2e9e5b); background: color-mix(in srgb, var(--lp-success, #2e9e5b) 10%, var(--lp-surface)); }
+.placement-cloze__input.is-wrong { border-color: var(--lp-danger, #d64545); background: color-mix(in srgb, var(--lp-danger, #d64545) 8%, var(--lp-surface)); }
+.placement-cloze__check { min-height: 52px; border-radius: var(--lp-radius-md); font-weight: 700; }
 
-/* Solución de un cloze fallado: se muestra antes de la explicación, porque sin
-   opciones a la vista el usuario no tiene de dónde deducir cuál era. */
-.placement-solution {
-  margin: 4px 0 0; padding: 10px 12px; border-radius: var(--lp-radius-md);
-  background: color-mix(in srgb, var(--lp-success, #2e9e5b) 10%, var(--lp-surface));
-  color: var(--lp-ink); font-size: 0.85rem; font-weight: 600;
+/* Veredicto + explicación en un solo bloque, con la columna de icono del
+   sistema compartido. */
+.placement-feedback {
+  display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; align-items: start;
+  padding: 12px 14px; border-radius: var(--lp-radius-md);
+  border: 1px solid var(--lp-border); background: var(--lp-surface);
 }
+.placement-feedback__icon { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; color: #fff; }
+.placement-feedback__text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.placement-feedback__text strong { color: var(--lp-ink); font-size: 0.84rem; font-weight: 700; }
+.placement-feedback__text p { margin: 0; color: var(--lp-muted); font-size: 0.8rem; line-height: 1.5; }
+.placement-feedback.is-correct { border-color: color-mix(in srgb, var(--lp-success, #2e9e5b) 40%, transparent); background: color-mix(in srgb, var(--lp-success, #2e9e5b) 8%, var(--lp-surface)); }
+.placement-feedback.is-correct .placement-feedback__icon { background: var(--lp-success, #2e9e5b); }
+.placement-feedback.is-wrong { border-color: color-mix(in srgb, var(--lp-danger, #d64545) 40%, transparent); background: color-mix(in srgb, var(--lp-danger, #d64545) 7%, var(--lp-surface)); }
+.placement-feedback.is-wrong .placement-feedback__icon { background: var(--lp-danger, #d64545); }
 
-.placement-explanation {
-  margin: 4px 0 0; padding: 10px 12px; border-radius: var(--lp-radius-md);
-  background: color-mix(in srgb, var(--lp-accent) 8%, var(--lp-surface)); color: var(--lp-muted);
-  font-size: 0.82rem; line-height: 1.5;
-}
-
-.placement-footer { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 20px 20px; }
+.placement-footer { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px var(--flow-gutter) 20px; }
 .placement-next {
   appearance: none; -webkit-appearance: none; font-family: inherit;
   width: 100%; min-height: 52px; border-radius: var(--lp-radius-full);
@@ -119,29 +154,64 @@ body.placement-open { overflow: hidden; }
 .placement-later { padding: 6px 4px; border: none; background: transparent; color: var(--lp-muted); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 .placement-later:hover { color: var(--lp-ink); }
 
-/* Pantalla de resultado */
+/* Pantalla de resultado: medallón del nivel + título en la misma rejilla de
+   dos columnas que la cabecera del resto del flujo, y el recuento por bloque
+   como tabla de dos columnas debajo. */
+/* La pantalla de resultado tiene poco contenido en una tarjeta de altura fija.
+   Dos `margin-top: auto` en la misma columna flex (este y el de .flow-note) se
+   reparten el aire sobrante a partes iguales: el bloque de resultado queda
+   centrado y la franja de cierre, anclada abajo. */
+.placement-result { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: center; margin-top: auto; }
+.placement-result__text { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .placement-result-badge {
   width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%;
   background: var(--lp-accent); color: var(--lp-on-accent); font-size: 1.4rem; font-weight: 700;
   box-shadow: 0 4px 14px color-mix(in srgb, var(--lp-accent) 22%, transparent);
 }
 
+.placement-score { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border: 1px solid var(--lp-border); border-radius: var(--lp-radius-md); overflow: hidden; }
+.placement-score__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 14px; }
+.placement-score__row + .placement-score__row { border-top: 1px solid var(--lp-border); }
+.placement-score__label { color: var(--lp-muted); font-size: 0.78rem; }
+.placement-score__value { color: var(--lp-ink); font-size: 0.82rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.placement-score__value.is-passed { color: var(--lp-success, #2e9e5b); }
+
 @keyframes placementFadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes placementSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (max-width: 480px) {
-  .placement-body { padding: 16px 18px 4px; }
-  .placement-topbar { padding: 14px 18px 0; }
-  .placement-footer { padding: 12px 18px 18px; }
+  .placement-card { --flow-gutter: 18px; --flow-lead: 40px; }
+  .placement-body { padding: 16px var(--flow-gutter) 4px; }
+  .placement-topbar { padding: 14px var(--flow-gutter) 0; }
+  .placement-footer { padding: 14px var(--flow-gutter) 18px; }
   .placement-card h2 { font-size: 1.1rem; }
+  /* El botón "Comprobar" bajo el input: en móvil compartir línea deja el
+     campo demasiado angosto para escribir una respuesta completa. */
+  .placement-cloze { grid-template-columns: 1fr; }
 }
 
 /* Aviso de oferta del examen (P.3), en la vista Actividad/Inicio — botón simple, no un overlay. */
 .placement-offer {
-  display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; margin-bottom: 16px;
+  --flow-lead: 44px;
+  display: flex; flex-direction: column; gap: 14px; padding: 18px; margin-bottom: 16px;
   border: 1px solid var(--lp-border); border-radius: var(--lp-radius-lg); background: var(--lp-surface);
 }
-.placement-offer__title { margin: 0; font-family: var(--lp-font-display); font-size: 1.05rem; font-weight: 600; color: var(--lp-ink); }
+.placement-offer__head { display: grid; grid-template-columns: var(--flow-lead) 1fr; gap: 14px; align-items: start; }
+.placement-offer__title { margin: 0; font-family: var(--lp-font-display); font-size: 1.05rem; font-weight: 600; color: var(--lp-ink); position: relative; padding-bottom: 10px; }
+.placement-offer__title::after {
+  content: ''; position: absolute; left: 0; bottom: 0;
+  width: 40px; height: 3px; border-radius: var(--lp-radius-full); background: var(--lp-accent);
+}
 .placement-offer__text { margin: 0; font-size: 0.84rem; line-height: 1.5; color: var(--lp-muted); }
-.placement-offer__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+/* Las acciones arrancan en la columna del texto, no bajo el icono: la
+   cabecera y el pie de la tarjeta comparten sangría. */
+.placement-offer__actions { display: flex; gap: 10px; flex-wrap: wrap; padding-left: calc(var(--flow-lead) + 14px); }
 .placement-offer__actions .placement-later { padding: 0 4px; }
+
+/* Modal de reanudación: reusa .about-modal, así que solo necesita la rejilla
+   de icono + texto para alinearse con el resto del flujo. */
+.placement-resume__head { --flow-lead: 44px; display: grid; grid-template-columns: var(--flow-lead) 1fr; gap: 14px; align-items: start; }
+
+@media (max-width: 480px) {
+  .placement-offer__actions { padding-left: 0; }
+}

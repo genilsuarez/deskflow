@@ -33,6 +33,13 @@ var lpFlowUI = (function () {
     help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.7-1.5 1.2-1.5 2.2"/><path d="M12 17.5h.01"/>',
     trophy: '<path d="M7 4h10v4a5 5 0 01-10 0V4z"/><path d="M7 6H4v1a4 4 0 003 3.9M17 6h3v1a4 4 0 01-3 3.9"/><path d="M9 20h6M12 13v7"/>',
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    coffee: '<path d="M4 8h13v5a5 5 0 01-5 5H9a5 5 0 01-5-5V8z"/><path d="M17 9h1.5a2.5 2.5 0 010 5H17"/><path d="M7 3v2M11 3v2"/>',
+    calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3.5v3M16 3.5v3"/>',
+    plane: '<path d="M10.5 13.5L3 11l18-6.5L14.5 21l-2.5-7-1.5-.5z"/>',
+    briefcase: '<rect x="3" y="7.5" width="18" height="12" rx="2.5"/><path d="M9 7.5V6a2 2 0 012-2h2a2 2 0 012 2v1.5"/><path d="M3 12.5h18"/>',
+    cap: '<path d="M12 4l9 4.5-9 4.5-9-4.5L12 4z"/><path d="M7 10.5V15c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.5"/>',
+    heart: '<path d="M12 20.3l-1.4-1.3C6 14.8 3.5 12.5 3.5 9.6A4.3 4.3 0 018 5.3c1.5 0 3 .8 4 2 1-1.2 2.5-2 4-2a4.3 4.3 0 014.5 4.3c0 2.9-2.5 5.2-7.1 9.4L12 20.3z"/>',
+    sound: '<path d="M4 9v6h3.5L12 19V5L7.5 9H4z"/><path d="M15.5 8.5a5 5 0 010 7"/><path d="M18.5 5.5a9 9 0 010 13"/>',
   };
 
   function icon(name, cls) {
@@ -65,12 +72,28 @@ var lpFlowUI = (function () {
     );
   }
 
+  /**
+   * Encabezado de sección dentro de una pantalla: icono pequeño + rótulo +
+   * pregunta de apoyo. Es la cabecera de pantalla en versión reducida, así que
+   * el icono cae en la misma columna y las secciones se leen como bloques
+   * hermanos y no como texto suelto entre grupos de botones.
+   */
+  function section(iconName, title, text, tone) {
+    return (
+      '<div class="flow-section">' +
+      '<span class="flow-section__icon' + (tone ? ' flow-list__icon--' + tone : '') + '">' + icon(iconName, 'flow-icon flow-icon--sm') + '</span>' +
+      '<div class="flow-section__text"><strong>' + title + '</strong>' +
+      (text ? '<span>' + text + '</span>' : '') +
+      '</div></div>'
+    );
+  }
+
   /** Franja de cierre con icono: cierra la rejilla por abajo en cada pantalla. */
   function note(iconName, text) {
     return '<p class="flow-note">' + icon(iconName, 'flow-icon flow-icon--sm') + '<span>' + text + '</span></p>';
   }
 
-  return { icon: icon, header: header, note: note, ICONS: ICONS };
+  return { icon: icon, header: header, section: section, note: note, ICONS: ICONS };
 })();
 
 window.lpFlowUI = lpFlowUI; // ESM side-effect import (main.js) does not attach top-level vars to window like a classic <script> did — restore it explicitly.
