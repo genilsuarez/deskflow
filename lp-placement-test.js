@@ -2,10 +2,11 @@
  * LP Placement Test — examen que valida el nivel que el usuario pidió en la encuesta.
  * Solo DeskFlow — no se comparte con FluentFlow/HubFlow/LyricFlow.
  *
- * No ubica: confirma. Pedir B1 rinde el bloque B1; pedir B2 rinde un piso B1
- * abreviado + el bloque B2. Aprobar otorga el nivel pedido; reprobar o abandonar
- * cae al nivel de fallback — nunca por debajo del que ya se ganó completando
- * contenido real (ver commitLevel).
+ * No ubica: confirma. Pedir B1 rinde el bloque B1; pedir un nivel más alto rinde
+ * el piso del nivel anterior + el bloque pedido (ver blocksFor). Aprobar otorga
+ * el nivel pedido; reprobar otorga el bloque más alto que sí se aprobó, y solo
+ * cae al fallback si no se aprobó ninguno — nunca por debajo del nivel que ya se
+ * ganó completando contenido real (ver commitLevel).
  *
  * Requiere:
  *  - lp-placement-test.css, lp-about.css (el modal de reanudación reusa .about-modal)
@@ -27,11 +28,15 @@ var lpPlacementTest = (function () {
   // recuerdo del intento, no el nivel. Pasado el plazo se ofrece la encuesta.
   var SNAPSHOT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-  var STAGE_LABELS = {
-    b1: 'Nivel B1',
-    b2: 'Nivel B2',
-    c1: 'Preguntas extra (C1)',
-  };
+  /**
+   * Etiqueta del bloque en la barra superior. La sonda se rotula como
+   * "preguntas extra" para dejar claro que el nivel ya no está en juego: si
+   * pareciera un bloque más, abandonarla se sentiría como reprobar.
+   */
+  function stageLabel(level, isProbe) {
+    var name = String(level).toUpperCase();
+    return isProbe ? 'Preguntas extra (' + name + ')' : 'Nivel ' + name;
+  }
 
   function track(eventName, params) {
     if (typeof window.lpTrack === 'function') window.lpTrack(eventName, params);
@@ -197,6 +202,9 @@ var lpPlacementTest = (function () {
     if (typeof options.pickItems !== 'function' || !options.blockSize || !options.floorBlockSize) {
       throw new Error('lpPlacementTest requiere options.pickItems, options.blockSize y options.floorBlockSize');
     }
+    if (typeof options.orderedOptions !== 'function' || typeof options.isCorrect !== 'function') {
+      throw new Error('lpPlacementTest requiere options.orderedOptions y options.isCorrect');
+    }
   }
 
   /** Params escalares (GA4 no acepta arrays/objetos anidados en un evento) con
@@ -227,7 +235,9 @@ var lpPlacementTest = (function () {
    * @param {function} options.pickItems - pickItems (scripts/lp-placement-scoring.js)
    * @param {object} options.blockSize - BLOCK_SIZE (idem)
    * @param {number} options.floorBlockSize - FLOOR_BLOCK_SIZE (idem)
-   * @param {string} [options.probeLevel] - PROBE_LEVEL (idem)
+   * @param {function} options.orderedOptions - orderedOptions (idem) — baraja las opciones
+   * @param {function} options.isCorrect - isCorrect (idem) — acierto de opción múltiple o cloze
+   * @param {function} [options.probeLevelFor] - probeLevelFor (idem)
    * @param {number} [options.probeSize] - PROBE_SIZE (idem)
    * @param {function} [options.probeTriggerFor] - probeTriggerFor (idem)
    * @param {function} [options.scoreBlock] - scoreBlock (idem) — requerido si hay sonda
@@ -269,6 +279,21 @@ var lpPlacementTest = (function () {
     var blocks = buildBlocks(items, requestedLevel, options, seed);
     if (blocks.order.length === 0) return;
 
+    // Nivel de la sonda opcional: el siguiente al pedido, o null si no hay
+    // (pedir el nivel más alto del banco) o si el llamador no la habilitó.
+    var probeLevel =
+      typeof options.probeLevelFor === 'function' ? options.probeLevelFor(requestedLevel) : null;
+
+    // Nivel con el que se entra al examen — se lee ANTES de escribir nada para
+    // poder decir en el resultado si el examen lo subió, lo dejó igual o no
+    // alcanzó (ver renderResult).
+    var levelBefore = 'a1';
+    try {
+      levelBefore = localStorage.getItem('lp-level') || 'a1';
+    } catch (e) {
+      /* localStorage no disponible */
+    }
+
     // Revalidación del intento guardado contra el examen que se va a rendir de
     // verdad. maybeShowResumePrompt() ofrece retomar sin haber cargado el banco,
     // así que este es el único punto donde se puede comprobar: si el banco
@@ -282,18 +307,23 @@ var lpPlacementTest = (function () {
       resume.itemsVersion === itemsVersion &&
       resume.requestedLevel === requestedLevel;
 
-    // Si el intento guardado ya había disparado la sonda C1, hay que
-    // reconstruirla ANTES de validar los índices — mismo seed, mismo banco ⇒
-    // pickItems() elige exactamente los mismos 5 ítems, así que no hace falta
-    // guardar cuáles eran, solo que se sirvieron.
+    // Si el intento guardado ya había disparado la sonda, hay que reconstruirla
+    // ANTES de validar los índices — mismo seed, mismo banco ⇒ pickItems()
+    // elige exactamente los mismos ítems, así que no hace falta guardar cuáles
+    // eran, solo que se sirvieron.
     if (resumeValid && resume.probeTriggered) {
-      var resumeProbeItems = items.filter(function (item) {
-        return item.level === options.probeLevel;
-      });
-      resumeProbeItems = options.pickItems(resumeProbeItems, options.probeSize, seed);
+      var resumeProbeItems = probeLevel
+        ? options.pickItems(
+            items.filter(function (item) {
+              return item.level === probeLevel;
+            }),
+            options.probeSize,
+            seed
+          )
+        : [];
       if (resumeProbeItems.length > 0) {
-        blocks.order.push(options.probeLevel);
-        blocks.byLevel[options.probeLevel] = resumeProbeItems;
+        blocks.order.push(probeLevel);
+        blocks.byLevel[probeLevel] = resumeProbeItems;
         blocks.flat = blocks.flat.concat(resumeProbeItems);
       } else {
         resumeValid = false;
@@ -404,8 +434,10 @@ var lpPlacementTest = (function () {
 
     function updateTopbar() {
       var block = currentBlock();
+      var isProbe = state.probeTriggered && currentLevel() === probeLevel;
       counter.textContent =
-        STAGE_LABELS[currentLevel()] + ' · Pregunta ' + (state.itemIndex + 1) + ' de ' + block.length;
+        stageLabel(currentLevel(), isProbe) +
+        ' · Pregunta ' + (state.itemIndex + 1) + ' de ' + block.length;
       progressFill.style.width = Math.round((state.itemIndex / block.length) * 100) + '%';
     }
 
@@ -422,20 +454,46 @@ var lpPlacementTest = (function () {
       body.innerHTML = '';
       body.insertAdjacentHTML('beforeend', '<h2 id="placementTestTitle">' + escapeHtml(item.question) + '</h2>');
 
+      if (item.type === 'cloze') renderCloze(item);
+      else renderChoices(item);
+    }
+
+    /**
+     * Registra la respuesta y muestra la explicación. Común a los dos tipos de
+     * ítem. Se persiste en cuanto se responde: si cierra acá, la respuesta ya
+     * cuenta y no puede reintentarse limpio (ver § abandono).
+     */
+    function commitAnswer(item, value) {
+      state.answered = true;
+      state.answers.push(value);
+      persist();
+
+      if (item.explanation) {
+        var expl = document.createElement('p');
+        expl.className = 'placement-explanation';
+        expl.textContent = item.explanation;
+        body.appendChild(expl);
+      }
+
+      nextBtn.disabled = false;
+      nextBtn.focus();
+    }
+
+    function renderChoices(item) {
       var optionsWrap = document.createElement('div');
       optionsWrap.className = 'placement-options';
-      item.options.forEach(function (optionText) {
+      // Orden barajado, derivado del seed y del id del ítem: en el banco sin
+      // barajar la posición de la correcta se concentraba en una sola opción y
+      // contestar siempre esa aprobaba el bloque sin saber inglés. Al depender
+      // del id (y no de la posición en el examen) el orden sobrevive intacto a
+      // la reanudación.
+      options.orderedOptions(item, seed).forEach(function (optionText) {
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'placement-option';
         btn.textContent = optionText;
         btn.addEventListener('click', function () {
           if (state.answered) return;
-          state.answered = true;
-          state.answers.push(optionText);
-          // Se persiste en cuanto se responde: si cierra acá, la respuesta ya
-          // cuenta y no puede reintentarse limpio (ver § abandono).
-          persist();
 
           Array.prototype.slice.call(optionsWrap.children).forEach(function (b) {
             b.disabled = true;
@@ -443,19 +501,63 @@ var lpPlacementTest = (function () {
             else if (b === btn) b.classList.add('is-wrong');
           });
 
-          if (item.explanation) {
-            var expl = document.createElement('p');
-            expl.className = 'placement-explanation';
-            expl.textContent = item.explanation;
-            body.appendChild(expl);
-          }
-
-          nextBtn.disabled = false;
-          nextBtn.focus();
+          commitAnswer(item, optionText);
         });
         optionsWrap.appendChild(btn);
       });
       body.appendChild(optionsWrap);
+    }
+
+    /**
+     * Ítem de respuesta escrita. Mide producción, no reconocimiento: elegir la
+     * forma correcta entre cuatro no prueba que se sepa producirla, y un examen
+     * de puro opción múltiple sobreestima el nivel de forma sistemática.
+     */
+    function renderCloze(item) {
+      var form = document.createElement('form');
+      form.className = 'placement-cloze';
+
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'placement-cloze__input';
+      input.placeholder = 'Escribe tu respuesta';
+      input.setAttribute('aria-label', 'Tu respuesta');
+      // El teclado móvil corrige y capitaliza por su cuenta: acá eso falsearía
+      // la respuesta que se está midiendo.
+      input.autocomplete = 'off';
+      input.autocapitalize = 'off';
+      input.spellcheck = false;
+      input.setAttribute('autocorrect', 'off');
+      form.appendChild(input);
+
+      var checkBtn = document.createElement('button');
+      checkBtn.type = 'submit';
+      checkBtn.className = 'lp-btn placement-cloze__check';
+      checkBtn.textContent = 'Comprobar';
+      form.appendChild(checkBtn);
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        if (state.answered) return;
+        var value = input.value.trim();
+        if (!value) return;
+
+        input.disabled = true;
+        checkBtn.disabled = true;
+        var ok = options.isCorrect(item, value);
+        input.classList.add(ok ? 'is-correct' : 'is-wrong');
+        if (!ok) {
+          var solution = document.createElement('p');
+          solution.className = 'placement-solution';
+          solution.textContent = 'Respuesta correcta: ' + item.correct;
+          body.appendChild(solution);
+        }
+
+        commitAnswer(item, value);
+      });
+
+      body.appendChild(form);
+      input.focus();
     }
 
     nextBtn.addEventListener('click', function () {
@@ -472,8 +574,8 @@ var lpPlacementTest = (function () {
       // Bloque terminado: si se reprueba, el examen corta acá — el resultado
       // ya está decidido y los bloques siguientes no lo pueden rescatar.
       // scoreValidation() ignora niveles fuera de blocksFor(requestedLevel),
-      // así que mezclar ítems de la sonda C1 en presentedItems()/answers (una
-      // vez agregada, más abajo) nunca contamina este cálculo.
+      // así que mezclar ítems de la sonda en presentedItems()/answers (una vez
+      // agregada, más abajo) nunca contamina este cálculo.
       var result = options.score(requestedLevel, presentedItems(), state.answers);
       var finishedLevel = currentLevel();
       var blockRes = null;
@@ -488,22 +590,23 @@ var lpPlacementTest = (function () {
       }
 
       if (isLastStaticBlock) {
-        // B2 recién aprobado: ver si corresponde ofrecer la sonda C1 opcional
-        // (ver probeTriggerFor) antes de cerrar el examen.
+        // Nivel pedido recién aprobado: ver si corresponde ofrecer la sonda
+        // opcional del nivel siguiente (ver probeTriggerFor) antes de cerrar.
         if (
-          finishedLevel === 'b2' &&
+          probeLevel &&
+          finishedLevel === requestedLevel &&
           !state.probeTriggered &&
           typeof options.probeTriggerFor === 'function' &&
           options.probeTriggerFor(blockRes)
         ) {
           var probePool = items.filter(function (item) {
-            return item.level === options.probeLevel;
+            return item.level === probeLevel;
           });
           var probeItems = options.pickItems(probePool, options.probeSize, seed);
           if (probeItems.length > 0) {
             state.probeTriggered = true;
-            blocks.order.push(options.probeLevel);
-            blocks.byLevel[options.probeLevel] = probeItems;
+            blocks.order.push(probeLevel);
+            blocks.byLevel[probeLevel] = probeItems;
             blocks.flat = blocks.flat.concat(probeItems);
             state.levelIndex += 1;
             state.itemIndex = 0;
@@ -527,11 +630,11 @@ var lpPlacementTest = (function () {
       // presentedItems()/state.answers (van al final, después de b1+b2) —
       // options.score() las ignoró para el pass/fail; acá se puntúan aparte,
       // solo para reportar, nunca para decidir el nivel.
-      if (state.probeTriggered) {
-        var probeItems = blocks.byLevel[options.probeLevel] || [];
+      if (state.probeTriggered && probeLevel) {
+        var probeItems = blocks.byLevel[probeLevel] || [];
         var probeAnswers = state.answers.slice(state.answers.length - probeItems.length);
         result = Object.assign({}, result, {
-          probe: options.scoreBlock(options.probeLevel, probeItems, probeAnswers),
+          probe: options.scoreBlock(probeLevel, probeItems, probeAnswers),
         });
       }
       var committed = commitLevel(result.level, options);
@@ -548,17 +651,19 @@ var lpPlacementTest = (function () {
     }
 
     /**
-     * Abandono a mitad de examen. Otorga el nivel de fallback (con piso en lo
-     * ganado) en vez de no escribir nada: dejar el nivel pedido sin validar
-     * sería exactamente el agujero que este gate cierra. El snapshot se
-     * conserva para poder retomar donde quedó — reanudar arrastra las
-     * respuestas ya dadas, así que abandonar un intento que va mal no sirve
-     * para reintentarlo limpio.
+     * Abandono a mitad de examen. Escribe el nivel que las respuestas dadas
+     * hasta acá alcanzan a demostrar — no el pedido, y tampoco un fallback
+     * ciego: dejar el nivel pedido sin validar sería el agujero que este gate
+     * cierra, pero tirar a A1 a quien ya aprobó el bloque piso borraría algo
+     * demostrado en este mismo examen. Un bloque a medias no cuenta
+     * (scoreValidation exige el bloque completo), así que cerrar tras tres
+     * aciertos sigue sin otorgar nada. El snapshot se conserva para poder
+     * retomar donde quedó — reanudar arrastra las respuestas ya dadas, así que
+     * abandonar un intento que va mal no sirve para reintentarlo limpio.
      *
-     * Excepción: si ya se disparó la sonda C1, el bloque calificado (b1+b2)
-     * ya se había aprobado ANTES de ofrecerla — cerrar sin responder la sonda
-     * opcional es un cierre normal, no un abandono, y no debe degradar a
-     * fallback un nivel que ya está demostrado.
+     * Excepción: si ya se disparó la sonda, el bloque calificado ya se había
+     * aprobado ANTES de ofrecerla — cerrar sin responder la sonda opcional es
+     * un cierre normal, no un abandono, y se reporta como tal.
      */
     function abandon() {
       var partial = options.score(requestedLevel, presentedItems(), state.answers);
@@ -578,7 +683,7 @@ var lpPlacementTest = (function () {
         return;
       }
 
-      var committed = commitLevel(options.fallbackLevel, options);
+      var committed = commitLevel(partial.level, options);
       persist();
       track(
         'placement_test_abandoned',
@@ -596,30 +701,55 @@ var lpPlacementTest = (function () {
       body.innerHTML = '';
       footer.innerHTML = '';
 
-      var copy = result.passed
-        ? 'Confirmado: tu contenido queda ajustado a nivel ' + committed.toUpperCase() +
-          '. Los niveles anteriores siguen disponibles para repasar cuando quieras.'
-        : 'Esta vez no alcanzó para ' + requestedLevel.toUpperCase() + ', así que sigues en nivel ' +
+      // Reprobar el nivel pedido ya no implica quedarse igual: quien pidió B2 y
+      // aprobó el piso B1 sube a B1. El copy tiene que distinguir los dos casos
+      // o "no alcanzó" contradiría el nivel que se acaba de otorgar.
+      var improved =
+        !result.passed &&
+        options.levelOrder.indexOf(committed) > options.levelOrder.indexOf(levelBefore);
+
+      var copy;
+      if (result.passed) {
+        copy =
+          'Confirmado: tu contenido queda ajustado a nivel ' + committed.toUpperCase() +
+          '. Los niveles anteriores siguen disponibles para repasar cuando quieras.';
+      } else if (improved) {
+        copy =
+          'No alcanzó para ' + requestedLevel.toUpperCase() + ', pero sí demostraste nivel ' +
+          committed.toUpperCase() + ', así que ahí queda tu contenido. Puedes volver a intentar ' +
+          requestedLevel.toUpperCase() + ' cuando quieras.';
+      } else {
+        copy =
+          'Esta vez no alcanzó para ' + requestedLevel.toUpperCase() + ', así que sigues en nivel ' +
           committed.toUpperCase() + '. Puedes volver a intentarlo cuando quieras, o elegir otro nivel ' +
           'desde los ajustes — nada de lo que ya completaste se pierde.';
+      }
 
       // La sonda nunca cambia el nivel otorgado — solo agrega contexto al
       // resultado cuando se sirvió.
       if (result.probe) {
+        var probeName = String(result.probe.level).toUpperCase();
         var probePassed = result.probe.correctCount >= Math.ceil(result.probe.total * 0.6);
         copy += probePassed
-          ? ' Además, respondiste bien la mayoría de unas preguntas extra de nivel C1 — tu inglés puede ' +
-            'estar rindiendo más de lo que el contenido B2 te exige.'
-          : ' También probaste algunas preguntas extra de nivel C1, sin compromiso: no afectan tu resultado.';
+          ? ' Además, respondiste bien la mayoría de unas preguntas extra de nivel ' + probeName +
+            ' — tu inglés puede estar rindiendo más de lo que el contenido ' + committed.toUpperCase() +
+            ' te exige.'
+          : ' También probaste algunas preguntas extra de nivel ' + probeName +
+            ', sin compromiso: no afectan tu resultado.';
       }
+
+      var heading = result.passed
+        ? 'Tu nivel confirmado: '
+        : improved
+          ? 'Tu nivel sube a '
+          : 'Tu nivel sigue en ';
 
       body.insertAdjacentHTML(
         'beforeend',
         '<div class="placement-result-badge" aria-hidden="true">' + escapeHtml(committed.toUpperCase()) + '</div>' +
-          '<h2 id="placementTestTitle">' +
-          (result.passed ? 'Tu nivel confirmado: ' : 'Tu nivel sigue en ') +
+          '<h2 id="placementTestTitle">' + heading +
           escapeHtml(committed.toUpperCase()) + '</h2>' +
-          '<p class="placement-body-text">' + copy + '</p>'
+          '<p class="placement-body-text">' + escapeHtml(copy) + '</p>'
       );
 
       var continueBtn = document.createElement('button');

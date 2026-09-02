@@ -68,6 +68,40 @@ body.placement-open { overflow: hidden; }
 .placement-option.is-correct { border-color: var(--lp-success, #2e9e5b); background: color-mix(in srgb, var(--lp-success, #2e9e5b) 12%, var(--lp-surface)); }
 .placement-option.is-wrong { border-color: var(--lp-danger, #d64545); background: color-mix(in srgb, var(--lp-danger, #d64545) 10%, var(--lp-surface)); }
 
+/* Ítem de respuesta escrita (cloze). Es un <form> para que Enter comprometa la
+   respuesta igual que el botón — en móvil el teclado ofrece "ir" y sin submit
+   no pasaría nada. El input hereda 16px como mínimo para que iOS no haga zoom
+   al enfocarlo (mismo criterio que lp-input-zoom.js). */
+.placement-cloze { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+.placement-cloze__input {
+  appearance: none; -webkit-appearance: none; font-family: inherit;
+  flex: 1 1 180px; min-width: 0; padding: 12px 14px;
+  border: 1px solid var(--lp-border); border-radius: var(--lp-radius-md);
+  background: var(--lp-surface); color: var(--lp-ink);
+  font-size: max(1rem, 16px); font-weight: 600;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.placement-cloze__input::placeholder { color: var(--lp-muted); font-weight: 500; }
+.placement-cloze__input:focus { outline: none; border-color: var(--lp-accent); }
+.placement-cloze__input:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--lp-accent); }
+.placement-cloze__input:disabled { opacity: 0.85; }
+.placement-cloze__input.is-correct { border-color: var(--lp-success, #2e9e5b); background: color-mix(in srgb, var(--lp-success, #2e9e5b) 12%, var(--lp-surface)); }
+.placement-cloze__input.is-wrong { border-color: var(--lp-danger, #d64545); background: color-mix(in srgb, var(--lp-danger, #d64545) 10%, var(--lp-surface)); }
+.placement-cloze__check {
+  flex: 0 0 auto; min-height: 48px; padding: 0 18px;
+  border-radius: var(--lp-radius-md); font-size: 0.88rem; font-weight: 700;
+}
+.placement-cloze__check:focus { outline: none; }
+.placement-cloze__check:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--lp-accent); }
+
+/* Solución de un cloze fallado: se muestra antes de la explicación, porque sin
+   opciones a la vista el usuario no tiene de dónde deducir cuál era. */
+.placement-solution {
+  margin: 4px 0 0; padding: 10px 12px; border-radius: var(--lp-radius-md);
+  background: color-mix(in srgb, var(--lp-success, #2e9e5b) 10%, var(--lp-surface));
+  color: var(--lp-ink); font-size: 0.85rem; font-weight: 600;
+}
+
 .placement-explanation {
   margin: 4px 0 0; padding: 10px 12px; border-radius: var(--lp-radius-md);
   background: color-mix(in srgb, var(--lp-accent) 8%, var(--lp-surface)); color: var(--lp-muted);

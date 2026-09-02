@@ -14,10 +14,12 @@ import {
   FALLBACK_LEVEL,
   BLOCK_SIZE,
   FLOOR_BLOCK_SIZE,
-  PROBE_LEVEL,
   PROBE_SIZE,
+  probeLevelFor,
   probeTriggerFor,
   pickItems,
+  orderedOptions,
+  isCorrect,
 } from './lp-placement-scoring.js';
 
 const APP_CONFIG = Object.freeze({
@@ -1008,10 +1010,12 @@ function placementTestOptions() {
     levelOrder: LEVEL_ORDER,
     blockSize: BLOCK_SIZE,
     floorBlockSize: FLOOR_BLOCK_SIZE,
-    probeLevel: PROBE_LEVEL,
+    probeLevelFor,
     probeSize: PROBE_SIZE,
     probeTriggerFor,
     pickItems,
+    orderedOptions,
+    isCorrect,
     // Piso al reprobar/abandonar: nunca por debajo de lo ganado con trabajo real.
     earnedFloor: getEarnedLevelFloor,
     // El restore de login nunca baja el nivel por su cuenta, así que una bajada

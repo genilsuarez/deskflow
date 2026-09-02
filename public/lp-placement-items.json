@@ -1,9 +1,11 @@
 {
-  "version": "v2",
+  "version": "v3",
   "items": [
     {
+      "id": "b1-ger-01",
       "level": "b1",
-      "question": "Which is correct? 'I enjoy ___.'",
+      "skill": "gerund-infinitive",
+      "question": "Which is correct? 'I enjoy ___ in the sea.'",
       "options": [
         "swimming",
         "swam",
@@ -11,34 +13,50 @@
         "to swim"
       ],
       "correct": "swimming",
-      "explanation": "<Enjoy> siempre va seguido del gerundio (forma -ing): enjoy swimming."
+      "explanation": "<Enjoy> siempre va seguido del gerundio (-ing): enjoy swimming."
     },
     {
+      "id": "b1-ger-02",
       "level": "b1",
+      "skill": "gerund-infinitive",
       "question": "After prepositions (in, at, of, about), we use:",
       "options": [
-        "the past tense",
-        "the base form",
-        "the gerund (-ing form)",
-        "the infinitive (to + verb)"
+        "the gerund (-ing)",
+        "the infinitive with <to>",
+        "the bare infinitive",
+        "the past participle"
       ],
-      "correct": "the gerund (-ing form)",
-      "explanation": "Después de una preposición, siempre se usa el <gerund>: interested in learning, good at cooking."
+      "correct": "the gerund (-ing)",
+      "explanation": "Tras preposición el verbo va en -ing: good at cooking, interested in learning."
     },
     {
+      "id": "b1-ger-03",
       "level": "b1",
+      "skill": "gerund-infinitive",
       "question": "Which group of verbs takes the gerund (-ing)?",
       "options": [
-        "enjoy, avoid, mind",
-        "learn, offer, promise",
-        "want, hope, plan",
-        "decide, agree, refuse"
+        "avoid, mind, suggest",
+        "want, hope, decide",
+        "must, can, should",
+        "seem, appear, tend"
       ],
-      "correct": "enjoy, avoid, mind",
-      "explanation": "<Enjoy>, <avoid> y <mind> van todos seguidos del gerundio (forma -ing)."
+      "correct": "avoid, mind, suggest",
+      "explanation": "<Avoid/mind/suggest> piden -ing; <want/hope/decide> piden infinitivo con to."
     },
     {
+      "id": "b1-ger-04",
       "level": "b1",
+      "skill": "gerund-infinitive",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: 'She decided ___ study medicine.'",
+      "correct": "to",
+      "accept": [],
+      "explanation": "<Decide> pide infinitivo con <to>: decided to study."
+    },
+    {
+      "id": "b1-rep-01",
+      "level": "b1",
+      "skill": "reported-speech",
       "question": "\"I am happy,\" she said. → She said she ___ happy.",
       "options": [
         "was",
@@ -47,514 +65,896 @@
         "has been"
       ],
       "correct": "was",
-      "explanation": "Regla de backshift: presente simple 'am' → pasado simple 'was'."
+      "explanation": "En estilo indirecto el presente retrocede a pasado: am → was."
     },
     {
+      "id": "b1-rep-02",
       "level": "b1",
+      "skill": "reported-speech",
       "question": "\"I have seen that film,\" he said. → He said he ___ that film.",
       "options": [
+        "had seen",
         "has seen",
         "saw",
-        "would see",
-        "had seen"
+        "sees"
       ],
       "correct": "had seen",
-      "explanation": "Backshift: presente perfecto 'have seen' → pasado perfecto 'had seen'."
+      "explanation": "El present perfect retrocede a past perfect: have seen → had seen."
     },
     {
+      "id": "b1-rep-03",
       "level": "b1",
+      "skill": "reported-speech",
       "question": "\"Don't run!\" → He told the children ___ run.",
       "options": [
-        "don't",
+        "not to",
         "to not",
-        "didn't",
-        "not to"
+        "don't",
+        "didn't"
       ],
       "correct": "not to",
-      "explanation": "Órdenes negativas en estilo indirecto: told + objeto + not to + verbo base."
+      "explanation": "Órdenes negativas en indirecto: told + objeto + not to + infinitivo."
     },
     {
+      "id": "b1-rep-04",
       "level": "b1",
+      "skill": "reported-speech",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: '\"I will call you,\" he said.' → He said he ___ call me.",
+      "correct": "would",
+      "accept": [],
+      "explanation": "<Will> retrocede a <would> en estilo indirecto."
+    },
+    {
+      "id": "b1-tag-01",
+      "level": "b1",
+      "skill": "question-tags",
       "question": "You're coming tonight, ___?",
       "options": [
         "aren't you",
-        "isn't it",
         "don't you",
-        "won't you"
+        "are you",
+        "isn't it"
       ],
       "correct": "aren't you",
-      "explanation": "Forma positiva 'are' → coletilla negativa 'aren't you'. Se usa el mismo auxiliar invirtiendo la polaridad."
+      "explanation": "La coletilla invierte el auxiliar del verbo principal: are → aren't you."
     },
     {
+      "id": "b1-tag-02",
       "level": "b1",
+      "skill": "question-tags",
       "question": "Let's have lunch, ___?",
       "options": [
-        "don't we",
+        "shall we",
         "will we",
-        "can we",
-        "shall we"
+        "don't we",
+        "aren't we"
       ],
       "correct": "shall we",
-      "explanation": "Regla especial: 'Let's' siempre lleva 'shall we' como coletilla."
+      "explanation": "Tras <Let's> la coletilla es siempre <shall we>."
     },
     {
+      "id": "b1-tag-03",
       "level": "b1",
-      "question": "We ought to help, ___?",
+      "skill": "question-tags",
+      "question": "She hardly ever complains, ___?",
       "options": [
-        "oughtn't we",
-        "don't we",
-        "shouldn't we",
-        "mustn't we"
+        "does she",
+        "doesn't she",
+        "is she",
+        "has she"
       ],
-      "correct": "shouldn't we",
-      "explanation": "'Ought to' → la coletilla es 'shouldn't we' (más común que 'oughtn't we')."
+      "correct": "does she",
+      "explanation": "<Hardly ever> es negativo, así que la coletilla va en positivo."
     },
     {
+      "id": "b1-cond-01",
       "level": "b1",
-      "question": "What is a <round-trip ticket>?",
-      "options": [
-        "a ticket to go and return",
-        "a ticket for one direction",
-        "a circular ticket",
-        "a free ticket"
-      ],
-      "correct": "a ticket to go and return",
-      "explanation": "Un <round-trip ticket> te permite viajar a un destino y regresar."
-    },
-    {
-      "level": "b1",
-      "question": "What does <all-inclusive> mean for a hotel?",
-      "options": [
-        "only breakfast included",
-        "all meals and drinks included",
-        "no meals included",
-        "only dinner included"
-      ],
-      "correct": "all meals and drinks included",
-      "explanation": "<All-inclusive> significa que todas las comidas, bebidas y actividades están incluidas en el precio."
-    },
-    {
-      "level": "b1",
-      "question": "What is <backpacking>?",
-      "options": [
-        "luxury travel",
-        "budget travel with a backpack",
-        "cruise travel",
-        "business travel"
-      ],
-      "correct": "budget travel with a backpack",
-      "explanation": "<Backpacking> es viajar de forma económica, generalmente alojándose en hostales y llevando tus pertenencias en una mochila."
-    },
-    {
-      "level": "b1",
-      "question": "What does <break the ice> mean?",
-      "options": [
-        "to start a conversation",
-        "to make ice cubes",
-        "to cool down",
-        "to break something"
-      ],
-      "correct": "to start a conversation",
-      "explanation": "Este modismo significa iniciar una conversación en una situación social."
-    },
-    {
-      "level": "b1",
-      "question": "What does <cost an arm and a leg> mean?",
-      "options": [
-        "be dangerous",
-        "be painful",
-        "be very expensive",
-        "require surgery"
-      ],
-      "correct": "be very expensive",
-      "explanation": "Este modismo significa que algo es extremadamente caro."
-    },
-    {
-      "level": "b1",
-      "question": "If something is <a blessing in disguise>, it:",
-      "options": [
-        "looks religious",
-        "seems bad but is actually good",
-        "is a gift",
-        "is hidden"
-      ],
-      "correct": "seems bad but is actually good",
-      "explanation": "Este modismo describe algo que al principio parece malo pero termina siendo bueno."
-    },
-    {
-      "level": "b1",
+      "skill": "conditionals",
       "question": "Complete: 'If it ___ tomorrow, we will cancel the picnic.'",
       "options": [
-        "rain",
         "rains",
+        "will rain",
         "rained",
-        "will rain"
+        "would rain"
       ],
       "correct": "rains",
-      "explanation": "Primer condicional: If + presente simple, will + verbo base. La condición nunca lleva 'will'."
+      "explanation": "Primer condicional: If + presente simple, will + infinitivo."
     },
     {
+      "id": "b1-cond-02",
       "level": "b1",
+      "skill": "conditionals",
+      "question": "Complete: 'If I had a car, I ___ you to the airport.'",
+      "options": [
+        "would drive",
+        "will drive",
+        "drove",
+        "would drove"
+      ],
+      "correct": "would drive",
+      "explanation": "Segundo condicional: If + pasado simple, would + infinitivo."
+    },
+    {
+      "id": "b1-cond-03",
+      "level": "b1",
+      "skill": "conditionals",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: 'I won't go ___ you come with me.' (= only if)",
+      "correct": "unless",
+      "accept": [],
+      "explanation": "<Unless> equivale a <if... not>: no iré a menos que vengas."
+    },
+    {
+      "id": "b1-ten-01",
+      "level": "b1",
+      "skill": "tenses",
       "question": "Complete: 'She ___ to Peru three times.'",
       "options": [
-        "went",
         "has been",
-        "was",
-        "go"
+        "has gone",
+        "went",
+        "is going"
       ],
       "correct": "has been",
-      "explanation": "Presente perfecto para experiencias sin momento concreto (three times, sin decir cuándo); 'went' exigiría un momento específico (last year)."
+      "explanation": "<Has been> = fue y volvió; <has gone> implica que sigue allí."
     },
     {
+      "id": "b1-ten-02",
       "level": "b1",
+      "skill": "tenses",
+      "question": "Complete: 'I ___ here since 2019.'",
+      "options": [
+        "have lived",
+        "live",
+        "lived",
+        "am living"
+      ],
+      "correct": "have lived",
+      "explanation": "Con <since> + momento se usa present perfect."
+    },
+    {
+      "id": "b1-ten-03",
+      "level": "b1",
+      "skill": "tenses",
+      "question": "Complete: 'While I ___ dinner, the phone rang.'",
+      "options": [
+        "was cooking",
+        "cooked",
+        "have cooked",
+        "cook"
+      ],
+      "correct": "was cooking",
+      "explanation": "Acción larga interrumpida: past continuous + past simple."
+    },
+    {
+      "id": "b1-ten-04",
+      "level": "b1",
+      "skill": "tenses",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: 'I have known her ___ ten years.'",
+      "correct": "for",
+      "accept": [],
+      "explanation": "<For> mide duración; <since> marca el punto de inicio."
+    },
+    {
+      "id": "b1-mod-01",
+      "level": "b1",
+      "skill": "modals",
+      "question": "Complete: 'You ___ wear a seatbelt — it's the law.'",
+      "options": [
+        "must",
+        "should",
+        "can",
+        "might"
+      ],
+      "correct": "must",
+      "explanation": "<Must> expresa obligación fuerte, típicamente legal."
+    },
+    {
+      "id": "b1-mod-02",
+      "level": "b1",
+      "skill": "modals",
+      "question": "Complete: 'You ___ pay — the museum is free today.'",
+      "options": [
+        "don't have to",
+        "mustn't",
+        "shouldn't",
+        "can't"
+      ],
+      "correct": "don't have to",
+      "explanation": "<Don't have to> = no es necesario; <mustn't> = está prohibido."
+    },
+    {
+      "id": "b1-mod-03",
+      "level": "b1",
+      "skill": "modals",
+      "question": "Complete: 'When I was six I ___ swim quite well.'",
+      "options": [
+        "could",
+        "can",
+        "was able",
+        "might"
+      ],
+      "correct": "could",
+      "explanation": "<Could> expresa habilidad general en el pasado."
+    },
+    {
+      "id": "b1-comp-01",
+      "level": "b1",
+      "skill": "comparatives",
       "question": "Complete: 'This exercise is ___ than the last one.'",
       "options": [
         "more difficult",
         "difficulter",
         "most difficult",
-        "difficult"
+        "the more difficult"
       ],
       "correct": "more difficult",
-      "explanation": "Los adjetivos de dos o más sílabas forman el comparativo con 'more + adjetivo', no con la terminación '-er'."
+      "explanation": "Adjetivos largos: more + adjetivo + than."
     },
     {
+      "id": "b1-comp-02",
       "level": "b1",
-      "question": "Complete: 'You ___ wear a seatbelt — it's the law.'",
+      "skill": "comparatives",
+      "question": "Complete: 'It's the ___ film I have ever seen.'",
       "options": [
-        "might",
-        "could",
-        "have to",
-        "would"
+        "worst",
+        "worse",
+        "baddest",
+        "most bad"
       ],
-      "correct": "have to",
-      "explanation": "<Have to> expresa una obligación externa (una ley, una norma), no una opinión personal como <should>."
+      "correct": "worst",
+      "explanation": "Superlativo irregular de <bad>: bad – worse – worst."
     },
     {
+      "id": "b1-comp-03",
       "level": "b1",
+      "skill": "comparatives",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: 'She isn't ___ tall as her brother.'",
+      "correct": "as",
+      "accept": [],
+      "explanation": "Comparación de igualdad: as + adjetivo + as."
+    },
+    {
+      "id": "b1-trav-01",
+      "level": "b1",
+      "skill": "travel-vocab",
+      "question": "What is a <round-trip ticket>?",
+      "options": [
+        "A ticket to go and come back",
+        "A ticket for one direction only",
+        "A ticket you can use any day",
+        "A ticket with a stopover"
+      ],
+      "correct": "A ticket to go and come back",
+      "explanation": "Round-trip (UK: return) es ida y vuelta."
+    },
+    {
+      "id": "b1-trav-02",
+      "level": "b1",
+      "skill": "travel-vocab",
+      "question": "What does <all-inclusive> mean for a hotel?",
+      "options": [
+        "Meals and drinks are included in the price",
+        "Only breakfast is included",
+        "Nothing is included",
+        "Only the room is included"
+      ],
+      "correct": "Meals and drinks are included in the price",
+      "explanation": "All-inclusive incluye comidas y bebidas en el precio."
+    },
+    {
+      "id": "b1-trav-03",
+      "level": "b1",
+      "skill": "travel-vocab",
+      "question": "What is <backpacking>?",
+      "options": [
+        "Travelling cheaply with a rucksack",
+        "Travelling on a luxury tour",
+        "Carrying luggage for others",
+        "Booking a package holiday"
+      ],
+      "correct": "Travelling cheaply with a rucksack",
+      "explanation": "Backpacking es viajar barato con mochila."
+    },
+    {
+      "id": "b1-idi-01",
+      "level": "b1",
+      "skill": "idioms",
+      "question": "What does <break the ice> mean?",
+      "options": [
+        "To start a conversation in an awkward situation",
+        "To ruin a party",
+        "To end a friendship",
+        "To act very coldly"
+      ],
+      "correct": "To start a conversation in an awkward situation",
+      "explanation": "Break the ice: romper la tensión inicial."
+    },
+    {
+      "id": "b1-idi-02",
+      "level": "b1",
+      "skill": "idioms",
+      "question": "What does <cost an arm and a leg> mean?",
+      "options": [
+        "To be very expensive",
+        "To be dangerous",
+        "To be painful",
+        "To be a bargain"
+      ],
+      "correct": "To be very expensive",
+      "explanation": "Cost an arm and a leg: costar un ojo de la cara."
+    },
+    {
+      "id": "b1-idi-03",
+      "level": "b1",
+      "skill": "idioms",
+      "question": "If something is <a blessing in disguise>, it:",
+      "options": [
+        "seems bad at first but turns out to be good",
+        "is a well-kept secret",
+        "is a lucky coincidence",
+        "is a hidden danger"
+      ],
+      "correct": "seems bad at first but turns out to be good",
+      "explanation": "Blessing in disguise: no hay mal que por bien no venga."
+    },
+    {
+      "id": "b1-phr-01",
+      "level": "b1",
+      "skill": "phrasal-verbs",
       "question": "What does <hit the books> mean?",
       "options": [
-        "to study hard",
-        "to hit someone with a book",
-        "to read for fun",
-        "to buy books"
+        "To study hard",
+        "To buy books",
+        "To give up studying",
+        "To read for pleasure"
       ],
-      "correct": "to study hard",
-      "explanation": "Este modismo informal significa ponerse a estudiar intensamente."
+      "correct": "To study hard",
+      "explanation": "Hit the books: ponerse a estudiar en serio."
     },
     {
+      "id": "b1-phr-02",
+      "level": "b1",
+      "skill": "phrasal-verbs",
+      "question": "Which phrasal verb means \"to arrive\" (a train, a plane)?",
+      "options": [
+        "get in",
+        "get over",
+        "get by",
+        "get through"
+      ],
+      "correct": "get in",
+      "explanation": "Get in: llegar. Get over: superar. Get by: apañárselas."
+    },
+    {
+      "id": "b1-phr-03",
+      "level": "b1",
+      "skill": "phrasal-verbs",
+      "question": "Complete: 'I need to ___ this form before the interview.'",
+      "options": [
+        "fill in",
+        "fill up",
+        "fill out of",
+        "fill on"
+      ],
+      "correct": "fill in",
+      "explanation": "Fill in (o fill out) a form: rellenar un formulario."
+    },
+    {
+      "id": "b2-ger-01",
       "level": "b2",
+      "skill": "gerund-infinitive",
       "question": "Complete: 'If you can't sleep, try ___ some warm milk.'",
       "options": [
-        "drank",
+        "drinking",
         "to drink",
         "drink",
-        "drinking"
+        "drunk"
       ],
       "correct": "drinking",
-      "explanation": "<Try> + gerundio = experimentar con una solución. Probar a beber leche como remedio."
+      "explanation": "<Try + -ing> = probar algo a ver si funciona; <try to> = esforzarse."
     },
     {
+      "id": "b2-ger-02",
       "level": "b2",
+      "skill": "gerund-infinitive",
       "question": "Which verb changes meaning depending on whether it's followed by gerund or infinitive?",
       "options": [
+        "remember",
         "enjoy",
-        "refuse",
-        "want",
-        "stop"
+        "avoid",
+        "finish"
       ],
-      "correct": "stop",
-      "explanation": "<Stop> cambia de significado: stop doing (dejar de hacer) frente a stop to do (pausar con un propósito). Enjoy y want solo admiten una forma cada uno."
+      "correct": "remember",
+      "explanation": "Remember doing = recordar algo hecho; remember to do = acordarse de hacerlo."
     },
     {
+      "id": "b2-ger-03",
       "level": "b2",
-      "question": "Complete: 'After living in Japan for two years, she ___ eating with chopsticks.'",
+      "skill": "gerund-infinitive",
+      "question": "Complete: 'I'm really looking forward to ___ you next week.'",
       "options": [
-        "was used to",
-        "is used to",
-        "gets used to",
-        "used to"
+        "seeing",
+        "see",
+        "have seen",
+        "be seen"
       ],
-      "correct": "is used to",
-      "explanation": "<Be used to> + la forma en -ing expresa estar acostumbrado a algo en el presente."
+      "correct": "seeing",
+      "explanation": "<Look forward to> lleva <to> preposición, así que va gerundio."
     },
     {
+      "id": "b2-ger-04",
       "level": "b2",
-      "question": "Which phrasal verb means \"to delay or postpone\"?",
-      "options": [
-        "Put out",
-        "Put forward",
-        "Put through",
-        "Put off"
-      ],
-      "correct": "Put off",
-      "explanation": "<Put off> significa posponer o aplazar algo para más tarde."
+      "skill": "gerund-infinitive",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: 'I regret ___ you that the post has been filled.' (formal, en -ing)",
+      "correct": "informing",
+      "accept": [],
+      "explanation": "<Regret + -ing> en registro formal introduce una mala noticia."
     },
     {
+      "id": "b2-cond-01",
       "level": "b2",
-      "question": "What does <back to square one> mean?",
-      "options": [
-        "return home",
-        "go backwards",
-        "start over from the beginning",
-        "play a board game"
-      ],
-      "correct": "start over from the beginning",
-      "explanation": "Este modismo significa volver al punto de partida después de un intento fallido."
-    },
-    {
-      "level": "b2",
+      "skill": "conditionals",
       "question": "Complete: 'If I ___ more money, I would travel around the world.'",
       "options": [
-        "have",
         "had",
+        "have",
         "will have",
         "would have"
       ],
       "correct": "had",
-      "explanation": "Segundo condicional (situación hipotética presente): If + pasado simple, would + verbo base."
+      "explanation": "Segundo condicional (situación irreal en presente): If + pasado, would."
     },
     {
+      "id": "b2-cond-02",
       "level": "b2",
+      "skill": "conditionals",
+      "question": "Complete: 'If she had left earlier, she ___ the train.'",
+      "options": [
+        "would have caught",
+        "would catch",
+        "had caught",
+        "will catch"
+      ],
+      "correct": "would have caught",
+      "explanation": "Tercer condicional: If + past perfect, would have + participio."
+    },
+    {
+      "id": "b2-cond-03",
+      "level": "b2",
+      "skill": "conditionals",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: 'Take an umbrella ___ case it rains.'",
+      "correct": "in",
+      "accept": [],
+      "explanation": "<In case> introduce una precaución ante algo que podría pasar."
+    },
+    {
+      "id": "b2-pass-01",
+      "level": "b2",
+      "skill": "passive",
       "question": "Complete: 'English ___ in over 60 countries.'",
       "options": [
-        "speaks",
         "is spoken",
-        "spoke",
+        "speaks",
+        "is speaking",
         "has spoken"
       ],
       "correct": "is spoken",
-      "explanation": "Voz pasiva en presente simple: be (is) + participio pasado (spoken). El sujeto (English) recibe la acción, no la ejecuta."
+      "explanation": "Pasiva de presente simple: is/are + participio."
     },
     {
+      "id": "b2-pass-02",
       "level": "b2",
+      "skill": "passive",
+      "question": "Complete: 'The bridge ___ when we arrived.'",
+      "options": [
+        "was being repaired",
+        "was repairing",
+        "is repaired",
+        "had repairing"
+      ],
+      "correct": "was being repaired",
+      "explanation": "Pasiva en past continuous: was/were being + participio."
+    },
+    {
+      "id": "b2-mod-01",
+      "level": "b2",
+      "skill": "modals-deduction",
       "question": "Complete: 'She isn't answering her phone. She ___ be asleep.'",
       "options": [
-        "can",
         "must",
+        "can",
         "should",
-        "need"
+        "would"
       ],
       "correct": "must",
-      "explanation": "<Must> expresa una deducción lógica fuerte a partir de la evidencia disponible, no una obligación."
+      "explanation": "<Must> expresa deducción lógica sobre el presente."
     },
     {
+      "id": "b2-mod-02",
       "level": "b2",
+      "skill": "modals-deduction",
+      "question": "Complete: 'He ___ have finished already — he only started an hour ago.'",
+      "options": [
+        "can't",
+        "mustn't",
+        "shouldn't",
+        "wouldn't"
+      ],
+      "correct": "can't",
+      "explanation": "La deducción negativa usa <can't have>, no <mustn't have>."
+    },
+    {
+      "id": "b2-rel-01",
+      "level": "b2",
+      "skill": "relative-clauses",
       "question": "Complete: 'The woman ___ lives next door is a doctor.'",
       "options": [
+        "who",
         "which",
         "whose",
-        "who",
         "whom"
       ],
       "correct": "who",
-      "explanation": "<Who> introduce una cláusula relativa que describe a una persona como sujeto del verbo (lives)."
+      "explanation": "<Who> es el relativo para personas en función de sujeto."
     },
     {
+      "id": "b2-rel-02",
       "level": "b2",
+      "skill": "relative-clauses",
+      "question": "Complete: 'That's the writer ___ novel won the prize.'",
+      "options": [
+        "whose",
+        "who's",
+        "which",
+        "that"
+      ],
+      "correct": "whose",
+      "explanation": "<Whose> marca posesión: la novela del escritor."
+    },
+    {
+      "id": "b2-rel-03",
+      "level": "b2",
+      "skill": "relative-clauses",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: 'Paris, ___ I visited last year, is beautiful.'",
+      "correct": "which",
+      "accept": [],
+      "explanation": "En relativas explicativas (con comas) no se puede usar <that>."
+    },
+    {
+      "id": "b2-rep-01",
+      "level": "b2",
+      "skill": "reported-speech",
       "question": "\"Are you coming?\" she asked. → She asked ___ I was coming.",
       "options": [
-        "that",
         "if",
+        "that",
         "what",
-        "when"
+        "did"
       ],
       "correct": "if",
-      "explanation": "Las preguntas de sí/no en estilo indirecto se introducen con 'if' o 'whether', no con 'that'."
+      "explanation": "Las preguntas de sí/no en indirecto se introducen con if/whether."
     },
     {
+      "id": "b2-rep-02",
       "level": "b2",
-      "question": "Which phrasal verb means \"to stop doing something, often a habit\"?",
+      "skill": "reported-speech",
+      "question": "\"Where do you live?\" → He asked me where ___.",
       "options": [
-        "Give away",
-        "Give up",
-        "Give in",
-        "Give back"
+        "I lived",
+        "did I live",
+        "do I live",
+        "I did live"
       ],
-      "correct": "Give up",
-      "explanation": "<Give up> significa dejar de hacer algo, típicamente un hábito: give up smoking."
+      "correct": "I lived",
+      "explanation": "En la pregunta indirecta el orden vuelve a sujeto + verbo, sin auxiliar."
     },
     {
+      "id": "b2-caus-01",
       "level": "b2",
-      "question": "Complete: 'I'm really looking forward to ___ you next week.'",
-      "options": [
-        "see",
-        "seeing",
-        "saw",
-        "have seen"
-      ],
-      "correct": "seeing",
-      "explanation": "<Look forward to> va seguido de gerundio: la preposición 'to' exige la forma -ing, no el infinitivo."
-    },
-    {
-      "level": "b2",
-      "question": "What does <run out of> mean?",
-      "options": [
-        "to run quickly",
-        "to exercise outdoors",
-        "to have no more of something",
-        "to escape from a place"
-      ],
-      "correct": "to have no more of something",
-      "explanation": "<Run out of> significa quedarse sin algo: we ran out of milk."
-    },
-    {
-      "level": "b2",
-      "question": "Complete: '___ the rain, we went for a walk.'",
-      "options": [
-        "Although",
-        "Despite",
-        "Because",
-        "However"
-      ],
-      "correct": "Despite",
-      "explanation": "<Despite> va seguido de un sustantivo o gerundio, no de una oración completa (a diferencia de <although>)."
-    },
-    {
-      "level": "b2",
-      "question": "Complete: 'I wish I ___ how to drive.'",
-      "options": [
-        "know",
-        "knew",
-        "have known",
-        "will know"
-      ],
-      "correct": "knew",
-      "explanation": "<Wish> + pasado simple expresa un deseo sobre una situación presente que no es real."
-    },
-    {
-      "level": "b2",
+      "skill": "causative",
       "question": "Complete: 'I need to have my car ___ tomorrow.'",
       "options": [
-        "repair",
-        "repaired",
-        "repairing",
-        "to repair"
+        "serviced",
+        "service",
+        "servicing",
+        "to service"
       ],
-      "correct": "repaired",
-      "explanation": "Estructura causativa 'have + objeto + participio pasado': otra persona hace la reparación, no tú."
+      "correct": "serviced",
+      "explanation": "Causativo: have + objeto + participio (lo hace otro por ti)."
     },
     {
+      "id": "b2-caus-02",
       "level": "b2",
+      "skill": "causative",
+      "question": "Complete: 'They ___ their house painted last summer.'",
+      "options": [
+        "got",
+        "made",
+        "let",
+        "did"
+      ],
+      "correct": "got",
+      "explanation": "<Get something done> es la variante coloquial de <have something done>."
+    },
+    {
+      "id": "b2-wish-01",
+      "level": "b2",
+      "skill": "wish-regret",
+      "question": "Complete: 'I wish I ___ how to drive.'",
+      "options": [
+        "knew",
+        "know",
+        "have known",
+        "would know"
+      ],
+      "correct": "knew",
+      "explanation": "Wish + pasado simple expresa un deseo irreal en presente."
+    },
+    {
+      "id": "b2-wish-02",
+      "level": "b2",
+      "skill": "wish-regret",
       "question": "Complete: 'You ___ so fast — you got a ticket.'",
       "options": [
-        "shouldn't drive",
         "shouldn't have driven",
-        "didn't have to drive",
-        "mustn't drive"
+        "shouldn't drive",
+        "mustn't drive",
+        "couldn't drive"
       ],
       "correct": "shouldn't have driven",
-      "explanation": "<Should have + participio> expresa un reproche o arrepentimiento sobre el pasado."
+      "explanation": "<Shouldn't have> + participio critica algo ya ocurrido."
     },
     {
+      "id": "b2-wish-03",
       "level": "b2",
+      "skill": "wish-regret",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: 'If ___ I had listened to your advice!'",
+      "correct": "only",
+      "accept": [],
+      "explanation": "<If only> intensifica el arrepentimiento, más que <I wish>."
+    },
+    {
+      "id": "b2-conn-01",
+      "level": "b2",
+      "skill": "connectors",
+      "question": "Complete: '___ the rain, we went for a walk.",
+      "options": [
+        "Despite",
+        "Although",
+        "However",
+        "Because of"
+      ],
+      "correct": "Despite",
+      "explanation": "<Despite/in spite of> van con sustantivo; <although> con oración."
+    },
+    {
+      "id": "b2-conn-02",
+      "level": "b2",
+      "skill": "connectors",
+      "question": "Complete: 'He studied hard; ___, he failed the exam.'",
+      "options": [
+        "however",
+        "although",
+        "despite",
+        "whereas"
+      ],
+      "correct": "however",
+      "explanation": "<However> conecta dos oraciones independientes con contraste."
+    },
+    {
+      "id": "b2-conn-03",
+      "level": "b2",
+      "skill": "connectors",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: 'She left early ___ that she could catch the train.' (finalidad)",
+      "correct": "so",
+      "accept": [],
+      "explanation": "<So that> + oración introduce la finalidad."
+    },
+    {
+      "id": "b2-phr-01",
+      "level": "b2",
+      "skill": "phrasal-verbs",
+      "question": "Which phrasal verb means \"to delay or postpone\"?",
+      "options": [
+        "put off",
+        "put on",
+        "put up",
+        "put out"
+      ],
+      "correct": "put off",
+      "explanation": "Put off: aplazar. Put up with: soportar. Put out: apagar."
+    },
+    {
+      "id": "b2-phr-02",
+      "level": "b2",
+      "skill": "phrasal-verbs",
+      "question": "Which phrasal verb means \"to stop doing something, often a habit\"?",
+      "options": [
+        "give up",
+        "give in",
+        "give away",
+        "give out"
+      ],
+      "correct": "give up",
+      "explanation": "Give up: dejar (un hábito). Give in: ceder."
+    },
+    {
+      "id": "b2-phr-03",
+      "level": "b2",
+      "skill": "phrasal-verbs",
+      "question": "What does <run out of> mean?",
+      "options": [
+        "To have no more of something",
+        "To escape quickly",
+        "To finish a race",
+        "To leave a place"
+      ],
+      "correct": "To have no more of something",
+      "explanation": "Run out of: quedarse sin algo."
+    },
+    {
+      "id": "b2-idi-01",
+      "level": "b2",
+      "skill": "idioms",
+      "question": "What does <back to square one> mean?",
+      "options": [
+        "Back to the starting point",
+        "Almost finished",
+        "On the right track",
+        "Ahead of schedule"
+      ],
+      "correct": "Back to the starting point",
+      "explanation": "Back to square one: volver a empezar de cero."
+    },
+    {
+      "id": "b2-idi-02",
+      "level": "b2",
+      "skill": "idioms",
       "question": "If someone feels <under the weather>, they:",
       "options": [
-        "enjoy bad weather",
-        "feel unwell",
+        "feel slightly ill",
         "are in a bad mood",
-        "are very busy"
+        "are very busy",
+        "are worried about money"
       ],
-      "correct": "feel unwell",
-      "explanation": "Este modismo significa sentirse un poco enfermo o decaído."
+      "correct": "feel slightly ill",
+      "explanation": "Under the weather: sentirse pachucho."
     },
     {
+      "id": "b2-idi-03",
       "level": "b2",
+      "skill": "idioms",
       "question": "What does <let the cat out of the bag> mean?",
       "options": [
-        "to release an animal",
-        "to reveal a secret by accident",
-        "to make a mistake",
-        "to change your mind"
+        "To reveal a secret by accident",
+        "To cause a big problem",
+        "To free someone",
+        "To tell an obvious lie"
       ],
-      "correct": "to reveal a secret by accident",
-      "explanation": "Este modismo significa revelar un secreto sin querer."
+      "correct": "To reveal a secret by accident",
+      "explanation": "Let the cat out of the bag: irse de la lengua."
     },
     {
+      "id": "b2-voc-01",
       "level": "b2",
+      "skill": "vocab",
       "question": "If you <procrastinate>, you:",
       "options": [
-        "work very quickly",
-        "delay doing something you should do",
-        "organize your schedule",
-        "finish early"
+        "keep postponing what you should do",
+        "work too many hours",
+        "plan everything in detail",
+        "give up easily"
       ],
-      "correct": "delay doing something you should do",
-      "explanation": "<Procrastinate> significa postergar o posponer tareas que deberías hacer."
+      "correct": "keep postponing what you should do",
+      "explanation": "Procrastinate: dejar las cosas para después."
     },
     {
+      "id": "b2-voc-02",
+      "level": "b2",
+      "skill": "vocab",
+      "question": "A <reliable> colleague is one who:",
+      "options": [
+        "can be trusted to do what they promise",
+        "works very fast",
+        "has a lot of experience",
+        "is easy to get along with"
+      ],
+      "correct": "can be trusted to do what they promise",
+      "explanation": "Reliable: fiable, de quien te puedes fiar."
+    },
+    {
+      "id": "c1-inv-01",
       "level": "c1",
+      "skill": "inversion",
       "question": "Not only ___ the exam, but he also got the highest score.",
       "options": [
-        "he passed",
-        "passed he",
         "did he pass",
-        "he did pass"
+        "he passed",
+        "he did pass",
+        "passed he"
       ],
       "correct": "did he pass",
-      "explanation": "Not only requiere inversión: Not only + auxiliar + sujeto + verbo."
+      "explanation": "Tras <Not only> al inicio hay inversión sujeto-auxiliar."
     },
     {
+      "id": "c1-inv-02",
       "level": "c1",
+      "skill": "inversion",
       "question": "Never before ___ such a beautiful sunset.",
       "options": [
-        "I seen have",
-        "seen I have",
-        "have I seen",
-        "I have seen"
+        "had I seen",
+        "I had seen",
+        "did I saw",
+        "I saw"
       ],
-      "correct": "have I seen",
-      "explanation": "Never requiere inversión: Never + auxiliar + sujeto + verbo."
+      "correct": "had I seen",
+      "explanation": "<Never before> en posición inicial exige inversión."
     },
     {
+      "id": "c1-inv-03",
       "level": "c1",
-      "question": "Which advanced conditional is correct?",
+      "skill": "inversion",
+      "question": "___ had she sat down when the phone rang.",
       "options": [
-        "Were it not for his help, I would have failed",
-        "Not were it for his help, I would have failed",
-        "If it not were for his help, I would have failed",
-        "Was it not for his help, I would have failed"
+        "Hardly",
+        "Almost",
+        "Nearly",
+        "Rarely"
       ],
-      "correct": "Were it not for his help, I would have failed",
-      "explanation": "Condicional invertida formal: <Were it not for> reemplaza a <If it were not for>."
+      "correct": "Hardly",
+      "explanation": "<Hardly ... when> describe dos hechos casi simultáneos."
     },
     {
+      "id": "c1-cleft-01",
       "level": "c1",
-      "question": "Which phrasal verb means \"to include something in a calculation or plan\"?",
-      "options": [
-        "Factor up",
-        "Factor through",
-        "Factor out",
-        "Factor in"
-      ],
-      "correct": "Factor in",
-      "explanation": "<Factor in> significa incluir un elemento en particular al hacer un cálculo o tomar una decisión."
-    },
-    {
-      "level": "c1",
-      "question": "If someone <barks up the wrong tree>, they:",
-      "options": [
-        "are in a forest",
-        "are pursuing a mistaken approach",
-        "are near a dog",
-        "climb trees"
-      ],
-      "correct": "are pursuing a mistaken approach",
-      "explanation": "Este modismo significa hacer una suposición equivocada o seguir una pista falsa."
-    },
-    {
-      "level": "c1",
+      "skill": "cleft",
       "question": "Complete: '___ was John who broke the vase, not his sister.'",
       "options": [
         "It",
-        "This",
         "There",
-        "That"
+        "That",
+        "This"
       ],
       "correct": "It",
-      "explanation": "Oración hendida (cleft sentence) con 'It': It + be + elemento enfatizado + that/who + resto de la oración."
+      "explanation": "Oración escindida (cleft) enfática: It was X who/that..."
     },
     {
+      "id": "c1-cleft-02",
       "level": "c1",
+      "skill": "cleft",
+      "question": "Which sentence emphasises the action itself?",
+      "options": [
+        "What he did was resign on the spot",
+        "He resigned on the spot",
+        "It was on the spot that he resigned",
+        "On the spot he resigned"
+      ],
+      "correct": "What he did was resign on the spot",
+      "explanation": "La cleft con <What...> enfatiza la acción, no el sujeto ni el lugar."
+    },
+    {
+      "id": "c1-cleft-03",
+      "level": "c1",
+      "skill": "cleft",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: '___ we need is a clear deadline.' (cleft enfática)",
+      "correct": "What",
+      "accept": [],
+      "explanation": "La pseudo-cleft empieza con <What> + oración + be."
+    },
+    {
+      "id": "c1-cond-01",
+      "level": "c1",
+      "skill": "mixed-conditionals",
       "question": "Complete: 'If she had studied medicine, she ___ a doctor now.'",
       "options": [
         "would be",
@@ -563,103 +963,589 @@
         "had been"
       ],
       "correct": "would be",
-      "explanation": "Condicional mixto: condición en el pasado (had studied) con resultado en el presente (would be), no 'would have been', que sería un resultado también pasado."
+      "explanation": "Condicional mixta: causa pasada (had studied) → efecto presente (would be)."
     },
     {
+      "id": "c1-cond-02",
       "level": "c1",
+      "skill": "mixed-conditionals",
+      "question": "Which advanced conditional is correct?",
+      "options": [
+        "Had I known, I would have helped",
+        "If I would have known, I would have helped",
+        "If I knew, I would have helped yesterday",
+        "Had I know, I would help"
+      ],
+      "correct": "Had I known, I would have helped",
+      "explanation": "Condicional invertida: <Had> + sujeto + participio, sin <if>."
+    },
+    {
+      "id": "c1-cond-03",
+      "level": "c1",
+      "skill": "mixed-conditionals",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: '___ it not been for your help, we would have failed.'",
+      "correct": "Had",
+      "accept": [],
+      "explanation": "Inversión de <If it had not been for>: Had it not been for..."
+    },
+    {
+      "id": "c1-subj-01",
+      "level": "c1",
+      "skill": "subjunctive-time",
       "question": "Complete: 'It's high time you ___ your homework.'",
       "options": [
-        "do",
         "did",
+        "do",
         "have done",
         "will do"
       ],
       "correct": "did",
-      "explanation": "'It's (high) time' + sujeto + pasado simple expresa que algo debería estar haciéndose ya, aunque hable del presente."
+      "explanation": "<It's high time> va con pasado simple aunque hable del presente."
     },
     {
+      "id": "c1-subj-02",
       "level": "c1",
+      "skill": "subjunctive-time",
+      "question": "Complete: 'I'd rather you ___ tell anyone about this.'",
+      "options": [
+        "didn't",
+        "don't",
+        "won't",
+        "haven't"
+      ],
+      "correct": "didn't",
+      "explanation": "<I'd rather + sujeto> exige pasado simple para hablar del presente."
+    },
+    {
+      "id": "c1-part-01",
+      "level": "c1",
+      "skill": "participle-clauses",
+      "question": "Complete: '___ in 1890, the theatre is the oldest in the city.'",
+      "options": [
+        "Built",
+        "Building",
+        "Having built",
+        "It built"
+      ],
+      "correct": "Built",
+      "explanation": "La cláusula de participio pasivo reduce <which was built>."
+    },
+    {
+      "id": "c1-part-02",
+      "level": "c1",
+      "skill": "participle-clauses",
+      "question": "Complete: '___ finished the report, she went home.'",
+      "options": [
+        "Having",
+        "After have",
+        "Being",
+        "Had"
+      ],
+      "correct": "Having",
+      "explanation": "<Having + participio> marca una acción anterior a la principal."
+    },
+    {
+      "id": "c1-part-03",
+      "level": "c1",
+      "skill": "participle-clauses",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: '___ by the noise, he couldn't concentrate.' (participio de distract)",
+      "correct": "Distracted",
+      "accept": [],
+      "explanation": "El participio pasado en cabeza equivale a <Because he was distracted>."
+    },
+    {
+      "id": "c1-phr-01",
+      "level": "c1",
+      "skill": "phrasal-verbs",
+      "question": "Which phrasal verb means \"to include something in a calculation or plan\"?",
+      "options": [
+        "factor in",
+        "factor out",
+        "count out",
+        "rule out"
+      ],
+      "correct": "factor in",
+      "explanation": "Factor in: tener algo en cuenta al calcular o planificar."
+    },
+    {
+      "id": "c1-phr-02",
+      "level": "c1",
+      "skill": "phrasal-verbs",
       "question": "Which phrasal verb means \"to finally find time to do something after a delay\"?",
       "options": [
-        "Get around to",
-        "Get away with",
-        "Get on with",
-        "Get down to"
+        "get round to",
+        "get away with",
+        "get on with",
+        "get over with"
       ],
-      "correct": "Get around to",
-      "explanation": "<Get around to> significa finalmente encontrar tiempo para hacer algo que se venía posponiendo."
+      "correct": "get round to",
+      "explanation": "Get round to (US: get around to): sacar por fin tiempo para algo."
     },
     {
+      "id": "c1-phr-03",
       "level": "c1",
+      "skill": "phrasal-verbs",
+      "question": "Which phrasal verb means \"to reduce gradually\"?",
+      "options": [
+        "scale back",
+        "scale up",
+        "step up",
+        "build up"
+      ],
+      "correct": "scale back",
+      "explanation": "Scale back: recortar o reducir progresivamente."
+    },
+    {
+      "id": "c1-idi-01",
+      "level": "c1",
+      "skill": "idioms",
+      "question": "If someone <barks up the wrong tree>, they:",
+      "options": [
+        "are pursuing a mistaken course of action",
+        "are complaining loudly",
+        "are asking for help",
+        "are warning others of danger"
+      ],
+      "correct": "are pursuing a mistaken course of action",
+      "explanation": "Bark up the wrong tree: ir por el camino equivocado."
+    },
+    {
+      "id": "c1-idi-02",
+      "level": "c1",
+      "skill": "idioms",
       "question": "If a company <cuts corners>, it:",
       "options": [
-        "reduces costs by lowering quality or safety standards",
-        "expands into new markets",
-        "builds new offices",
-        "increases employee salaries"
+        "does something cheaply, ignoring rules or quality",
+        "reduces its workforce",
+        "enters a new market",
+        "changes direction suddenly"
       ],
-      "correct": "reduces costs by lowering quality or safety standards",
-      "explanation": "Este modismo significa hacer algo de forma más barata o rápida sacrificando calidad o seguridad."
+      "correct": "does something cheaply, ignoring rules or quality",
+      "explanation": "Cut corners: hacer las cosas a medias para ahorrar."
     },
     {
+      "id": "c1-idi-03",
+      "level": "c1",
+      "skill": "idioms",
+      "question": "If a plan is <on the back burner>, it is:",
+      "options": [
+        "postponed and given low priority",
+        "almost ready",
+        "being discussed urgently",
+        "secretly under way"
+      ],
+      "correct": "postponed and given low priority",
+      "explanation": "On the back burner: aparcado, en segundo plano."
+    },
+    {
+      "id": "c1-coll-01",
+      "level": "c1",
+      "skill": "collocations",
+      "question": "Which word collocates with <make>?",
+      "options": [
+        "a decision",
+        "a mistake in homework only",
+        "an effort of will only",
+        "research"
+      ],
+      "correct": "a decision",
+      "explanation": "<Make a decision> es la colocación estándar; con research va <do>."
+    },
+    {
+      "id": "c1-coll-02",
+      "level": "c1",
+      "skill": "collocations",
+      "question": "Complete: 'The report ___ serious concerns about safety.'",
+      "options": [
+        "raises",
+        "lifts",
+        "rises",
+        "grows"
+      ],
+      "correct": "raises",
+      "explanation": "<Raise concerns> es la colocación fija; <rise> es intransitivo."
+    },
+    {
+      "id": "c1-coll-03",
+      "level": "c1",
+      "skill": "collocations",
+      "question": "Complete: 'She ___ a heavy price for that decision.'",
+      "options": [
+        "paid",
+        "made",
+        "took",
+        "gave"
+      ],
+      "correct": "paid",
+      "explanation": "<Pay a heavy price> es la colocación establecida."
+    },
+    {
+      "id": "c1-hedg-01",
+      "level": "c1",
+      "skill": "hedging",
+      "question": "Which sentence hedges the claim most cautiously?",
+      "options": [
+        "The data suggest a possible link",
+        "The data prove a link",
+        "The data show the link clearly",
+        "There is a link"
+      ],
+      "correct": "The data suggest a possible link",
+      "explanation": "<Suggest> + <possible> atenúa la afirmación, propio del registro académico."
+    },
+    {
+      "id": "c1-hedg-02",
+      "level": "c1",
+      "skill": "hedging",
+      "question": "Complete (academic register): 'The results ___ that the treatment is effective.'",
+      "options": [
+        "would appear to indicate",
+        "totally prove",
+        "say for sure",
+        "obviously mean"
+      ],
+      "correct": "would appear to indicate",
+      "explanation": "La escritura académica prefiere fórmulas atenuadas y evita lo tajante."
+    },
+    {
+      "id": "c1-pass-01",
+      "level": "c1",
+      "skill": "passive-advanced",
+      "question": "Complete: 'The minister ___ to have misled parliament.'",
+      "options": [
+        "is alleged",
+        "is alleging",
+        "alleges",
+        "has alleged"
+      ],
+      "correct": "is alleged",
+      "explanation": "Pasiva de reporte: <It is alleged that...> → <He is alleged to have...>."
+    },
+    {
+      "id": "c1-pass-02",
+      "level": "c1",
+      "skill": "passive-advanced",
+      "question": "Complete: 'The scheme ___ to be costing far more than expected.'",
+      "options": [
+        "is thought",
+        "thinks",
+        "is thinking",
+        "has thought"
+      ],
+      "correct": "is thought",
+      "explanation": "Misma estructura de pasiva impersonal con verbos de opinión."
+    },
+    {
+      "id": "c1-pass-03",
+      "level": "c1",
+      "skill": "passive-advanced",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: 'The building is said ___ have been designed by Gaudí.'",
+      "correct": "to",
+      "accept": [],
+      "explanation": "Pasiva de reporte con infinitivo perfecto: is said to have been..."
+    },
+    {
+      "id": "c1-disc-01",
+      "level": "c1",
+      "skill": "discourse-markers",
+      "question": "Complete: '___, the proposal is sound; in practice, it is unworkable.'",
+      "options": [
+        "In principle",
+        "In fact",
+        "Above all",
+        "After all"
+      ],
+      "correct": "In principle",
+      "explanation": "<In principle ... in practice> es el par contrastivo esperado."
+    },
+    {
+      "id": "c1-disc-02",
+      "level": "c1",
+      "skill": "discourse-markers",
+      "question": "Complete: 'The budget was cut; ___, three projects were cancelled.'",
+      "options": [
+        "consequently",
+        "nevertheless",
+        "conversely",
+        "meanwhile"
+      ],
+      "correct": "consequently",
+      "explanation": "<Consequently> marca consecuencia, no contraste ni simultaneidad."
+    },
+    {
+      "id": "c2-inv-01",
       "level": "c2",
+      "skill": "inversion-advanced",
       "question": "Which sentence correctly uses <scarcely ... when> to express immediacy?",
       "options": [
-        "Scarcely the proposal had been submitted when objections arose.",
-        "Scarcely had the proposal been submitted when objections arose.",
-        "Scarcely had the proposal been submitted than objections arose.",
-        "Scarcely the proposal was submitted when objections arose."
+        "Scarcely had we arrived when the storm broke",
+        "Scarcely we had arrived when the storm broke",
+        "Scarcely we arrived than the storm broke",
+        "Scarcely had we arrived than the storm broke"
       ],
-      "correct": "Scarcely had the proposal been submitted when objections arose.",
-      "explanation": "<Scarcely ... when> provoca inversión (<had the proposal been>) y se combina con <when>, no con <than> (que sigue a <no sooner>)."
+      "correct": "Scarcely had we arrived when the storm broke",
+      "explanation": "<Scarcely> exige inversión y se empareja con <when>, no con <than>."
     },
     {
+      "id": "c2-inv-02",
       "level": "c2",
+      "skill": "inversion-advanced",
+      "question": "Complete: 'Under no circumstances ___ the door be left unlocked.'",
+      "options": [
+        "should",
+        "it should",
+        "should it",
+        "would be"
+      ],
+      "correct": "should",
+      "explanation": "Tras una expresión negativa en cabeza se invierte auxiliar y sujeto."
+    },
+    {
+      "id": "c2-inv-03",
+      "level": "c2",
+      "skill": "inversion-advanced",
+      "question": "Complete: 'So compelling ___ her argument that nobody objected.'",
+      "options": [
+        "was",
+        "it was",
+        "that was",
+        "had"
+      ],
+      "correct": "was",
+      "explanation": "<So + adjetivo> en cabeza fuerza inversión: So compelling was her argument..."
+    },
+    {
+      "id": "c2-subj-01",
+      "level": "c2",
+      "skill": "subjunctive",
       "question": "Choose the correct use of the mandative subjunctive in formal writing:",
       "options": [
-        "The board proposed that the CEO resign immediately.",
-        "The board proposed that the CEO resigns immediately.",
-        "The board proposed that the CEO resigned immediately.",
-        "The board proposed that the CEO has resigned immediately."
+        "The board insists that he resign immediately",
+        "The board insists that he resigns immediately",
+        "The board insists that he will resign immediately",
+        "The board insists him to resign immediately"
       ],
-      "correct": "The board proposed that the CEO resign immediately.",
-      "explanation": "Los verbos de propuesta (<propose>, <recommend>, <move>) activan el subjuntivo mandativo: forma base <resign>, no <resigns> ni <resigned>."
+      "correct": "The board insists that he resign immediately",
+      "explanation": "El subjuntivo mandativo usa la forma base del verbo, sin -s."
     },
     {
+      "id": "c2-subj-02",
       "level": "c2",
+      "skill": "subjunctive",
+      "question": "Complete: 'It is essential that every application ___ by Friday.'",
+      "options": [
+        "be submitted",
+        "is submitted",
+        "will be submitted",
+        "submits"
+      ],
+      "correct": "be submitted",
+      "explanation": "Tras <it is essential that> el verbo va en subjuntivo: be submitted."
+    },
+    {
+      "id": "c2-subj-03",
+      "level": "c2",
+      "skill": "subjunctive",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: 'We recommend that the policy ___ reviewed annually.' (subjuntivo)",
+      "correct": "be",
+      "accept": [],
+      "explanation": "El subjuntivo mandativo mantiene <be> invariable tras <recommend that>."
+    },
+    {
+      "id": "c2-conc-01",
+      "level": "c2",
+      "skill": "concessive",
       "question": "When is <albeit> used?",
       "options": [
-        "to agree completely",
-        "to reject an idea, overall speaking",
-        "to introduce a concession",
-        "to start a sentence"
+        "To introduce a concession, usually before an adjective or phrase",
+        "To introduce a cause",
+        "To introduce a consequence",
+        "To introduce an example"
       ],
-      "correct": "to introduce a concession",
-      "explanation": "<Albeit> significa aunque, e introduce una concesión."
+      "correct": "To introduce a concession, usually before an adjective or phrase",
+      "explanation": "<Albeit> = although it is: a modest, albeit welcome, improvement."
     },
     {
+      "id": "c2-conc-02",
       "level": "c2",
-      "question": "If a researcher <delves into> a topic, they:",
+      "skill": "concessive",
+      "question": "Complete: '___ the evidence is thin, the conclusion remains plausible.'",
       "options": [
-        "Investigate or study it thoroughly and in depth",
-        "Avoid discussing it altogether",
-        "Summarize it briefly",
-        "Criticize it publicly"
+        "Granted that",
+        "Given that",
+        "Seeing that",
+        "Now that"
       ],
-      "correct": "Investigate or study it thoroughly and in depth",
-      "explanation": "Delve into significa profundizar o investigar algo con detenimiento."
+      "correct": "Granted that",
+      "explanation": "<Granted that> concede el punto; las otras introducen causa."
     },
     {
+      "id": "c2-conc-03",
       "level": "c2",
+      "skill": "concessive",
+      "question": "Complete: 'Much ___ I admire her work, I cannot support this proposal.'",
+      "options": [
+        "as",
+        "that",
+        "though it",
+        "although"
+      ],
+      "correct": "as",
+      "explanation": "<Much as> + oración es la estructura concesiva enfática."
+    },
+    {
+      "id": "c2-idi-01",
+      "level": "c2",
+      "skill": "idioms",
       "question": "What does <a moot point> mean?",
       "options": [
-        "a legal term",
-        "a strong opinion",
-        "a debatable or irrelevant issue",
-        "an important argument"
+        "An issue that is debatable or no longer relevant",
+        "A decisive argument",
+        "A minor detail",
+        "A formal objection"
       ],
-      "correct": "a debatable or irrelevant issue",
-      "explanation": "Este modismo describe un punto que ya no es relevante o que es puramente teórico."
+      "correct": "An issue that is debatable or no longer relevant",
+      "explanation": "Moot point: cuestión discutible o ya irrelevante."
+    },
+    {
+      "id": "c2-idi-02",
+      "level": "c2",
+      "skill": "idioms",
+      "question": "If a claim <does not hold water>, it:",
+      "options": [
+        "cannot withstand scrutiny",
+        "is difficult to translate",
+        "has not been published",
+        "is deliberately vague"
+      ],
+      "correct": "cannot withstand scrutiny",
+      "explanation": "Hold water: sostenerse ante el examen crítico."
+    },
+    {
+      "id": "c2-idi-03",
+      "level": "c2",
+      "skill": "idioms",
+      "question": "If someone <damns something with faint praise>, they:",
+      "options": [
+        "criticise it by praising it only mildly",
+        "condemn it outright",
+        "defend it passionately",
+        "ignore it completely"
+      ],
+      "correct": "criticise it by praising it only mildly",
+      "explanation": "Damn with faint praise: criticar mediante un elogio tibio."
+    },
+    {
+      "id": "c2-reg-01",
+      "level": "c2",
+      "skill": "register",
+      "question": "Which is the most formal way to introduce a limitation?",
+      "options": [
+        "It should be noted, however, that the sample was small",
+        "But the sample was pretty small",
+        "The sample was small though",
+        "Small sample, obviously"
+      ],
+      "correct": "It should be noted, however, that the sample was small",
+      "explanation": "El registro formal prefiere la pasiva impersonal y evita coloquialismos."
+    },
+    {
+      "id": "c2-reg-02",
+      "level": "c2",
+      "skill": "register",
+      "question": "Which verb is most appropriate in academic prose?",
+      "options": [
+        "ascertain",
+        "find out",
+        "dig up",
+        "suss out"
+      ],
+      "correct": "ascertain",
+      "explanation": "<Ascertain> es el equivalente formal de <find out>."
+    },
+    {
+      "id": "c2-coll-01",
+      "level": "c2",
+      "skill": "collocations",
+      "question": "If a researcher <delves into> a topic, they:",
+      "options": [
+        "examine it in depth",
+        "mention it briefly",
+        "reject it",
+        "summarise it"
+      ],
+      "correct": "examine it in depth",
+      "explanation": "Delve into: profundizar, escarbar en un tema."
+    },
+    {
+      "id": "c2-coll-02",
+      "level": "c2",
+      "skill": "collocations",
+      "question": "Complete: 'The findings ___ serious doubt on the earlier study.'",
+      "options": [
+        "cast",
+        "throw away",
+        "put",
+        "give"
+      ],
+      "correct": "cast",
+      "explanation": "<Cast doubt on> es la colocación fija."
+    },
+    {
+      "id": "c2-coll-03",
+      "level": "c2",
+      "skill": "collocations",
+      "question": "Complete: 'The two accounts are difficult to ___.'",
+      "options": [
+        "reconcile",
+        "reunite",
+        "recover",
+        "reconsider"
+      ],
+      "correct": "reconcile",
+      "explanation": "<Reconcile accounts/versions>: hacerlas compatibles entre sí."
+    },
+    {
+      "id": "c2-disc-01",
+      "level": "c2",
+      "skill": "discourse-markers",
+      "question": "Complete: 'The policy is costly; ___, it is the only viable option.'",
+      "options": [
+        "that said",
+        "thereby",
+        "hence",
+        "insofar as"
+      ],
+      "correct": "that said",
+      "explanation": "<That said> introduce una concesión tras una crítica."
+    },
+    {
+      "id": "c2-disc-02",
+      "level": "c2",
+      "skill": "discourse-markers",
+      "question": "Complete: 'The rule applies ___ the parties have agreed otherwise.'",
+      "options": [
+        "unless and until",
+        "as long as not",
+        "provided that not",
+        "in case not"
+      ],
+      "correct": "unless and until",
+      "explanation": "<Unless and until> es la fórmula fija del registro jurídico-formal."
+    },
+    {
+      "id": "c2-disc-03",
+      "level": "c2",
+      "skill": "discourse-markers",
+      "type": "cloze",
+      "question": "Escribe UNA palabra: 'The scheme was, ___ large, a success.' (= en general)",
+      "correct": "by",
+      "accept": [],
+      "explanation": "<By and large> significa <en términos generales>."
     }
   ]
 }

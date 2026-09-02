@@ -18,36 +18,108 @@ var lpOnboarding = (function () {
   var PLACEMENT_REQUEST_KEY = 'lp-placement-request';
   var LEVEL_STEP = 3;
 
+  // Iconografía del flujo — SVG inline (24×24, trazo currentColor). Cada
+  // pantalla y cada fila arrancan con un icono en la MISMA columna: es lo que
+  // hace que todo el flujo se lea cuadriculado en vez de como texto suelto.
+  // No se usa una librería: son nueve trazos y este archivo es un script
+  // clásico sin bundler propio.
+  var ICONS = {
+    growth: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/><path d="M15 8h4v4"/>',
+    layers: '<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>',
+    compass: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5 5-2z"/>',
+    link: '<path d="M10 13a5 5 0 007 0l2-2a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-2 2a5 5 0 007 7l1-1"/>',
+    leaf: '<path d="M4 20c0-8 5-13 15-14 0 10-5 15-13 15H4v-1z"/><path d="M8 16c2-3 4-5 7-6"/>',
+    chat: '<path d="M20 15a3 3 0 01-3 3H8l-4 3V6a3 3 0 013-3h10a3 3 0 013 3v9z"/><path d="M8 9h8M8 13h5"/>',
+    users: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0"/><path d="M16 6a3 3 0 010 6"/><path d="M18 14a6 6 0 013 5"/>',
+    star: '<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8L12 3.5z"/>',
+    doc: '<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    chevron: '<path d="M9 6l6 6-6 6"/>',
+    shield: '<path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6l7-3z"/><path d="M9.5 12l1.8 1.8 3.4-3.6"/>',
+    target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/>',
+    flag: '<path d="M6 21V4"/><path d="M6 5h11l-2 3.5L17 12H6"/>',
+  };
+
+  function icon(name, cls) {
+    return (
+      '<svg class="' + (cls || 'ob-icon') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+      ICONS[name] +
+      '</svg>'
+    );
+  }
+
+  /**
+   * Cabecera común de TODAS las pantallas: tolva de icono (columna fija de
+   * 44px), título con regla de acento debajo y texto de apoyo alineado con el
+   * título — no con el icono. Todas las pantallas comparten el mismo módulo
+   * para que el título caiga siempre en la misma línea vertical.
+   */
+  function stepHeader(iconName, title, text, tone) {
+    return (
+      '<div class="ob-head">' +
+      '<span class="ob-head__icon' + (tone ? ' ob-head__icon--' + tone : '') + '">' + icon(iconName, 'ob-icon') + '</span>' +
+      '<div class="ob-head__text">' +
+      '<h2 id="onboardingTitle">' + title + '</h2>' +
+      (text ? '<p class="onboarding-body-text">' + text + '</p>' : '') +
+      '</div></div>'
+    );
+  }
+
+  /** Franja de cierre con icono: cierra la rejilla por abajo en cada pantalla. */
+  function noteHtml(iconName, text) {
+    return '<p class="ob-note">' + icon(iconName, 'ob-icon ob-icon--sm') + '<span>' + text + '</span></p>';
+  }
+
   // Decisión de producto: el self-report solo se acepta tal cual hasta A2. De B1
   // en adelante hay que demostrarlo — FluentFlow vende profundidad real en
   // idioms/phrasal verbs, y alguien puede "sentirse B2" leyendo bien sin conocer
-  // ni la mitad del vocabulario específico que le tocaría. Pedir B1 o B2 no
+  // ni la mitad del vocabulario específico que le tocaría. Pedir B1 o más no
   // escribe `lp-level`: escribe PLACEMENT_REQUEST_KEY y manda al examen, que es
-  // quien otorga el nivel. Reprobarlo o abandonarlo deja el nivel ganado, no el
-  // pedido (ver lp-placement-test.js § commitLevel).
+  // quien otorga el nivel. Reprobarlo otorga el nivel más alto que sí se
+  // demostró en el intento (ver lp-placement-test.js § commitLevel).
+  //
+  // C2 no se ofrece: hoy solo FluentFlow tiene catálogo C2, así que otorgarlo
+  // dejaría HubFlow y LyricFlow sin contenido en el nivel activo. El examen sí
+  // sabe validarlo — se usa como sonda sobre C1. Ver REQUESTABLE_LEVELS en
+  // scripts/lp-placement-scoring.js.
   var LEVEL_OPTIONS = [
-    { value: 'a1', label: 'A1', hint: 'Recién empiezo — nada o casi nada de inglés' },
-    { value: 'a2', label: 'A2', hint: 'Puedo presentarme y hacer preguntas simples' },
+    { value: 'a1', label: 'A1', hint: 'Recién empiezo — nada o casi nada de inglés', icon: 'leaf', tone: 'blue' },
+    { value: 'a2', label: 'A2', hint: 'Puedo presentarme y hacer preguntas simples', icon: 'chat', tone: 'green' },
     {
       value: 'b1',
       label: 'B1',
       hint: 'Entiendo conversaciones cotidianas, me trabo con temas complejos',
-      exam: true,
+      icon: 'users',
+      tone: 'amber',
     },
     {
       value: 'b2',
       label: 'B2',
       hint: 'Me manejo con soltura, incluso en temas complejos',
-      exam: true,
+      icon: 'star',
+      tone: 'purple',
+    },
+    {
+      value: 'c1',
+      label: 'C1',
+      hint: 'Me expreso con naturalidad, incluso en registro formal',
+      icon: 'star',
+      tone: 'purple',
     },
   ];
 
-  /** B1 y B2 no se auto-reportan: hay que aprobar el examen para que se otorguen. */
+  /** Únicos niveles que se aceptan tal cual se declaran: no hay nada que demostrar. */
+  var SELF_REPORT_LEVELS = ['a1', 'a2'];
+
+  /**
+   * De B1 en adelante hay que aprobar el examen para que el nivel se otorgue.
+   * Se deriva de SELF_REPORT_LEVELS en vez de marcarse opción por opción: así
+   * agregar un nivel a la encuesta no puede colarlo sin examen por olvidar una
+   * bandera, que es el único modo en que este gate se rompe en silencio.
+   */
   function requiresExam(level) {
-    for (var i = 0; i < LEVEL_OPTIONS.length; i++) {
-      if (LEVEL_OPTIONS[i].value === level) return !!LEVEL_OPTIONS[i].exam;
-    }
-    return false;
+    return !!level && SELF_REPORT_LEVELS.indexOf(level) === -1;
   }
 
   var GOAL_OPTIONS = [
@@ -301,52 +373,78 @@ var lpOnboarding = (function () {
     function renderWelcome1(body) {
       body.insertAdjacentHTML(
         'beforeend',
-        '<div class="onboarding-badge" aria-hidden="true">L</div>' +
-          '<h2 id="onboardingTitle">Una plataforma, tres formas de aprender idiomas</h2>' +
-          '<p class="onboarding-body-text">Estructura, práctica y música, conectadas por tu nivel real — todo gratis, sin registro obligatorio.</p>' +
+        stepHeader(
+          'layers',
+          'Una plataforma, tres formas de aprender idiomas',
+          'Estructura, práctica y música, conectadas por tu nivel real — todo gratis, sin registro obligatorio.'
+        ) +
           '<div class="onboarding-modules">' +
           '<span class="onboarding-module onboarding-module--fluent">FluentFlow</span>' +
           '<span class="onboarding-module onboarding-module--hub">HubFlow</span>' +
           '<span class="onboarding-module onboarding-module--lyric">LyricFlow</span>' +
-          '</div>'
+          '</div>' +
+          noteHtml('shield', 'Sin registro obligatorio: tu progreso se guarda en este dispositivo.')
       );
     }
 
     function renderWelcome2(body) {
       body.insertAdjacentHTML(
         'beforeend',
-        '<h2 id="onboardingTitle">¿Por qué tres módulos y no uno?</h2>' +
-          '<p class="onboarding-body-text">Cada una cubre algo distinto: <strong>FluentFlow</strong> te da el curso estructurado, ' +
-          '<strong>HubFlow</strong> la práctica flexible de gramática, y <strong>LyricFlow</strong> la inmersión con canciones. ' +
-          'Juntas cubren más que cualquiera por separado.</p>'
+        stepHeader('compass', '¿Por qué tres módulos y no uno?', 'Cada uno cubre algo que los otros no.') +
+          '<ul class="ob-list">' +
+          '<li class="ob-list__item"><span class="ob-list__icon ob-list__icon--purple">' + icon('layers', 'ob-icon') + '</span>' +
+          '<span class="ob-list__text"><strong>FluentFlow</strong><span>El curso estructurado, nivel por nivel</span></span></li>' +
+          '<li class="ob-list__item"><span class="ob-list__icon ob-list__icon--amber">' + icon('target', 'ob-icon') + '</span>' +
+          '<span class="ob-list__text"><strong>HubFlow</strong><span>Práctica flexible de gramática y vocabulario</span></span></li>' +
+          '<li class="ob-list__item"><span class="ob-list__icon ob-list__icon--teal">' + icon('star', 'ob-icon') + '</span>' +
+          '<span class="ob-list__text"><strong>LyricFlow</strong><span>Inmersión con canciones reales</span></span></li>' +
+          '</ul>'
       );
     }
 
     function renderWelcome3(body) {
       body.insertAdjacentHTML(
         'beforeend',
-        '<h2 id="onboardingTitle">Tu nivel se comparte entre las tres</h2>' +
-          '<p class="onboarding-body-text">Avanzar en los tres módulos sube tu nivel en conjunto — no hace falta repetir el mismo contenido tres veces. ' +
-          '¿Ya sabes algo de inglés? En la próxima pantalla lo ajustamos.</p>'
+        stepHeader(
+          'link',
+          'Tu nivel se comparte entre las tres',
+          'Avanzar en los tres módulos sube tu nivel en conjunto — no hace falta repetir el mismo contenido tres veces.'
+        ) + noteHtml('growth', '¿Ya sabes algo de inglés? En la próxima pantalla lo ajustamos.')
       );
     }
 
     function renderLevelStep(body) {
       body.insertAdjacentHTML(
         'beforeend',
-        '<h2 id="onboardingTitle">¿Cuál es tu nivel de inglés hoy?</h2>' +
-          '<p class="onboarding-body-text">Elige el que más se te parezca. ' +
-          'De B1 en adelante te pedimos un examen corto para confirmarlo.</p>'
+        stepHeader(
+          'growth',
+          '¿Cuál es tu nivel de inglés hoy?',
+          'Elige el que más se te parezca. De B1 en adelante te pedimos un examen corto para confirmarlo.'
+        )
       );
       var list = document.createElement('div');
       list.className = 'onboarding-options onboarding-options--level';
       LEVEL_OPTIONS.forEach(function (opt) {
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'onboarding-option' + (state.level === opt.value ? ' is-selected' : '');
+        var selected = state.level === opt.value;
+        btn.className = 'onboarding-option' + (selected ? ' is-selected' : '');
+        btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        // Rejilla fija de la fila: icono (44px) · texto (1fr) · distintivo ·
+        // estado (24px). Todas las opciones comparten columnas, así que los
+        // niveles, los hints y los chevrones quedan alineados verticalmente.
         btn.innerHTML =
-          '<strong>' + opt.label + '</strong><span>' + opt.hint +
-          (opt.exam ? ' <em class="onboarding-option__exam">Requiere examen</em>' : '') +
+          '<span class="ob-option__icon ob-option__icon--' + opt.tone + '">' + icon(opt.icon, 'ob-icon') + '</span>' +
+          '<span class="ob-option__text">' +
+          '<span class="ob-option__label">' + opt.label + '</span>' +
+          '<span class="ob-option__hint">' + opt.hint + '</span>' +
+          '</span>' +
+          (requiresExam(opt.value)
+            ? '<span class="ob-option__badge">' + icon('doc', 'ob-icon ob-icon--sm') + 'Requiere examen</span>'
+            : '') +
+          '<span class="ob-option__state" aria-hidden="true">' +
+          icon('chevron', 'ob-icon ob-icon--sm ob-option__chevron') +
+          icon('check', 'ob-icon ob-icon--sm ob-option__check') +
           '</span>';
         btn.addEventListener('click', function () {
           state.level = opt.value;
@@ -357,6 +455,10 @@ var lpOnboarding = (function () {
       });
       attachRoving(list, '.onboarding-option', { prev: 'ArrowUp', next: 'ArrowDown' });
       body.appendChild(list);
+      body.insertAdjacentHTML(
+        'beforeend',
+        noteHtml('shield', 'Tu nivel nos ayuda a personalizar tu experiencia y recomendarte el mejor contenido.')
+      );
     }
 
     function chipGroup(options, selectedValue, onPick) {
@@ -383,8 +485,7 @@ var lpOnboarding = (function () {
     function renderGoalMotiveStep(body) {
       body.insertAdjacentHTML(
         'beforeend',
-        '<h2 id="onboardingTitle">Dos preguntas rápidas (opcional)</h2>' +
-          '<p class="onboarding-body-text">Sirven para personalizar tu experiencia más adelante.</p>' +
+        stepHeader('target', 'Dos preguntas rápidas (opcional)', 'Sirven para personalizar tu experiencia más adelante.') +
           '<p class="onboarding-label">Meta diaria</p>'
       );
       body.appendChild(
@@ -418,11 +519,11 @@ var lpOnboarding = (function () {
           'que ya tengas y puedes volver a intentarlo cuando quieras.'
         : 'Tu contenido ya está ajustado a nivel ' +
           (state.level || 'a1').toUpperCase() +
-          '. Empieza con una primera actividad; tu progreso se guarda automáticamente en este dispositivo.';
+          '. Empieza con una primera actividad cuando quieras.';
       body.insertAdjacentHTML(
         'beforeend',
-        '<h2 id="onboardingTitle">Listo — empecemos</h2>' +
-          '<p class="onboarding-body-text">' + readyCopy + '</p>'
+        stepHeader(needsExam ? 'doc' : 'flag', 'Listo — empecemos', readyCopy, needsExam ? 'amber' : 'green') +
+          noteHtml('shield', 'Tu progreso se guarda automáticamente en este dispositivo.')
       );
 
       // El CTA y el link secundario van al pie fijo (mismo sitio que

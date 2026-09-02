@@ -9,13 +9,18 @@ body.onboarding-open { overflow: hidden; }
 
 .onboarding-card {
   /* Altura FIJA, no un rango — todas las pantallas del flujo deben medir
-     igual (pedido explícito del usuario). 480px es el mínimo que sigue
-     cubriendo la pantalla más alta (nivel, con 4 opciones de dos líneas)
-     sin scroll una vez comprimida (ver .onboarding-body:has(.onboarding-
-     options--level) más abajo) — bajarlo más obliga a scroll ahí. Las
-     pantallas más cortas quedan con aire abajo, pero mucho menos que antes. */
+     igual (pedido explícito del usuario). El valor sube de 480 a 552 porque
+     la pantalla de nivel pasó a filas con icono + distintivo + estado, que
+     ya no caben comprimidas sin volver a recortar texto. Las pantallas más
+     cortas rellenan el sobrante con aire, no con contenido estirado.
+
+     --ob-gutter es la columna de margen ÚNICA del flujo: cabecera, cuerpo y
+     pie la comparten, así que el borde izquierdo del progreso, del título,
+     de las opciones y del CTA cae en la misma línea vertical. */
+  --ob-gutter: 24px;
+  --ob-lead: 44px; /* columna del icono: fija en cabecera y en cada fila */
   position: relative; width: min(100%, 460px);
-  height: min(480px, calc(100svh - 40px));
+  height: min(552px, calc(100svh - 40px));
   display: flex; flex-direction: column;
   border: 1px solid var(--lp-border); border-radius: var(--lp-radius-lg);
   background: var(--lp-bg-paper, var(--lp-surface));
@@ -28,8 +33,8 @@ body.onboarding-open { overflow: hidden; }
 
 .onboarding-body {
   flex: 1 1 auto; min-height: 0; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 14px;
-  padding: 18px 26px 4px;
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 20px var(--ob-gutter) 4px;
   transition: opacity 0.16s ease, transform 0.16s ease;
   opacity: 1; transform: translateY(0);
 }
@@ -38,17 +43,59 @@ body.onboarding-open { overflow: hidden; }
 /* Cabecera fija: atrás (opcional) + barra de progreso segmentada — patrón
    estándar de onboarding moderno (Cash App, Robinhood, Coinbase, etc.):
    cada segmento representa una pantalla, se rellena a medida que se avanza. */
-.onboarding-topbar { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 16px 20px 0; }
+.onboarding-topbar { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 16px var(--ob-gutter) 0; }
 
 .onboarding-progress { flex: 1 1 auto; display: flex; gap: 6px; }
 .onboarding-progress__dot { flex: 1 1 0; height: 4px; border-radius: var(--lp-radius-full); background: var(--lp-border-strong); transition: background-color 0.2s ease; }
 .onboarding-progress__dot.is-active { background: var(--lp-accent); }
 
-.onboarding-badge {
-  width: 48px; height: 48px; display: grid; place-items: center; border-radius: var(--lp-radius-md);
-  background: var(--lp-accent); color: var(--lp-on-accent); font-size: 1.2rem; font-weight: 700;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--lp-accent) 22%, transparent);
+/* --- Sistema de iconos ------------------------------------------------- */
+.ob-icon { width: 22px; height: 22px; flex: 0 0 auto; }
+.ob-icon--sm { width: 16px; height: 16px; }
+
+/* Tolva de icono: mismo tamaño en la cabecera y en cada fila de opción, con
+   fondo tintado por tono. Es la columna que alinea todo el flujo. */
+.ob-head__icon,
+.ob-option__icon,
+.ob-list__icon {
+  width: var(--ob-lead); height: var(--ob-lead); flex: 0 0 auto;
+  display: grid; place-items: center; border-radius: 50%;
+  background: var(--lp-accent-soft); color: var(--lp-accent);
 }
+.ob-head__icon--green, .ob-option__icon--green, .ob-list__icon--green { background: var(--lp-cat-green-soft); color: var(--lp-cat-green); }
+.ob-head__icon--amber, .ob-option__icon--amber, .ob-list__icon--amber { background: var(--lp-cat-amber-soft); color: var(--lp-cat-amber); }
+.ob-head__icon--purple, .ob-option__icon--purple, .ob-list__icon--purple { background: var(--lp-cat-purple-soft); color: var(--lp-cat-purple); }
+.ob-head__icon--teal, .ob-option__icon--teal, .ob-list__icon--teal { background: var(--lp-cat-teal-soft); color: var(--lp-cat-teal); }
+.ob-head__icon--blue, .ob-option__icon--blue, .ob-list__icon--blue { background: var(--lp-cat-blue-soft); color: var(--lp-cat-blue); }
+
+/* Cabecera: icono | (título + regla de acento + texto). El texto de apoyo se
+   alinea con el título, no con el icono — de ahí la rejilla de dos columnas
+   en vez de un simple flex. */
+.ob-head { display: grid; grid-template-columns: var(--ob-lead) 1fr; gap: 14px; align-items: start; }
+.ob-head__text { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ob-head__text h2 { position: relative; padding-bottom: 10px; }
+.ob-head__text h2::after {
+  content: ''; position: absolute; left: 0; bottom: 0;
+  width: 40px; height: 3px; border-radius: var(--lp-radius-full); background: var(--lp-accent);
+}
+
+/* Franja de cierre: cierra la rejilla por abajo y da al bloque de contenido
+   un borde inferior visible, igual que la cabecera se lo da arriba. */
+.ob-note {
+  display: flex; align-items: flex-start; gap: 8px; margin: auto 0 0;
+  padding: 10px 12px; border-radius: var(--lp-radius-md);
+  background: color-mix(in srgb, var(--lp-accent) 7%, var(--lp-surface));
+  color: var(--lp-muted); font-size: 0.76rem; line-height: 1.45;
+}
+.ob-note .ob-icon { color: var(--lp-accent); margin-top: 1px; }
+
+/* Lista de módulos (pantalla 2): misma rejilla que las opciones, sin ser
+   interactiva. */
+.ob-list { list-style: none; display: grid; gap: 8px; margin: 0; padding: 0; }
+.ob-list__item { display: grid; grid-template-columns: var(--ob-lead) 1fr; gap: 12px; align-items: center; }
+.ob-list__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ob-list__text strong { color: var(--lp-ink); font-size: 0.88rem; font-weight: 600; }
+.ob-list__text span { color: var(--lp-muted); font-size: 0.76rem; line-height: 1.4; }
 
 .onboarding-card h2 {
   margin: 0; font-family: var(--lp-font-display); font-size: 1.4rem; font-weight: 500; line-height: 1.25;
@@ -69,42 +116,72 @@ body.onboarding-open { overflow: hidden; }
 .onboarding-module--hub { background: var(--lp-cat-amber); }
 .onboarding-module--lyric { background: var(--lp-cat-teal); }
 
-.onboarding-options { display: grid; gap: 8px; margin-top: 4px; }
+.onboarding-options { display: grid; gap: 8px; margin-top: 0; }
+
+/* Fila de opción: icono | texto | distintivo | estado. Las cuatro columnas
+   son fijas salvo el texto, así que niveles, hints, pastillas y chevrones
+   quedan alineados entre filas. El estado ocupa sitio SIEMPRE (chevron o
+   check en la misma caja) para que seleccionar no mueva nada de lugar. */
 .onboarding-option {
-  display: flex; flex-direction: column; gap: 2px; text-align: left; min-height: 52px;
+  display: grid; grid-template-columns: var(--ob-lead) minmax(0, 1fr) auto 20px;
+  align-items: center; gap: 12px; text-align: left; min-height: 64px;
   padding: 10px 14px; border: 1px solid var(--lp-border); border-radius: var(--lp-radius-md);
-  background: var(--lp-surface); cursor: pointer; transition: border-color 0.15s ease, transform 0.1s ease;
+  background: var(--lp-surface); cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
 }
 .onboarding-option:hover { border-color: var(--lp-accent); }
 .onboarding-option:active { transform: scale(0.99); }
-.onboarding-option strong { color: var(--lp-ink); font-size: 0.9rem; font-weight: 600; }
-.onboarding-option span { color: var(--lp-muted); font-size: 0.76rem; }
-.onboarding-option--muted { align-items: center; text-align: center; background: transparent; border-style: dashed; }
-.onboarding-option--muted strong { font-weight: 500; color: var(--lp-muted); }
-.onboarding-option.is-selected { border-color: var(--lp-accent); background: var(--lp-accent-soft); }
+.ob-option__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ob-option__label { color: var(--lp-ink); font-size: 1rem; font-weight: 700; line-height: 1.2; }
+.ob-option__hint { color: var(--lp-muted); font-size: 0.76rem; line-height: 1.35; }
+.ob-option__state { display: grid; place-items: center; width: 20px; height: 20px; color: var(--lp-muted); }
+.ob-option__state .ob-option__check { display: none; }
+
+.onboarding-option.is-selected {
+  border-color: var(--lp-accent); background: var(--lp-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--lp-accent);
+}
+.onboarding-option.is-selected .ob-option__label { color: var(--lp-accent); }
+.onboarding-option.is-selected .ob-option__chevron { display: none; }
+.onboarding-option.is-selected .ob-option__state {
+  display: grid; border-radius: 50%; background: var(--lp-accent); color: var(--lp-on-accent);
+}
+.onboarding-option.is-selected .ob-option__check { display: block; }
+
 /* Distintivo de los niveles que no se auto-reportan (B1/B2): avisa del examen
-   antes de elegir, no después. Va dentro del <span> del hint para no sumar
-   una tercera línea a la opción (ver nota de altura más abajo). */
-.onboarding-option__exam {
-  font-style: normal; font-size: 0.68rem; font-weight: 600; white-space: nowrap;
-  color: var(--lp-accent); border: 1px solid var(--lp-accent); border-radius: 999px;
-  padding: 0 6px; margin-left: 4px;
+   antes de elegir, no después. Vive en su propia columna de la rejilla para
+   no empujar el hint ni sumar una línea a la fila. */
+.ob-option__badge {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  padding: 5px 10px; border-radius: var(--lp-radius-full);
+  border: 1px solid color-mix(in srgb, var(--lp-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--lp-accent) 8%, var(--lp-surface));
+  color: var(--lp-accent); font-size: 0.68rem; font-weight: 600;
 }
 
 /* Pantalla meta/motivo: dos grupos de chips añaden más filas que el resto
    de pantallas — se recorta el gap para igualar la altura del paso final. */
 .onboarding-body:has(.onboarding-chips) { gap: 12px; }
 
-/* Pantalla de nivel: 4 opciones de dos líneas (A1/A2/B1/B2) son el
-   contenido más alto de todo el flujo — se comprime lo justo para caber en
-   la misma altura fija que el resto sin volver a truncar el texto (eso ya
-   se probó y se descartó: ver commit anterior). Solo se ajustan paddings/
-   gaps, el texto sigue envolviendo en dos líneas completas. */
-.onboarding-options--level .onboarding-option span { white-space: normal; }
-.onboarding-body:has(.onboarding-options--level) { gap: 8px; }
-.onboarding-body:has(.onboarding-options--level) h2 { font-size: 1.2rem; }
-.onboarding-options--level { gap: 5px; margin-top: 2px; }
-.onboarding-options--level .onboarding-option { min-height: 0; padding: 6px 14px; gap: 1px; }
+/* Pantalla de nivel: es la más alta del flujo (4 filas + franja de cierre).
+   Con la altura de tarjeta actual entra sin scroll; solo se recorta el aire
+   entre bloques para no depender de un solo píxel de margen. */
+.onboarding-body:has(.onboarding-options--level) { gap: 12px; }
+.onboarding-body:has(.onboarding-options--level) h2 { font-size: 1.25rem; }
+
+/* En pantallas estrechas la pastilla "Requiere examen" no cabe junto al hint:
+   baja a una segunda fila bajo el texto, manteniendo la columna del icono. */
+@media (max-width: 420px) {
+  .onboarding-option {
+    grid-template-columns: var(--ob-lead) minmax(0, 1fr) 20px;
+    grid-template-areas: 'icon text state' '. badge .';
+    row-gap: 6px;
+  }
+  .ob-option__icon { grid-area: icon; }
+  .ob-option__text { grid-area: text; }
+  .ob-option__badge { grid-area: badge; justify-self: start; }
+  .ob-option__state { grid-area: state; }
+}
 
 .onboarding-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
 .onboarding-chip {
@@ -155,7 +232,7 @@ body.onboarding-open { overflow: hidden; }
    visualmente con la acción primaria. */
 .onboarding-footer {
   flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 14px 20px 20px;
+  padding: 16px var(--ob-gutter) 20px;
 }
 
 .onboarding-next,
@@ -178,8 +255,9 @@ body.onboarding-open { overflow: hidden; }
 @keyframes onboardingSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (max-width: 480px) {
-  .onboarding-body { padding: 16px 18px 4px; }
-  .onboarding-topbar { padding: 14px 18px 0; }
-  .onboarding-footer { padding: 12px 18px 18px; }
+  .onboarding-card { --ob-gutter: 18px; --ob-lead: 40px; }
+  .onboarding-body { padding: 16px var(--ob-gutter) 4px; }
+  .onboarding-topbar { padding: 14px var(--ob-gutter) 0; }
+  .onboarding-footer { padding: 14px var(--ob-gutter) 18px; }
   .onboarding-card h2 { font-size: 1.2rem; }
 }
