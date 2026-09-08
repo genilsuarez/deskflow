@@ -78,8 +78,7 @@
 .flow-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; list-style: none; margin: 0; padding: 0; }
 .flow-tile {
   display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
-  padding: 12px 8px; border: 1px solid var(--lp-border); border-radius: var(--lp-radius-md);
-  background: var(--lp-surface);
+  padding: 12px 8px;
 }
 .flow-tile strong { color: var(--lp-ink); font-size: 0.82rem; font-weight: 700; line-height: 1.2; }
 .flow-tile span { color: var(--lp-muted); font-size: 0.7rem; line-height: 1.3; }
