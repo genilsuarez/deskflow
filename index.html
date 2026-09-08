@@ -133,6 +133,11 @@
           <span><strong id="topbarCreditsValue">0</strong> disponibles</span>
         </div>
         <button class="lp-icon-btn topbar-help" type="button" id="topbarHelpBtn" aria-label="Ayuda">?</button>
+        <div class="topbar-theme" id="topbarThemeSwitch" role="group" aria-label="Tema">
+          <button class="topbar-theme__btn" type="button" id="topbarThemeLightBtn" aria-label="Tema claro" aria-pressed="false"><span class="nav-icon" data-lp-icon="sun" aria-hidden="true"></span></button>
+          <button class="topbar-theme__btn" type="button" id="topbarThemeDarkBtn" aria-label="Tema oscuro" aria-pressed="false"><span class="nav-icon" data-lp-icon="moon" aria-hidden="true"></span></button>
+        </div>
+        <span class="topbar-divider" aria-hidden="true"></span>
         <div class="topbar-user-menu" id="topbarUserMenu">
           <button class="topbar-user" type="button" id="topbarUserBtn" aria-haspopup="true" aria-expanded="false" aria-controls="topbarUserDropdown">
             <span class="topbar-user__avatar" id="topbarUserInitials" aria-hidden="true">?</span>
@@ -143,10 +148,6 @@
             <button class="topbar-user__item" type="button" id="topbarUserSettingsItem" role="menuitem">
               <span class="nav-icon" data-lp-icon="settings" aria-hidden="true"></span>
               <span>Ajustes</span>
-            </button>
-            <button class="topbar-user__item theme-toggle" type="button" role="menuitem">
-              <span class="nav-icon" aria-hidden="true"></span>
-              <span class="theme-toggle__label">Modo oscuro</span>
             </button>
             <button class="topbar-user__item" type="button" id="topbarUserLoginItem" role="menuitem" hidden>
               <span class="nav-icon" data-lp-icon="user" aria-hidden="true"></span>

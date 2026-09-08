@@ -728,6 +728,62 @@ body {
   font-size: 0.86rem;
 }
 
+/* Interruptor sol/luna segmentado — solo desktop; en mobile el tema vive
+   dentro del menú de cuenta para no sumar un botón más a una barra angosta. */
+.topbar-theme {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  height: var(--lp-navbtn-size);
+  padding: 3px;
+  box-sizing: border-box;
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-radius-full);
+  background: var(--lp-surface);
+  box-shadow: var(--lp-shadow-xs);
+}
+.topbar-theme__btn {
+  display: grid;
+  place-items: center;
+  width: calc(var(--lp-navbtn-size) - 8px);
+  height: calc(var(--lp-navbtn-size) - 8px);
+  border: none;
+  border-radius: var(--lp-radius-full);
+  background: none;
+  color: var(--lp-muted);
+  cursor: pointer;
+  transition: background 0.15s var(--lp-ease), color 0.15s var(--lp-ease);
+}
+.topbar-theme__btn:hover {
+  color: var(--lp-ink);
+}
+.topbar-theme__btn:focus-visible {
+  outline: 2px solid var(--lp-accent);
+  outline-offset: 1px;
+}
+.topbar-theme__btn .lp-nav-svg {
+  width: 16px;
+  height: 16px;
+}
+.topbar-theme__btn[aria-pressed="true"] {
+  background: var(--lp-accent-soft);
+  color: var(--lp-accent-dark);
+}
+.topbar-divider {
+  display: none;
+  width: 1px;
+  height: 22px;
+  background: var(--lp-border);
+}
+@media (min-width: 769px) {
+  .topbar-theme {
+    display: flex;
+  }
+  .topbar-divider {
+    display: block;
+  }
+}
+
 .topbar-user {
   display: flex;
   align-items: center;
@@ -761,6 +817,10 @@ body {
   font-family: var(--lp-font-display);
   font-size: 0.7rem;
   font-weight: 700;
+}
+.topbar-user__avatar .lp-nav-svg {
+  width: 16px;
+  height: 16px;
 }
 .topbar-user__chev {
   font-size: 0.7rem;

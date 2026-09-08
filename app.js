@@ -1519,10 +1519,13 @@ function setupNavigation() {
 
     return function syncTopbarUser(user) {
       if (!initialsEl) return;
-      const initials = user && user.name
-        ? user.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
-        : '?';
-      initialsEl.textContent = initials;
+      if (user && user.name) {
+        initialsEl.textContent = user.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+      } else if (window.LpNavIcons) {
+        window.LpNavIcons.set(initialsEl, 'user');
+      } else {
+        initialsEl.textContent = '';
+      }
       btn.setAttribute('aria-label', user ? `${user.name} — cuenta` : 'Cuenta');
       if (nameLabel) nameLabel.textContent = user ? user.name : 'Invitado';
       if (loginItem) loginItem.hidden = !!user?.isSupabaseUser;
@@ -1565,6 +1568,8 @@ function setupNavigation() {
 
 function setupTheme() {
   const toggles = document.querySelectorAll('.theme-toggle');
+  const lightBtn = document.getElementById('topbarThemeLightBtn');
+  const darkBtn = document.getElementById('topbarThemeDarkBtn');
   const update = () => {
     const isDark = document.documentElement.dataset.theme === 'dark';
     toggles.forEach((toggle) => {
@@ -1574,21 +1579,28 @@ function setupTheme() {
       if (label) label.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
       toggle.setAttribute('aria-label', isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro');
     });
+    if (lightBtn) lightBtn.setAttribute('aria-pressed', String(!isDark));
+    if (darkBtn) darkBtn.setAttribute('aria-pressed', String(isDark));
   };
 
-  toggles.forEach((toggle) => toggle.addEventListener('click', () => {
-    if (window.LPTheme) {
-      window.LPTheme.toggleTheme();
-    } else {
+  const applyExplicit = (theme) => {
+    if (window.LPTheme) window.LPTheme.applyTheme(theme, { transition: true });
+    else {
       document.documentElement.classList.add('theme-transitioning');
-      const newTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-      if (newTheme === 'dark') document.documentElement.dataset.theme = 'dark';
+      if (theme === 'dark') document.documentElement.dataset.theme = 'dark';
       else document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('lp-theme', newTheme);
+      localStorage.setItem('lp-theme', theme);
       setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 200);
     }
     update();
+  };
+
+  toggles.forEach((toggle) => toggle.addEventListener('click', () => {
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    applyExplicit(isDark ? 'light' : 'dark');
   }));
+  lightBtn?.addEventListener('click', () => applyExplicit('light'));
+  darkBtn?.addEventListener('click', () => applyExplicit('dark'));
   update();
 }
 
