@@ -2,10 +2,11 @@
  * LP Dev Tools — recompile / clear cache / screen info panel. Gated behind
  * the shared "Modo Desarrollo" flag that FluentFlow's Advanced settings
  * writes to the `settings-storage` localStorage key (see
- * lp-fluentflow-settings.js) — same origin in prod and local dev, so toggling
- * it once in FluentFlow reveals this section here too. Lives inside the
- * static #settingsOverlay markup (see #settingsSectionDev in index.html);
- * this module only wires up the toggles and actions.
+ * lp-fluentflow-settings.js in FluentFlow) — same origin in prod and local
+ * dev, so toggling it once in FluentFlow reveals this section here too.
+ * Es compartido por las apps vanilla: el markup de #settingsSectionDev lo
+ * aporta cada app (index.html estático o plantilla del player); este módulo
+ * solo cablea los toggles y las acciones cuando ese markup existe en el DOM.
  *
  *   lpDevTools.updateSectionVisibility()
  */

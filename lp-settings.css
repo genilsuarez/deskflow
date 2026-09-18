@@ -33,8 +33,8 @@
 }
 .lp-settings-section[hidden] { display: none; }
 .lp-settings-section__title { margin: 3px 6px 1px; color: var(--lp-muted); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
-.lp-settings-section .nav-item { font-size: 0.86rem; min-height: 32px; padding: 5px 10px; }
-.lp-settings-section .nav-icon { color: var(--lp-accent); }
+.lp-settings-section :is(.nav-item, .sb-item, .unified-nav-item) { font-size: 0.86rem; min-height: 32px; padding: 5px 10px; }
+.lp-settings-section :is(.nav-icon, .sb-icon, .unified-nav-icon) { color: var(--lp-accent); }
 @keyframes settingsFadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes settingsSlideUp { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @media (prefers-reduced-motion: reduce) { .lp-settings-overlay, .lp-settings-modal { animation: none; } }
