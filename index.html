@@ -63,30 +63,34 @@
       <button class="lp-icon-btn" id="menuToggle" type="button" aria-label="Abrir navegación" aria-controls="sidebar" aria-expanded="false"><span data-lp-icon="menu" aria-hidden="true"></span></button>
       <a class="mobile-header__brand" href="#resumen" data-view-link="resumen" aria-label="Ir al resumen de LearnFlow">Learn<em>Flow</em></a>
       <div class="topbar-actions">
-        <button class="lp-icon-btn topbar-help" type="button" id="mobileHelpBtn" aria-label="Ayuda">?</button>
-        <div class="topbar-user-menu" id="mobileUserMenu">
-          <button class="topbar-user" type="button" id="mobileUserBtn" aria-haspopup="true" aria-expanded="false" aria-controls="mobileUserDropdown">
-            <span class="topbar-user__avatar" id="mobileUserInitials" aria-hidden="true">?</span>
-            <span class="topbar-user__chev" aria-hidden="true">⌄</span>
-          </button>
-          <div class="topbar-user__dropdown" id="mobileUserDropdown" role="menu" aria-label="Cuenta" hidden>
-            <p class="topbar-user__dropdown-name" id="mobileUserNameLabel">Invitado</p>
-            <button class="topbar-user__item" type="button" id="mobileUserSettingsItem" role="menuitem">
-              <span class="nav-icon" data-lp-icon="settings" aria-hidden="true"></span>
-              <span>Ajustes</span>
+        <div class="topbar-toolbar">
+          <button class="lp-icon-btn topbar-help" type="button" id="mobileHelpBtn" aria-label="Ayuda">?</button>
+          <span class="topbar-divider" aria-hidden="true"></span>
+          <div class="topbar-theme" id="mobileThemeSwitch" role="group" aria-label="Tema">
+            <button class="topbar-theme__btn" type="button" data-theme-choice="light" aria-label="Tema claro" aria-pressed="false"><span class="nav-icon" data-lp-icon="sun" aria-hidden="true"></span></button>
+            <button class="topbar-theme__btn" type="button" data-theme-choice="dark" aria-label="Tema oscuro" aria-pressed="false"><span class="nav-icon" data-lp-icon="moon" aria-hidden="true"></span></button>
+          </div>
+          <span class="topbar-divider" aria-hidden="true"></span>
+          <div class="topbar-user-menu" id="mobileUserMenu">
+            <button class="topbar-user" type="button" id="mobileUserBtn" aria-haspopup="true" aria-expanded="false" aria-controls="mobileUserDropdown">
+              <span class="topbar-user__avatar" id="mobileUserInitials" aria-hidden="true">?</span>
+              <span class="topbar-user__chev" aria-hidden="true">⌄</span>
             </button>
-            <button class="topbar-user__item theme-toggle" type="button" role="menuitem">
-              <span class="nav-icon" aria-hidden="true"></span>
-              <span class="theme-toggle__label">Modo oscuro</span>
-            </button>
-            <button class="topbar-user__item" type="button" id="mobileUserLoginItem" role="menuitem" hidden>
-              <span class="nav-icon" data-lp-icon="user" aria-hidden="true"></span>
-              <span>Iniciar sesión</span>
-            </button>
-            <button class="topbar-user__item topbar-user__item--danger" type="button" id="mobileUserLogoutItem" role="menuitem" hidden>
-              <span class="nav-icon" data-lp-icon="arrow-left" aria-hidden="true"></span>
-              <span>Cerrar sesión</span>
-            </button>
+            <div class="topbar-user__dropdown" id="mobileUserDropdown" role="menu" aria-label="Cuenta" hidden>
+              <p class="topbar-user__dropdown-name" id="mobileUserNameLabel">Invitado</p>
+              <button class="topbar-user__item" type="button" id="mobileUserSettingsItem" role="menuitem">
+                <span class="nav-icon" data-lp-icon="settings" aria-hidden="true"></span>
+                <span>Ajustes</span>
+              </button>
+              <button class="topbar-user__item" type="button" id="mobileUserLoginItem" role="menuitem" hidden>
+                <span class="nav-icon" data-lp-icon="user" aria-hidden="true"></span>
+                <span>Iniciar sesión</span>
+              </button>
+              <button class="topbar-user__item topbar-user__item--danger" type="button" id="mobileUserLogoutItem" role="menuitem" hidden>
+                <span class="nav-icon" data-lp-icon="arrow-left" aria-hidden="true"></span>
+                <span>Cerrar sesión</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -132,31 +136,34 @@
           <svg class="topbar-credits__icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.9 6.06 6.6.77-4.86 4.6 1.25 6.57L12 17.5l-5.9 3 1.25-6.57-4.86-4.6 6.6-.77L12 2.5Z"/></svg>
           <span><strong id="topbarCreditsValue">0</strong> disponibles</span>
         </div>
-        <button class="lp-icon-btn topbar-help" type="button" id="topbarHelpBtn" aria-label="Ayuda">?</button>
-        <div class="topbar-theme" id="topbarThemeSwitch" role="group" aria-label="Tema">
-          <button class="topbar-theme__btn" type="button" id="topbarThemeLightBtn" aria-label="Tema claro" aria-pressed="false"><span class="nav-icon" data-lp-icon="sun" aria-hidden="true"></span></button>
-          <button class="topbar-theme__btn" type="button" id="topbarThemeDarkBtn" aria-label="Tema oscuro" aria-pressed="false"><span class="nav-icon" data-lp-icon="moon" aria-hidden="true"></span></button>
-        </div>
-        <span class="topbar-divider" aria-hidden="true"></span>
-        <div class="topbar-user-menu" id="topbarUserMenu">
-          <button class="topbar-user" type="button" id="topbarUserBtn" aria-haspopup="true" aria-expanded="false" aria-controls="topbarUserDropdown">
-            <span class="topbar-user__avatar" id="topbarUserInitials" aria-hidden="true">?</span>
-            <span class="topbar-user__chev" aria-hidden="true">⌄</span>
-          </button>
-          <div class="topbar-user__dropdown" id="topbarUserDropdown" role="menu" aria-label="Cuenta" hidden>
-            <p class="topbar-user__dropdown-name" id="topbarUserNameLabel">Invitado</p>
-            <button class="topbar-user__item" type="button" id="topbarUserSettingsItem" role="menuitem">
-              <span class="nav-icon" data-lp-icon="settings" aria-hidden="true"></span>
-              <span>Ajustes</span>
+        <div class="topbar-toolbar">
+          <button class="lp-icon-btn topbar-help" type="button" id="topbarHelpBtn" aria-label="Ayuda">?</button>
+          <span class="topbar-divider" aria-hidden="true"></span>
+          <div class="topbar-theme" id="topbarThemeSwitch" role="group" aria-label="Tema">
+            <button class="topbar-theme__btn" type="button" data-theme-choice="light" aria-label="Tema claro" aria-pressed="false"><span class="nav-icon" data-lp-icon="sun" aria-hidden="true"></span></button>
+            <button class="topbar-theme__btn" type="button" data-theme-choice="dark" aria-label="Tema oscuro" aria-pressed="false"><span class="nav-icon" data-lp-icon="moon" aria-hidden="true"></span></button>
+          </div>
+          <span class="topbar-divider" aria-hidden="true"></span>
+          <div class="topbar-user-menu" id="topbarUserMenu">
+            <button class="topbar-user" type="button" id="topbarUserBtn" aria-haspopup="true" aria-expanded="false" aria-controls="topbarUserDropdown">
+              <span class="topbar-user__avatar" id="topbarUserInitials" aria-hidden="true">?</span>
+              <span class="topbar-user__chev" aria-hidden="true">⌄</span>
             </button>
-            <button class="topbar-user__item" type="button" id="topbarUserLoginItem" role="menuitem" hidden>
-              <span class="nav-icon" data-lp-icon="user" aria-hidden="true"></span>
-              <span>Iniciar sesión</span>
-            </button>
-            <button class="topbar-user__item topbar-user__item--danger" type="button" id="topbarUserLogoutItem" role="menuitem" hidden>
-              <span class="nav-icon" data-lp-icon="arrow-left" aria-hidden="true"></span>
-              <span>Cerrar sesión</span>
-            </button>
+            <div class="topbar-user__dropdown" id="topbarUserDropdown" role="menu" aria-label="Cuenta" hidden>
+              <p class="topbar-user__dropdown-name" id="topbarUserNameLabel">Invitado</p>
+              <button class="topbar-user__item" type="button" id="topbarUserSettingsItem" role="menuitem">
+                <span class="nav-icon" data-lp-icon="settings" aria-hidden="true"></span>
+                <span>Ajustes</span>
+              </button>
+              <button class="topbar-user__item" type="button" id="topbarUserLoginItem" role="menuitem" hidden>
+                <span class="nav-icon" data-lp-icon="user" aria-hidden="true"></span>
+                <span>Iniciar sesión</span>
+              </button>
+              <button class="topbar-user__item topbar-user__item--danger" type="button" id="topbarUserLogoutItem" role="menuitem" hidden>
+                <span class="nav-icon" data-lp-icon="arrow-left" aria-hidden="true"></span>
+                <span>Cerrar sesión</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

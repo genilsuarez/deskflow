@@ -723,24 +723,42 @@ body {
   color: var(--lp-ink);
 }
 
-.topbar-help {
-  font-weight: 700;
-  font-size: 0.86rem;
-}
-
-/* Interruptor sol/luna segmentado — solo desktop; en mobile el tema vive
-   dentro del menú de cuenta para no sumar un botón más a una barra angosta. */
-.topbar-theme {
-  display: none;
+/* Ayuda + tema + cuenta comparten UN solo pill (borde/fondo/sombra únicos)
+   en vez de tres chips separados — mismo espíritu "ghost" que ya usaba el
+   ☰ de mobile, para que la barra no se sienta recargada de círculos. */
+.topbar-toolbar {
+  display: flex;
   align-items: center;
-  gap: 2px;
   height: var(--lp-navbtn-size);
   padding: 3px;
+  gap: 1px;
   box-sizing: border-box;
   border: 1px solid var(--lp-border);
   border-radius: var(--lp-radius-full);
   background: var(--lp-surface);
   box-shadow: var(--lp-shadow-xs);
+}
+
+.topbar-toolbar .topbar-help {
+  width: calc(var(--lp-navbtn-size) - 8px);
+  height: calc(var(--lp-navbtn-size) - 8px);
+  border: none;
+  background: none;
+  box-shadow: none;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+.topbar-toolbar .topbar-help:hover {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--lp-ink) 6%, transparent);
+  box-shadow: none;
+  transform: none;
+}
+
+.topbar-theme {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 .topbar-theme__btn {
   display: grid;
@@ -771,37 +789,30 @@ body {
   box-shadow: var(--lp-shadow-xs);
 }
 .topbar-divider {
-  display: none;
+  display: block;
   width: 1px;
-  height: 22px;
+  height: 20px;
+  margin: 0 2px;
   background: var(--lp-border);
-}
-@media (min-width: 769px) {
-  .topbar-theme {
-    display: flex;
-  }
-  .topbar-divider {
-    display: block;
-  }
+  flex-shrink: 0;
 }
 
 .topbar-user {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: var(--lp-navbtn-size);
-  padding: 0 10px 0 4px;
+  height: calc(var(--lp-navbtn-size) - 6px);
+  padding: 0 8px 0 2px;
   box-sizing: border-box;
-  border: 1px solid var(--lp-border);
+  border: none;
+  background: none;
+  box-shadow: none;
   border-radius: var(--lp-radius-full);
-  background: var(--lp-surface);
-  box-shadow: var(--lp-shadow-xs);
   cursor: pointer;
-  transition: border-color 0.15s var(--lp-ease), box-shadow 0.15s var(--lp-ease);
+  transition: background 0.15s var(--lp-ease);
 }
 .topbar-user:hover {
-  border-color: var(--lp-border-strong);
-  box-shadow: var(--lp-shadow-sm);
+  background: color-mix(in srgb, var(--lp-ink) 6%, transparent);
 }
 .topbar-user:focus-visible {
   outline: 2px solid var(--lp-accent);
@@ -2706,6 +2717,24 @@ body {
     margin-bottom: 0;
   }
 
+  #view-actividad .filter-row--status {
+    flex-shrink: 0;
+  }
+
+  /* La tarjeta es un contenedor flex acotado (overflow:hidden) — sin esto
+     la lista solo crecía y quedaba recortada en vez de scrollear. */
+  #view-actividad .activity-groups {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 19px;
+  }
+
+  #view-actividad .activity-footer {
+    flex-shrink: 0;
+    margin: 0 19px 14px;
+  }
+
   .detail-activity__header {
     margin-bottom: 10px;
     padding-bottom: 10px;
@@ -3146,19 +3175,6 @@ body {
 
 @media (min-width: 640px) {
   .activity-row__status { display: inline-flex; }
-}
-
-@media (min-width: 769px) {
-  #view-actividad .activity-feed-card {
-    display: block;
-    overflow: visible;
-    flex: none;
-    padding: 20px;
-  }
-  #view-actividad .activity-feed-card__toolbar {
-    padding: 0 0 12px;
-    border-bottom: none;
-  }
 }
 
 /* ─── MAIN FOOTER ─── */

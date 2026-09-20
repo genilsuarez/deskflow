@@ -1568,8 +1568,7 @@ function setupNavigation() {
 
 function setupTheme() {
   const toggles = document.querySelectorAll('.theme-toggle');
-  const lightBtn = document.getElementById('topbarThemeLightBtn');
-  const darkBtn = document.getElementById('topbarThemeDarkBtn');
+  const choiceBtns = document.querySelectorAll('[data-theme-choice]');
   const update = () => {
     const isDark = document.documentElement.dataset.theme === 'dark';
     toggles.forEach((toggle) => {
@@ -1579,8 +1578,10 @@ function setupTheme() {
       if (label) label.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
       toggle.setAttribute('aria-label', isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro');
     });
-    if (lightBtn) lightBtn.setAttribute('aria-pressed', String(!isDark));
-    if (darkBtn) darkBtn.setAttribute('aria-pressed', String(isDark));
+    choiceBtns.forEach((btn) => {
+      const pressed = btn.dataset.themeChoice === (isDark ? 'dark' : 'light');
+      btn.setAttribute('aria-pressed', String(pressed));
+    });
   };
 
   const applyExplicit = (theme) => {
@@ -1599,8 +1600,7 @@ function setupTheme() {
     const isDark = document.documentElement.dataset.theme === 'dark';
     applyExplicit(isDark ? 'light' : 'dark');
   }));
-  lightBtn?.addEventListener('click', () => applyExplicit('light'));
-  darkBtn?.addEventListener('click', () => applyExplicit('dark'));
+  choiceBtns.forEach((btn) => btn.addEventListener('click', () => applyExplicit(btn.dataset.themeChoice)));
   update();
 }
 
