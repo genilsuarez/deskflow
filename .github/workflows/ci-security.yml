@@ -1,0 +1,61 @@
+name: CI Security
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high --omit=dev
+
+      # Código que ejecuta texto como código. Se excluye vendor/ y *.min.js
+      # (bundles de terceros) y tests/. `$eval(` de Playwright no cuenta.
+      - name: Security patterns check
+        run: |
+          HITS=$(git ls-files '*.js' '*.mjs' \
+            | grep -vE '(^|/)vendor/|\.min\.js$|^tests/' \
+            | xargs -r grep -nE '(^|[^$.[:alnum:]_])eval\(|new Function\(|document\.write\(' \
+            || true)
+          if [ -n "$HITS" ]; then
+            echo "🚨 eval()/new Function()/document.write() encontrado:"
+            echo "$HITS"
+            exit 1
+          fi
+          echo "✅ Sin eval/new Function/document.write"
+
+      - name: Secret scan with TruffleHog
+        uses: trufflesecurity/trufflehog@v3.97.5
+        with:
+          path: ./
+          # En push se escanea solo el rango nuevo; en cron/PR/manual, el HEAD.
+          base: ${{ github.event_name == 'push' && github.event.before || '' }}
+          head: ${{ github.sha }}
+          extra_args: --only-verified

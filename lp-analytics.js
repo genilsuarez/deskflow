@@ -13,6 +13,12 @@
 // window.lpTrack(eventName, params) queda disponible para eventos custom del embudo
 // de onboarding (Fase D.2) sin acoplar analítica al schema de progreso de Supabase.
 //
+// Errores no capturados: 'error' y 'unhandledrejection' se reportan como el evento
+// recomendado `exception` de GA4 (description, fatal). Sin esto un fallo de sync o de
+// render en producción solo se entera cuando alguien avisa. Solo mensaje + origen +
+// línea (sin stack, sin query string, sin datos de usuario), tope de 5 por carga y sin
+// repetir el mismo error, para no inundar la cuota de eventos de un bucle roto.
+//
 // user_id: cuando hay sesión, se manda a GA4 (gtag('set', {user_id})) para que las
 // sesiones de la MISMA cuenta en distintos navegadores/dispositivos se cuenten como un
 // solo usuario en vez de uno por client_id — ver
@@ -92,4 +98,43 @@ const MEASUREMENT_ID = 'G-YESJSS2XQF';
   window.lpTrack = function (eventName, params) {
     gtag('event', eventName, params || {});
   };
+
+  var MAX_ERRORS = 5;
+  var reported = {};
+  var reportedCount = 0;
+  // Ruido que no es un bug de la app: extensiones del navegador, errores
+  // cross-origin opacos ("Script error.") y el aviso benigno de ResizeObserver.
+  var IGNORE = /^Script error\.?$|ResizeObserver loop|chrome-extension:|moz-extension:|safari-extension:/;
+
+  function cleanSource(src) {
+    if (!src) return '';
+    return String(src).replace(/^https?:\/\/[^/]+/, '').replace(/[?#].*$/, '');
+  }
+
+  window.lpReportError = function (message, source, line, fatal) {
+    try {
+      var text = String(message == null ? '' : message);
+      var where = cleanSource(source);
+      if (IGNORE.test(text) || IGNORE.test(String(source || ''))) return;
+      var key = text + '|' + where + '|' + line;
+      if (reported[key] || reportedCount >= MAX_ERRORS) return;
+      reported[key] = true;
+      reportedCount++;
+      var description = (text + (where ? ' @ ' + where + (line ? ':' + line : '') : '')).slice(0, 100);
+      gtag('event', 'exception', { description: description, fatal: !!fatal });
+    } catch (e) {
+      /* el reporte nunca debe romper la app */
+    }
+  };
+
+  window.addEventListener('error', function (event) {
+    // Los errores de carga de recursos (img/script) llegan sin `message`: no se reportan.
+    if (!event.message) return;
+    window.lpReportError(event.message, event.filename, event.lineno, true);
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    var reason = event.reason;
+    var message = reason && reason.message ? reason.message : reason;
+    window.lpReportError('unhandledrejection: ' + message, '', 0, false);
+  });
 })();
