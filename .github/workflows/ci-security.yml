@@ -52,7 +52,7 @@ jobs:
           echo "✅ Sin eval/new Function/document.write"
 
       - name: Secret scan with TruffleHog
-        uses: trufflesecurity/trufflehog@v3.97.5
+        uses: trufflesecurity/trufflehog@v3.99.7
         with:
           path: ./
           # En push se escanea solo el rango nuevo; en cron/PR/manual, el HEAD.
